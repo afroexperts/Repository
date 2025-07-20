@@ -371,7 +371,7 @@ const Home = () => {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {mockData.testimonials.map((testimonial) => (
+            {testimonials.map((testimonial) => (
               <Card key={testimonial.id} className="bg-white/10 border-white/20 text-white backdrop-blur-sm">
                 <CardHeader>
                   <div className="flex items-center justify-between mb-4">
@@ -390,6 +390,12 @@ const Home = () => {
                 </CardHeader>
                 <CardContent>
                   <p className="text-gray-200 italic">"{testimonial.message}"</p>
+                  {testimonial.verified && (
+                    <Badge className="mt-3 bg-green-500 text-white">
+                      <CheckCircle className="w-3 h-3 mr-1" />
+                      Verified
+                    </Badge>
+                  )}
                 </CardContent>
               </Card>
             ))}
