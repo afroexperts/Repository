@@ -199,9 +199,19 @@ const Contact = () => {
                     type="submit" 
                     size="lg" 
                     className="w-full bg-[#3b8ea4] hover:bg-[#0c4864] text-white"
+                    disabled={isSubmitting}
                   >
-                    <Send className="mr-2 h-4 w-4" />
-                    Send Message
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="mr-2 h-4 w-4" />
+                        Send Message
+                      </>
+                    )}
                   </Button>
                 </form>
               </CardContent>
