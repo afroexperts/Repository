@@ -413,8 +413,20 @@ const Home = () => {
             Join thousands of African businesses already connected to the global digital economy through our innovative solutions.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" className="bg-white text-[#0c4864] hover:bg-gray-100 px-8 py-3 text-lg font-semibold">
-              Get Started Today
+            <Button 
+              size="lg" 
+              className="bg-white text-[#0c4864] hover:bg-gray-100 px-8 py-3 text-lg font-semibold"
+              onClick={handleQuoteRequest}
+              disabled={isQuoteLoading}
+            >
+              {isQuoteLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                "Get Started Today"
+              )}
             </Button>
             <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-[#0c4864] px-8 py-3 text-lg font-semibold">
               Schedule Consultation
