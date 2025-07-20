@@ -33,30 +33,47 @@ const Contact = () => {
     service: "",
     message: ""
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
     
-    // Mock form submission
-    toast({
-      title: "Message Sent Successfully!",
-      description: "We'll get back to you within 24 hours.",
-      duration: 5000,
-    });
-    
-    // Reset form
-    setFormData({
-      name: "",
-      email: "",
-      phone: "",
-      country: "",
-      service: "",
-      message: ""
-    });
+    try {
+      const response = await axios.post(`${API}/contact/submit`, formData);
+      
+      if (response.data.success) {
+        toast({
+          title: "Message Sent Successfully!",
+          description: response.data.message,
+          duration: 5000,
+        });
+        
+        // Reset form
+        setFormData({
+          name: "",
+          email: "",
+          phone: "",
+          country: "",
+          service: "",
+          message: ""
+        });
+      }
+    } catch (error) {
+      const errorMessage = error.response?.data?.detail || "Failed to send message. Please try again.";
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+        duration: 5000,
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
