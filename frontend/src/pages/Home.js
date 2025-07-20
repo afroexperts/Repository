@@ -29,6 +29,11 @@ const API = `${BACKEND_URL}/api`;
 
 const Home = () => {
   const [selectedPlan, setSelectedPlan] = useState("business");
+  const [impactStats, setImpactStats] = useState(mockData.impact.stats);
+  const [testimonials, setTestimonials] = useState(mockData.testimonials);
+  const [isQuoteLoading, setIsQuoteLoading] = useState(false);
+  const [isStarlinkLoading, setIsStarlinkLoading] = useState(false);
+  const { toast } = useToast();
 
   const iconComponents = {
     Globe,
@@ -39,6 +44,74 @@ const Home = () => {
     Camera,
     Server,
     Headphones
+  };
+
+  // Fetch dynamic data on component mount
+  useEffect(() => {
+    const fetchDynamicData = async () => {
+      try {
+        // Fetch impact stats
+        const statsResponse = await axios.get(`${API}/stats/impact`);
+        if (statsResponse.data) {
+          const stats = statsResponse.data;
+          setImpactStats([
+            { number: `${stats.communities_connected}+`, label: "Communities Connected" },
+            { number: `${stats.businesses_served}+`, label: "Businesses Served" },
+            { number: `${stats.people_online}+`, label: "People Online" },
+            { number: stats.countries_active.toString(), label: "Countries Active" }
+          ]);
+        }
+
+        // Fetch testimonials
+        const testimonialsResponse = await axios.get(`${API}/content/testimonials`);
+        if (testimonialsResponse.data?.testimonials) {
+          setTestimonials(testimonialsResponse.data.testimonials);
+        }
+      } catch (error) {
+        console.log("Using mock data due to API error:", error.message);
+        // Continue using mock data if API fails
+      }
+    };
+
+    fetchDynamicData();
+  }, []);
+
+  const handleQuoteRequest = async () => {
+    setIsQuoteLoading(true);
+    try {
+      // In a real app, you might collect user email first
+      // For now, we'll show a success message and redirect to contact
+      toast({
+        title: "Quote Request",
+        description: "Please fill out the contact form to receive your personalized quote.",
+        duration: 4000,
+      });
+      
+      // Redirect to contact page after a short delay
+      setTimeout(() => {
+        window.location.href = '/contact';
+      }, 1500);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Please try again or contact us directly.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsQuoteLoading(false);
+    }
+  };
+
+  const handleStarlinkProducts = async () => {
+    setIsStarlinkLoading(true);
+    try {
+      // Redirect to products page
+      setTimeout(() => {
+        window.location.href = '/products';
+      }, 500);
+    } finally {
+      setIsStarlinkLoading(false);
+    }
   };
 
   return (
