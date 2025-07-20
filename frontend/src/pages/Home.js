@@ -134,12 +134,39 @@ const Home = () => {
             {mockData.hero.description}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" className="bg-[#66cadb] hover:bg-[#3b8ea4] text-white px-8 py-3 text-lg font-semibold transition-all duration-300 transform hover:scale-105">
-              Explore Starlink Products
-              <ArrowRight className="ml-2 h-5 w-5" />
+            <Button 
+              size="lg" 
+              className="bg-[#66cadb] hover:bg-[#3b8ea4] text-white px-8 py-3 text-lg font-semibold transition-all duration-300 transform hover:scale-105"
+              onClick={handleStarlinkProducts}
+              disabled={isStarlinkLoading}
+            >
+              {isStarlinkLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  Loading...
+                </>
+              ) : (
+                <>
+                  Explore Starlink Products
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </>
+              )}
             </Button>
-            <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-[#0c4864] px-8 py-3 text-lg font-semibold transition-all duration-300">
-              Get a Quote
+            <Button 
+              size="lg" 
+              variant="outline" 
+              className="border-white text-white hover:bg-white hover:text-[#0c4864] px-8 py-3 text-lg font-semibold transition-all duration-300"
+              onClick={handleQuoteRequest}
+              disabled={isQuoteLoading}
+            >
+              {isQuoteLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                "Get a Quote"
+              )}
             </Button>
           </div>
         </div>
