@@ -323,7 +323,7 @@ const Home = () => {
 
           {/* Stats */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
-            {mockData.impact.stats.map((stat, index) => (
+            {impactStats.map((stat, index) => (
               <div key={index} className="text-center">
                 <div className="bg-[#66cadb] bg-opacity-10 rounded-full w-24 h-24 flex items-center justify-center mx-auto mb-4">
                   <span className="text-3xl font-bold text-[#0c4864]">{stat.number}</span>
