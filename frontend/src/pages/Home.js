@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
 import { Progress } from "../components/ui/progress";
+import { useToast } from "../hooks/use-toast";
+import axios from "axios";
 import { 
   Globe, 
   Zap, 
@@ -17,9 +19,13 @@ import {
   TrendingUp,
   CheckCircle,
   ArrowRight,
-  Star
+  Star,
+  Loader2
 } from "lucide-react";
 import { mockData } from "../mock";
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const API = `${BACKEND_URL}/api`;
 
 const Home = () => {
   const [selectedPlan, setSelectedPlan] = useState("business");
