@@ -6,6 +6,7 @@ import { Textarea } from "../components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { Badge } from "../components/ui/badge";
 import { useToast } from "../hooks/use-toast";
+import axios from "axios";
 import { 
   MapPin,
   Phone,
@@ -14,9 +15,13 @@ import {
   Clock,
   Send,
   CheckCircle,
-  Building
+  Building,
+  Loader2
 } from "lucide-react";
 import { mockData } from "../mock";
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const API = `${BACKEND_URL}/api`;
 
 const Contact = () => {
   const { toast } = useToast();
