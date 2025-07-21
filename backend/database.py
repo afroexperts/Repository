@@ -20,6 +20,10 @@ users_collection = None
 products_collection = None
 orders_collection = None
 clients_collection = None
+inventory_movements_collection = None
+pos_transactions_collection = None
+service_bookings_collection = None
+financial_transactions_collection = None
 
 # Service names mapping
 SERVICE_NAMES = {
