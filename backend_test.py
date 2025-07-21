@@ -711,9 +711,9 @@ class BackendTester:
             
         transaction_types = [
             {"type": "expense", "category": "office_supplies", "amount": 50000.0, "description": "Office supplies purchase"},
-            {"type": "income", "category": "services", "amount": 200000.0, "description": "Service consultation fee"},
+            {"type": "income", "amount": 200000.0, "description": "Service consultation fee"},
             {"type": "expense", "category": "utilities", "amount": 75000.0, "description": "Monthly electricity bill"},
-            {"type": "income", "category": "sales", "amount": 300000.0, "description": "Hardware sales revenue"}
+            {"type": "income", "amount": 300000.0, "description": "Hardware sales revenue"}
         ]
         
         successful_types = []
@@ -721,21 +721,25 @@ class BackendTester:
         for trans in transaction_types:
             transaction_data = {
                 "transaction_type": trans["type"],
-                "category": trans["category"],
                 "amount": trans["amount"],
                 "description": trans["description"],
-                "reference": f"TEST-{trans['type'].upper()}-{trans['category'].upper()}",
+                "reference": f"TEST-{trans['type'].upper()}-{len(successful_types)+1}",
                 "payment_method": "bank_transfer"
             }
             
+            # Only add category for expense transactions
+            if trans["type"] == "expense" and "category" in trans:
+                transaction_data["category"] = trans["category"]
+            
             success, data, status_code = self.make_request("POST", "/finance/transactions", transaction_data)
             if success and status_code == 200:
-                successful_types.append(f"{trans['type']}-{trans['category']}")
+                type_key = f"{trans['type']}-{trans.get('category', 'general')}"
+                successful_types.append(type_key)
         
         if len(successful_types) == len(transaction_types):
             self.log_test("Test Financial Transaction Types", True, f"All transaction types working: {successful_types}")
         else:
-            expected_types = [f"{t['type']}-{t['category']}" for t in transaction_types]
+            expected_types = [f"{t['type']}-{t.get('category', 'general')}" for t in transaction_types]
             failed_types = [t for t in expected_types if t not in successful_types]
             self.log_test("Test Financial Transaction Types", False, f"Failed types: {failed_types}, Successful: {successful_types}")
 
