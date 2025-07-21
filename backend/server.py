@@ -7,12 +7,15 @@ import logging
 from pathlib import Path
 from datetime import datetime
 
-# Import models and database manager
-from models import *
-from database import DatabaseManager
-
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
+
+# Import models and database manager
+from models import *
+from database import DatabaseManager, initialize_database
+
+# Initialize database after loading environment variables
+initialize_database()
 
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
