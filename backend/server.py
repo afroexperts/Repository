@@ -554,6 +554,208 @@ async def update_impact_stats(
             detail="Failed to update impact statistics"
         )
 
+# Inventory Management Endpoints
+@api_router.post("/inventory/movements", response_model=SuccessResponse)
+async def create_inventory_movement(
+    movement: InventoryMovementCreate,
+    current_user: User = Depends(require_role(["admin", "manager", "inventory_officer"]))
+):
+    """Create a new inventory movement"""
+    try:
+        movement_id = await DatabaseManager.create_inventory_movement(movement, current_user.id)
+        return SuccessResponse(
+            message="Inventory movement recorded successfully",
+            id=movement_id
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error(f"Error creating inventory movement: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create inventory movement"
+        )
+
+@api_router.get("/inventory/movements", response_model=List[InventoryMovement])
+async def get_inventory_movements(
+    product_id: Optional[str] = None,
+    limit: int = 100,
+    skip: int = 0,
+    current_user: User = Depends(require_auth)
+):
+    """Get inventory movements"""
+    try:
+        movements = await DatabaseManager.get_inventory_movements(product_id=product_id, limit=limit, skip=skip)
+        return movements
+    except Exception as e:
+        logger.error(f"Error fetching inventory movements: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to fetch inventory movements"
+        )
+
+# POS System Endpoints
+@api_router.post("/pos/transactions", response_model=SuccessResponse)
+async def create_pos_transaction(
+    transaction: POSTransactionCreate,
+    current_user: User = Depends(require_role(["admin", "manager", "cashier"]))
+):
+    """Create a new POS transaction"""
+    try:
+        transaction_id = await DatabaseManager.create_pos_transaction(transaction, current_user.id)
+        return SuccessResponse(
+            message="Transaction processed successfully",
+            id=transaction_id
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error(f"Error creating POS transaction: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to process transaction"
+        )
+
+@api_router.get("/pos/transactions", response_model=List[POSTransaction])
+async def get_pos_transactions(
+    limit: int = 100,
+    skip: int = 0,
+    current_user: User = Depends(require_auth)
+):
+    """Get POS transactions"""
+    try:
+        transactions = await DatabaseManager.get_pos_transactions(limit=limit, skip=skip)
+        return transactions
+    except Exception as e:
+        logger.error(f"Error fetching POS transactions: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to fetch transactions"
+        )
+
+# Service Booking Endpoints
+@api_router.post("/services/bookings", response_model=SuccessResponse)
+async def create_service_booking(
+    booking: ServiceBookingCreate,
+    current_user: User = Depends(require_role(["admin", "manager", "technician"]))
+):
+    """Create a new service booking"""
+    try:
+        booking_id = await DatabaseManager.create_service_booking(booking)
+        return SuccessResponse(
+            message="Service booking created successfully",
+            id=booking_id
+        )
+    except Exception as e:
+        logger.error(f"Error creating service booking: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create service booking"
+        )
+
+@api_router.get("/services/bookings", response_model=List[ServiceBooking])
+async def get_service_bookings(
+    status: Optional[str] = None,
+    limit: int = 100,
+    skip: int = 0,
+    current_user: User = Depends(require_auth)
+):
+    """Get service bookings"""
+    try:
+        bookings = await DatabaseManager.get_service_bookings(status=status, limit=limit, skip=skip)
+        return bookings
+    except Exception as e:
+        logger.error(f"Error fetching service bookings: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to fetch service bookings"
+        )
+
+@api_router.put("/services/bookings/{booking_id}", response_model=SuccessResponse)
+async def update_service_booking(
+    booking_id: str,
+    update_data: dict,
+    current_user: User = Depends(require_role(["admin", "manager", "technician"]))
+):
+    """Update service booking"""
+    try:
+        success = await DatabaseManager.update_service_booking(booking_id, update_data)
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Service booking not found"
+            )
+        return SuccessResponse(message="Service booking updated successfully")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating service booking: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update service booking"
+        )
+
+# Financial Management Endpoints
+@api_router.post("/finance/transactions", response_model=SuccessResponse)
+async def create_financial_transaction(
+    transaction: FinancialTransactionCreate,
+    current_user: User = Depends(require_role(["admin", "manager"]))
+):
+    """Create a new financial transaction"""
+    try:
+        transaction_id = await DatabaseManager.create_financial_transaction(transaction, current_user.id)
+        return SuccessResponse(
+            message="Financial transaction recorded successfully",
+            id=transaction_id
+        )
+    except Exception as e:
+        logger.error(f"Error creating financial transaction: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create financial transaction"
+        )
+
+@api_router.get("/finance/transactions", response_model=List[FinancialTransaction])
+async def get_financial_transactions(
+    transaction_type: Optional[str] = None,
+    limit: int = 100,
+    skip: int = 0,
+    current_user: User = Depends(require_role(["admin", "manager"]))
+):
+    """Get financial transactions"""
+    try:
+        transactions = await DatabaseManager.get_financial_transactions(transaction_type=transaction_type, limit=limit, skip=skip)
+        return transactions
+    except Exception as e:
+        logger.error(f"Error fetching financial transactions: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to fetch financial transactions"
+        )
+
+@api_router.get("/finance/summary", response_model=FinancialSummary)
+async def get_financial_summary(
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None,
+    current_user: User = Depends(require_role(["admin", "manager"]))
+):
+    """Get financial summary"""
+    try:
+        summary = await DatabaseManager.get_financial_summary(start_date=start_date, end_date=end_date)
+        return summary
+    except Exception as e:
+        logger.error(f"Error fetching financial summary: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to fetch financial summary"
+        )
+
 # Include the router in the main app
 app.include_router(api_router)
 
