@@ -238,10 +238,118 @@ const Layout = ({ children }) => {
     }
   };
 
+  const handleMenuEnter = (menuKey) => {
+    setActiveMenu(menuKey);
+  };
+
+  const handleMenuLeave = () => {
+    setActiveMenu(null);
+  };
+
+  const renderMegaMenu = (menuKey) => {
+    const menuData = megaMenuData[menuKey];
+    if (!menuData) return null;
+
+    return (
+      <div 
+        className="absolute top-full left-0 w-screen bg-white shadow-2xl border-t border-gray-200 z-50"
+        onMouseEnter={() => setActiveMenu(menuKey)}
+        onMouseLeave={handleMenuLeave}
+      >
+        <div className="max-w-7xl mx-auto p-8">
+          {/* Menu Header */}
+          <div className="mb-8">
+            <h3 className="text-2xl font-bold text-[#0c4864] mb-2">{menuData.title}</h3>
+            <p className="text-gray-600">{menuData.subtitle}</p>
+          </div>
+
+          {/* Menu Sections */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {menuData.sections.map((section, sectionIndex) => (
+              <div key={sectionIndex}>
+                <h4 className="font-semibold text-[#0c4864] mb-4 text-lg">{section.title}</h4>
+                <div className="space-y-3">
+                  {section.items.map((item, itemIndex) => {
+                    const IconComponent = item.icon;
+                    return (
+                      <Link
+                        key={itemIndex}
+                        to={item.link}
+                        className={`block group p-3 rounded-lg hover:bg-gray-50 transition-colors ${
+                          item.featured ? 'bg-[#66cadb] bg-opacity-5 border border-[#66cadb] border-opacity-20' : ''
+                        }`}
+                        onClick={() => setActiveMenu(null)}
+                      >
+                        <div className="flex items-start space-x-3">
+                          <div className={`flex-shrink-0 p-2 rounded-lg ${
+                            item.featured 
+                              ? 'bg-[#66cadb] bg-opacity-10' 
+                              : 'bg-[#3b8ea4] bg-opacity-10 group-hover:bg-[#3b8ea4] group-hover:bg-opacity-20'
+                          }`}>
+                            <IconComponent className={`h-5 w-5 ${
+                              item.featured ? 'text-[#0c4864]' : 'text-[#3b8ea4]'
+                            }`} />
+                          </div>
+                          <div className="flex-grow">
+                            <div className="flex items-center justify-between">
+                              <h5 className="font-medium text-gray-900 group-hover:text-[#0c4864]">
+                                {item.title}
+                              </h5>
+                              {item.price && (
+                                <Badge className="bg-[#66cadb] text-white text-xs">
+                                  {item.price}
+                                </Badge>
+                              )}
+                              {item.featured && (
+                                <Badge className="bg-[#0c4864] text-white text-xs">
+                                  Featured
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-sm text-gray-600 mt-1">
+                              {item.description}
+                            </p>
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Call-to-Action */}
+          <div className="mt-8 pt-8 border-t border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="font-semibold text-[#0c4864] mb-1">Ready to get started?</h4>
+                <p className="text-gray-600 text-sm">Contact our experts for a personalized consultation.</p>
+              </div>
+              <div className="flex space-x-3">
+                <Button 
+                  size="sm" 
+                  className="bg-[#3b8ea4] hover:bg-[#0c4864] text-white"
+                  onClick={() => {
+                    setActiveMenu(null);
+                    window.location.href = '/contact';
+                  }}
+                >
+                  Get Quote
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b sticky top-0 z-50">
+      <header className="bg-white shadow-sm border-b sticky top-0 z-40 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
@@ -252,21 +360,121 @@ const Layout = ({ children }) => {
               <span className="font-bold text-xl text-[#0c4864]">Afro Experts</span>
             </Link>
 
-            {/* Desktop Navigation */}
-            <nav className="hidden lg:flex items-center space-x-8">
-              {mockData.navigation.map((item) => (
+            {/* Desktop Navigation with Mega Menu */}
+            <nav className="hidden lg:flex items-center space-x-8 relative">
+              <Link
+                to="/"
+                className={`font-medium transition-colors duration-200 ${
+                  isActive("/")
+                    ? "text-[#0c4864] border-b-2 border-[#3b8ea4]"
+                    : "text-gray-700 hover:text-[#3b8ea4]"
+                }`}
+              >
+                Home
+              </Link>
+              
+              <Link
+                to="/about"
+                className={`font-medium transition-colors duration-200 ${
+                  isActive("/about")
+                    ? "text-[#0c4864] border-b-2 border-[#3b8ea4]"
+                    : "text-gray-700 hover:text-[#3b8ea4]"
+                }`}
+              >
+                About Us
+              </Link>
+
+              {/* IT Services with Mega Menu */}
+              <div 
+                className="relative"
+                onMouseEnter={() => handleMenuEnter('services')}
+                onMouseLeave={handleMenuLeave}
+              >
                 <Link
-                  key={item.path}
-                  to={item.path}
-                  className={`font-medium transition-colors duration-200 ${
-                    isActive(item.path)
+                  to="/services"
+                  className={`font-medium transition-colors duration-200 flex items-center ${
+                    isActive("/services")
                       ? "text-[#0c4864] border-b-2 border-[#3b8ea4]"
                       : "text-gray-700 hover:text-[#3b8ea4]"
                   }`}
                 >
-                  {item.name}
+                  IT Services
+                  <ChevronDown className="ml-1 h-4 w-4" />
                 </Link>
-              ))}
+                {activeMenu === 'services' && renderMegaMenu('services')}
+              </div>
+
+              {/* IT Solutions with Mega Menu */}
+              <div 
+                className="relative"
+                onMouseEnter={() => handleMenuEnter('solutions')}
+                onMouseLeave={handleMenuLeave}
+              >
+                <Link
+                  to="/solutions"
+                  className={`font-medium transition-colors duration-200 flex items-center ${
+                    isActive("/solutions")
+                      ? "text-[#0c4864] border-b-2 border-[#3b8ea4]"
+                      : "text-gray-700 hover:text-[#3b8ea4]"
+                  }`}
+                >
+                  IT Solutions
+                  <ChevronDown className="ml-1 h-4 w-4" />
+                </Link>
+                {activeMenu === 'solutions' && renderMegaMenu('solutions')}
+              </div>
+
+              {/* Products with Mega Menu */}
+              <div 
+                className="relative"
+                onMouseEnter={() => handleMenuEnter('products')}
+                onMouseLeave={handleMenuLeave}
+              >
+                <Link
+                  to="/products"
+                  className={`font-medium transition-colors duration-200 flex items-center ${
+                    isActive("/products")
+                      ? "text-[#0c4864] border-b-2 border-[#3b8ea4]"
+                      : "text-gray-700 hover:text-[#3b8ea4]"
+                  }`}
+                >
+                  Products & Partners
+                  <ChevronDown className="ml-1 h-4 w-4" />
+                </Link>
+                {activeMenu === 'products' && renderMegaMenu('products')}
+              </div>
+
+              {/* ERP & POS System with Mega Menu */}
+              <div 
+                className="relative"
+                onMouseEnter={() => handleMenuEnter('erp-pos-system')}
+                onMouseLeave={handleMenuLeave}
+              >
+                <Link
+                  to="/erp-pos-system"
+                  className={`font-medium transition-colors duration-200 flex items-center ${
+                    isActive("/erp-pos-system")
+                      ? "text-[#0c4864] border-b-2 border-[#3b8ea4]"
+                      : "text-gray-700 hover:text-[#3b8ea4]"
+                  }`}
+                >
+                  ERP & POS System
+                  <ChevronDown className="ml-1 h-4 w-4" />
+                </Link>
+                {activeMenu === 'erp-pos-system' && renderMegaMenu('erp-pos-system')}
+              </div>
+
+              <Link
+                to="/contact"
+                className={`font-medium transition-colors duration-200 ${
+                  isActive("/contact")
+                    ? "text-[#0c4864] border-b-2 border-[#3b8ea4]"
+                    : "text-gray-700 hover:text-[#3b8ea4]"
+                }`}
+              >
+                Contact Us
+              </Link>
+
               <Button className="bg-[#3b8ea4] hover:bg-[#0c4864] text-white transition-all duration-300">
                 Get Quote
               </Button>
