@@ -3,6 +3,7 @@ from typing import List, Optional
 from datetime import datetime
 from enum import Enum
 import uuid
+import hashlib
 
 # Enums
 class CountryEnum(str, Enum):
@@ -44,7 +45,164 @@ class ServiceType(str, Enum):
     software = "software"
     other = "other"
 
-# Request Models
+class UserRole(str, Enum):
+    admin = "admin"
+    manager = "manager"
+    cashier = "cashier"
+    inventory_officer = "inventory_officer"
+    technician = "technician"
+
+class UserStatus(str, Enum):
+    active = "active"
+    inactive = "inactive"
+    suspended = "suspended"
+
+class OrderStatus(str, Enum):
+    pending = "pending"
+    processing = "processing"
+    shipped = "shipped"
+    delivered = "delivered"
+    cancelled = "cancelled"
+
+class PaymentMethod(str, Enum):
+    cash = "cash"
+    card = "card"
+    mobile_money = "mobile_money"
+    bank_transfer = "bank_transfer"
+    afro_payi = "afro_payi"
+
+# User Authentication Models
+class UserCreate(BaseModel):
+    full_name: str = Field(..., min_length=2, max_length=100)
+    email: EmailStr
+    password: str = Field(..., min_length=6)
+    role: UserRole
+    phone: Optional[str] = Field(None, max_length=20)
+    department: Optional[str] = Field(None, max_length=50)
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+class User(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    full_name: str
+    email: EmailStr
+    password_hash: str
+    role: UserRole
+    status: UserStatus = UserStatus.active
+    phone: Optional[str]
+    department: Optional[str]
+    last_login: Optional[datetime] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: Optional[datetime] = None
+
+    def verify_password(self, password: str) -> bool:
+        return hashlib.sha256(password.encode()).hexdigest() == self.password_hash
+    
+    @staticmethod
+    def hash_password(password: str) -> str:
+        return hashlib.sha256(password.encode()).hexdigest()
+
+    class Config:
+        use_enum_values = True
+
+# Product Models
+class ProductCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=200)
+    category: str = Field(..., min_length=1, max_length=50)
+    description: Optional[str] = Field(None, max_length=1000)
+    price: float = Field(..., gt=0)
+    cost_price: Optional[float] = Field(None, ge=0)
+    sku: Optional[str] = Field(None, max_length=50)
+    unit: str = Field(default="pieces")
+    minimum_stock: int = Field(default=0, ge=0)
+    current_stock: int = Field(default=0, ge=0)
+    location: Optional[str] = Field(None, max_length=100)
+
+class Product(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    category: str
+    description: Optional[str]
+    price: float
+    cost_price: Optional[float]
+    sku: Optional[str]
+    unit: str
+    minimum_stock: int
+    current_stock: int
+    location: Optional[str]
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: Optional[datetime] = None
+
+# Order Models
+class OrderItemCreate(BaseModel):
+    product_id: str
+    quantity: int = Field(..., gt=0)
+    unit_price: float = Field(..., gt=0)
+
+class OrderItem(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    product_id: str
+    product_name: str
+    quantity: int
+    unit_price: float
+    total_price: float
+
+class OrderCreate(BaseModel):
+    client_name: str = Field(..., min_length=1, max_length=100)
+    client_email: Optional[EmailStr] = None
+    client_phone: Optional[str] = Field(None, max_length=20)
+    items: List[OrderItemCreate]
+    payment_method: PaymentMethod
+    notes: Optional[str] = Field(None, max_length=500)
+
+class Order(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    order_number: str
+    client_name: str
+    client_email: Optional[EmailStr]
+    client_phone: Optional[str]
+    items: List[OrderItem]
+    subtotal: float
+    tax_amount: float
+    total_amount: float
+    payment_method: PaymentMethod
+    status: OrderStatus = OrderStatus.pending
+    notes: Optional[str]
+    created_by: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        use_enum_values = True
+
+# Client Models
+class ClientCreate(BaseModel):
+    name: str = Field(..., min_length=2, max_length=100)
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = Field(None, max_length=20)
+    company: Optional[str] = Field(None, max_length=100)
+    address: Optional[str] = Field(None, max_length=200)
+    client_type: str = Field(default="individual")  # individual, business
+    credit_limit: float = Field(default=0, ge=0)
+
+class Client(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    email: Optional[EmailStr]
+    phone: Optional[str]
+    company: Optional[str]
+    address: Optional[str]
+    client_type: str
+    credit_limit: float
+    current_balance: float = Field(default=0)
+    total_orders: int = Field(default=0)
+    total_spent: float = Field(default=0)
+    last_order_date: Optional[datetime] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+# Existing models (keeping all previous models)
 class ContactSubmissionCreate(BaseModel):
     name: str = Field(..., min_length=2, max_length=100)
     email: EmailStr
@@ -85,7 +243,7 @@ class TestimonialCreate(BaseModel):
     rating: int = Field(..., ge=1, le=5)
     image_url: Optional[str] = None
 
-# Response Models
+# Response Models (keeping all existing ones and adding new)
 class ContactSubmission(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
@@ -192,3 +350,17 @@ class ImpactStatsResponse(BaseModel):
 
 class TestimonialsResponse(BaseModel):
     testimonials: List[Testimonial]
+
+class LoginResponse(BaseModel):
+    success: bool = True
+    message: str
+    user: User
+    token: Optional[str] = None
+
+class DashboardStatsResponse(BaseModel):
+    total_sales: float
+    monthly_growth: float
+    active_orders: int
+    low_stock_items: int
+    total_clients: int
+    pending_quotes: int
