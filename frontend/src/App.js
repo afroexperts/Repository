@@ -22,6 +22,7 @@ function App() {
             <Route path="/solutions" element={<Solutions />} />
             <Route path="/products" element={<Products />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/erp-pos-system" element={<ErpPosSystem />} />
           </Routes>
         </Layout>
         <Toaster />
