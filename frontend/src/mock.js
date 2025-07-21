@@ -134,19 +134,19 @@ export const mockData = {
     },
     {
       id: 3,
-      title: "Afro Experts POS System",
-      description: "Integrated point-of-sale solution designed for African retail businesses.",
-      price: "$299",
-      features: ["Touch Screen Terminal", "Receipt Printer", "Cash Drawer", "Inventory Management"],
-      category: "pos"
+      title: "Afro Experts ERP & POS System",
+      description: "Comprehensive business management system for multiple verticals including marble dust, IT services, second-hand products, and Starlink resale.",
+      price: "Custom Pricing",
+      features: ["15+ Core Modules", "Multi-Business Vertical Support", "Multi-Language & Currency", "Role-Based Access Control"],
+      category: "erp"
     },
     {
       id: 4,
-      title: "Afro Experts ERP Suite",
-      description: "Complete business management solution for growing African enterprises.",
-      price: "$999",
-      features: ["Financial Management", "HR Module", "Supply Chain", "Reporting Dashboard"],
-      category: "erp"
+      title: "Afro Experts POS Terminal",
+      description: "Standalone point-of-sale terminal with barcode scanning and multi-payment support.",
+      price: "$399",
+      features: ["Touch Screen Terminal", "Barcode Scanner", "Receipt Printer", "Multi-Payment Support"],
+      category: "pos"
     }
   ],
 
