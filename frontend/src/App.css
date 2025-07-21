@@ -14,6 +14,22 @@
   animation: fade-in 1s ease-out;
 }
 
+/* Mega menu animations */
+@keyframes mega-menu-slide {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.mega-menu-enter {
+  animation: mega-menu-slide 0.3s ease-out;
+}
+
 /* Smooth transitions for all interactive elements */
 button {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -21,6 +37,39 @@ button {
 
 button:hover {
   transform: translateY(-2px);
+}
+
+/* Navigation hover effects */
+nav a {
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+nav a::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: #3b8ea4;
+  transition: width 0.3s ease;
+}
+
+nav a:hover::after {
+  width: 100%;
+}
+
+/* Mega menu backdrop */
+.mega-menu-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.1);
+  z-index: 30;
+  pointer-events: none;
 }
 
 /* Custom scrollbar */
@@ -114,5 +163,9 @@ select:focus {
 @media (max-width: 768px) {
   .parallax-bg {
     background-attachment: scroll;
+  }
+  
+  .mega-menu-backdrop {
+    display: none;
   }
 }
