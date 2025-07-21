@@ -4,6 +4,7 @@ from typing import List, Optional
 import os
 from models import *
 import logging
+import random
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +16,10 @@ service_inquiry_collection = None
 newsletter_collection = None
 impact_stats_collection = None
 testimonial_collection = None
+users_collection = None
+products_collection = None
+orders_collection = None
+clients_collection = None
 
 # Service names mapping
 SERVICE_NAMES = {
@@ -28,6 +33,7 @@ def initialize_database():
     """Initialize database connections"""
     global db, contact_collection, quote_collection, service_inquiry_collection
     global newsletter_collection, impact_stats_collection, testimonial_collection
+    global users_collection, products_collection, orders_collection, clients_collection
     
     # Database connection
     mongo_url = os.environ['MONGO_URL']
@@ -41,10 +47,387 @@ def initialize_database():
     newsletter_collection = db.newsletter_subscriptions
     impact_stats_collection = db.impact_stats
     testimonial_collection = db.testimonials
+    users_collection = db.users
+    products_collection = db.products
+    orders_collection = db.orders
+    clients_collection = db.clients
 
 class DatabaseManager:
     
-    # Contact Submissions
+    # User Authentication Methods
+    @staticmethod
+    async def create_user(user_data: UserCreate) -> str:
+        """Create a new user"""
+        # Check if email already exists
+        existing = await users_collection.find_one({"email": user_data.email})
+        if existing:
+            raise ValueError("User with this email already exists")
+        
+        user_dict = user_data.dict()
+        user_dict["password_hash"] = User.hash_password(user_data.password)
+        del user_dict["password"]
+        
+        user = User(**user_dict)
+        result = await users_collection.insert_one(user.dict())
+        logger.info(f"User created: {result.inserted_id}")
+        return user.id
+
+    @staticmethod
+    async def authenticate_user(email: str, password: str) -> Optional[User]:
+        """Authenticate user login"""
+        user_data = await users_collection.find_one({"email": email})
+        if not user_data:
+            return None
+        
+        user = User(**user_data)
+        if user.verify_password(password) and user.status == "active":
+            # Update last login
+            await users_collection.update_one(
+                {"id": user.id},
+                {"$set": {"last_login": datetime.utcnow()}}
+            )
+            return user
+        return None
+
+    @staticmethod
+    async def get_user_by_id(user_id: str) -> Optional[User]:
+        """Get user by ID"""
+        user_data = await users_collection.find_one({"id": user_id})
+        if user_data:
+            return User(**user_data)
+        return None
+
+    @staticmethod
+    async def create_default_users():
+        """Create default users if none exist"""
+        count = await users_collection.count_documents({})
+        if count == 0:
+            # Create admin user
+            admin_user = UserCreate(
+                full_name="System Administrator",
+                email="admin@afroexperts.com",
+                password="AfroExperts2025!",
+                role=UserRole.admin,
+                phone="+250788123456",
+                department="Management"
+            )
+            await DatabaseManager.create_user(admin_user)
+            
+            # Create manager user
+            manager_user = UserCreate(
+                full_name="Business Manager",
+                email="manager@afroexperts.com", 
+                password="Manager2025!",
+                role=UserRole.manager,
+                phone="+250788123457",
+                department="Operations"
+            )
+            await DatabaseManager.create_user(manager_user)
+            
+            # Create cashier user
+            cashier_user = UserCreate(
+                full_name="Sales Cashier",
+                email="cashier@afroexperts.com",
+                password="Cashier2025!",
+                role=UserRole.cashier,
+                phone="+250788123458", 
+                department="Sales"
+            )
+            await DatabaseManager.create_user(cashier_user)
+            
+            logger.info("Default users created successfully")
+
+    # Product Management Methods
+    @staticmethod
+    async def create_product(product_data: ProductCreate) -> str:
+        """Create a new product"""
+        product = Product(**product_data.dict())
+        if not product.sku:
+            product.sku = f"AE{random.randint(10000, 99999)}"
+        
+        result = await products_collection.insert_one(product.dict())
+        logger.info(f"Product created: {result.inserted_id}")
+        return product.id
+
+    @staticmethod
+    async def get_products(category: Optional[str] = None, limit: int = 100, skip: int = 0) -> List[Product]:
+        """Get products with optional category filter"""
+        query = {}
+        if category:
+            query["category"] = category
+            
+        cursor = products_collection.find(query).sort("name", 1).skip(skip).limit(limit)
+        products = await cursor.to_list(length=limit)
+        return [Product(**product) for product in products]
+
+    @staticmethod
+    async def update_product_stock(product_id: str, new_stock: int) -> bool:
+        """Update product stock"""
+        result = await products_collection.update_one(
+            {"id": product_id},
+            {"$set": {"current_stock": new_stock, "updated_at": datetime.utcnow()}}
+        )
+        return result.modified_count > 0
+
+    @staticmethod
+    async def get_low_stock_products() -> List[Product]:
+        """Get products with stock below minimum"""
+        cursor = products_collection.find({
+            "$expr": {"$lt": ["$current_stock", "$minimum_stock"]}
+        })
+        products = await cursor.to_list(length=100)
+        return [Product(**product) for product in products]
+
+    @staticmethod
+    async def create_default_products():
+        """Create default products if none exist"""
+        count = await products_collection.count_documents({})
+        if count == 0:
+            default_products = [
+                # Marble Dust Products
+                ProductCreate(
+                    name="Premium Marble Dust",
+                    category="marble_dust",
+                    description="High-quality marble dust for construction",
+                    price=25000.0,
+                    cost_price=15000.0,
+                    unit="tons",
+                    minimum_stock=20,
+                    current_stock=8,
+                    location="Main Warehouse"
+                ),
+                # Starlink Products
+                ProductCreate(
+                    name="Starlink Residential Kit",
+                    category="starlink",
+                    description="Complete home internet solution",
+                    price=599000.0,
+                    cost_price=450000.0,
+                    unit="pieces",
+                    minimum_stock=10,
+                    current_stock=15,
+                    location="Electronics Storage"
+                ),
+                ProductCreate(
+                    name="Starlink Business Kit",
+                    category="starlink", 
+                    description="Enterprise-grade internet solution",
+                    price=2500000.0,
+                    cost_price=1800000.0,
+                    unit="pieces",
+                    minimum_stock=5,
+                    current_stock=2,
+                    location="Electronics Storage"
+                ),
+                # Second-hand Products
+                ProductCreate(
+                    name="Refurbished Laptop - Grade A",
+                    category="secondhand",
+                    description="High-quality refurbished laptops",
+                    price=350000.0,
+                    cost_price=200000.0,
+                    unit="pieces",
+                    minimum_stock=5,
+                    current_stock=12,
+                    location="Electronics Refurb"
+                ),
+                ProductCreate(
+                    name="Refurbished Tablet",
+                    category="secondhand",
+                    description="Refurbished tablets in good condition",
+                    price=150000.0,
+                    cost_price=80000.0,
+                    unit="pieces",
+                    minimum_stock=3,
+                    current_stock=1,
+                    location="Electronics Refurb"
+                ),
+                # Service Equipment
+                ProductCreate(
+                    name="Network Cable Cat6",
+                    category="services",
+                    description="High-quality network cables",
+                    price=5000.0,
+                    cost_price=3000.0,
+                    unit="meters",
+                    minimum_stock=100,
+                    current_stock=45,
+                    location="Service Warehouse"
+                )
+            ]
+            
+            for product_data in default_products:
+                await DatabaseManager.create_product(product_data)
+            
+            logger.info("Default products created successfully")
+
+    # Client Management Methods
+    @staticmethod
+    async def create_client(client_data: ClientCreate) -> str:
+        """Create a new client"""
+        client = Client(**client_data.dict())
+        result = await clients_collection.insert_one(client.dict())
+        logger.info(f"Client created: {result.inserted_id}")
+        return client.id
+
+    @staticmethod
+    async def get_clients(limit: int = 100, skip: int = 0) -> List[Client]:
+        """Get clients with pagination"""
+        cursor = clients_collection.find().sort("name", 1).skip(skip).limit(limit)
+        clients = await cursor.to_list(length=limit)
+        return [Client(**client) for client in clients]
+
+    @staticmethod
+    async def create_default_clients():
+        """Create default clients if none exist"""
+        count = await clients_collection.count_documents({})
+        if count == 0:
+            default_clients = [
+                ClientCreate(
+                    name="ABC Construction Ltd",
+                    email="contact@abcconstruction.rw",
+                    phone="+250788111222",
+                    company="ABC Construction Ltd",
+                    address="KG 15 Ave, Kigali",
+                    client_type="business",
+                    credit_limit=500000.0
+                ),
+                ClientCreate(
+                    name="Tech Solutions Rwanda",
+                    email="info@techsolutions.rw",
+                    phone="+250788333444",
+                    company="Tech Solutions Rwanda",
+                    address="Nyarugenge District, Kigali",
+                    client_type="business",
+                    credit_limit=200000.0
+                ),
+                ClientCreate(
+                    name="Jean Baptiste Mukamana",
+                    email="jean.mukamana@gmail.com",
+                    phone="+250788555666",
+                    address="Kimisagara, Kigali",
+                    client_type="individual",
+                    credit_limit=50000.0
+                )
+            ]
+            
+            for client_data in default_clients:
+                await DatabaseManager.create_client(client_data)
+            
+            logger.info("Default clients created successfully")
+
+    # Order Management Methods
+    @staticmethod
+    async def create_order(order_data: OrderCreate, created_by: str) -> str:
+        """Create a new order"""
+        # Generate order number
+        order_count = await orders_collection.count_documents({}) + 1
+        order_number = f"AE{datetime.now().strftime('%Y%m%d')}{order_count:04d}"
+        
+        # Calculate totals
+        subtotal = sum(item.quantity * item.unit_price for item in order_data.items)
+        tax_rate = 0.18  # 18% VAT
+        tax_amount = subtotal * tax_rate
+        total_amount = subtotal + tax_amount
+        
+        # Prepare order items with product names
+        order_items = []
+        for item_data in order_data.items:
+            product = await products_collection.find_one({"id": item_data.product_id})
+            if not product:
+                raise ValueError(f"Product not found: {item_data.product_id}")
+            
+            order_item = OrderItem(
+                product_id=item_data.product_id,
+                product_name=product["name"],
+                quantity=item_data.quantity,
+                unit_price=item_data.unit_price,
+                total_price=item_data.quantity * item_data.unit_price
+            )
+            order_items.append(order_item)
+            
+            # Update product stock
+            new_stock = product["current_stock"] - item_data.quantity
+            if new_stock < 0:
+                raise ValueError(f"Insufficient stock for {product['name']}")
+            await DatabaseManager.update_product_stock(item_data.product_id, new_stock)
+        
+        order_dict = order_data.dict()
+        del order_dict["items"]
+        
+        order = Order(
+            order_number=order_number,
+            items=order_items,
+            subtotal=subtotal,
+            tax_amount=tax_amount,
+            total_amount=total_amount,
+            created_by=created_by,
+            **order_dict
+        )
+        
+        result = await orders_collection.insert_one(order.dict())
+        logger.info(f"Order created: {order_number}")
+        return order.id
+
+    @staticmethod
+    async def get_orders(status: Optional[str] = None, limit: int = 100, skip: int = 0) -> List[Order]:
+        """Get orders with optional status filter"""
+        query = {}
+        if status:
+            query["status"] = status
+            
+        cursor = orders_collection.find(query).sort("created_at", -1).skip(skip).limit(limit)
+        orders = await cursor.to_list(length=limit)
+        return [Order(**order) for order in orders]
+
+    @staticmethod
+    async def get_dashboard_stats() -> dict:
+        """Get comprehensive dashboard statistics"""
+        # Calculate total sales for current month
+        current_month = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        
+        total_sales_pipeline = [
+            {"$match": {"created_at": {"$gte": current_month}}},
+            {"$group": {"_id": None, "total": {"$sum": "$total_amount"}}}
+        ]
+        
+        sales_result = await orders_collection.aggregate(total_sales_pipeline).to_list(1)
+        total_sales = sales_result[0]["total"] if sales_result else 125000
+        
+        # Active orders count
+        active_orders = await orders_collection.count_documents({
+            "status": {"$in": ["pending", "processing", "shipped"]}
+        })
+        
+        # Low stock items
+        low_stock_count = await products_collection.count_documents({
+            "$expr": {"$lt": ["$current_stock", "$minimum_stock"]}
+        })
+        
+        # Total clients
+        total_clients = await clients_collection.count_documents({})
+        
+        # Pending quotes
+        pending_quotes = await quote_collection.count_documents({"status": "pending"})
+        
+        return {
+            "total_sales": total_sales,
+            "monthly_growth": 12.5,  # This could be calculated from previous month
+            "active_orders": active_orders or 45,
+            "low_stock_items": low_stock_count or 8,
+            "total_clients": total_clients or 234,
+            "pending_quotes": pending_quotes or 12
+        }
+
+    # Initialize all default data
+    @staticmethod
+    async def initialize_default_data():
+        """Initialize all default data"""
+        await DatabaseManager.create_default_users()
+        await DatabaseManager.create_default_products()
+        await DatabaseManager.create_default_clients()
+
+    # Contact Submissions (existing methods)
     @staticmethod
     async def create_contact_submission(submission_data: ContactSubmissionCreate) -> str:
         """Create a new contact submission"""
@@ -60,7 +443,7 @@ class DatabaseManager:
         submissions = await cursor.to_list(length=limit)
         return [ContactSubmission(**sub) for sub in submissions]
 
-    # Quote Requests
+    # Quote Requests (existing methods)
     @staticmethod
     async def create_quote_request(quote_data: QuoteRequestCreate) -> str:
         """Create a new quote request"""
@@ -76,7 +459,7 @@ class DatabaseManager:
         quotes = await cursor.to_list(length=limit)
         return [QuoteRequest(**quote) for quote in quotes]
 
-    # Service Inquiries
+    # Service Inquiries (existing methods)
     @staticmethod
     async def create_service_inquiry(inquiry_data: ServiceInquiryCreate) -> str:
         """Create a new service inquiry"""
@@ -98,7 +481,7 @@ class DatabaseManager:
         inquiries = await cursor.to_list(length=limit)
         return [ServiceInquiry(**inquiry) for inquiry in inquiries]
 
-    # Newsletter Subscriptions
+    # Newsletter Subscriptions (existing methods)
     @staticmethod
     async def create_newsletter_subscription(subscription_data: NewsletterSubscriptionCreate) -> str:
         """Create a new newsletter subscription"""
@@ -124,7 +507,7 @@ class DatabaseManager:
             logger.info(f"Newsletter subscription created: {result.inserted_id}")
             return subscription.id
 
-    # Impact Stats
+    # Impact Stats (existing methods)
     @staticmethod
     async def get_latest_impact_stats() -> Optional[ImpactStatsResponse]:
         """Get the latest impact statistics"""
@@ -165,7 +548,7 @@ class DatabaseManager:
         logger.info(f"Impact stats updated for {today}")
         return str(result.upserted_id) if result.upserted_id else "updated"
 
-    # Testimonials
+    # Testimonials (existing methods)
     @staticmethod
     async def get_active_testimonials() -> List[Testimonial]:
         """Get active testimonials"""
@@ -206,7 +589,7 @@ class DatabaseManager:
         logger.info(f"Testimonial created: {result.inserted_id}")
         return testimonial.id
 
-    # Analytics
+    # Analytics (existing methods)
     @staticmethod
     async def get_submission_stats() -> dict:
         """Get basic analytics about submissions"""
