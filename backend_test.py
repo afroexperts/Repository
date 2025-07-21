@@ -370,7 +370,7 @@ class BackendTester:
             "quantity": 10,
             "unit_cost": 50000.0,
             "reference": "TEST-STOCK-IN-001",
-            "notes": "Test stock in movement for API validation"
+            "reason": "Test stock in movement for API validation"
         }
         
         success, data, status_code = self.make_request("POST", "/inventory/movements", movement_data)
