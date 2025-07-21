@@ -364,3 +364,175 @@ class DashboardStatsResponse(BaseModel):
     low_stock_items: int
     total_clients: int
     pending_quotes: int
+
+# Inventory Management Models
+class InventoryMovementType(str, Enum):
+    stock_in = "stock_in"
+    stock_out = "stock_out"
+    adjustment = "adjustment"
+    transfer = "transfer"
+    damaged = "damaged"
+    return_item = "return"
+
+class InventoryMovementCreate(BaseModel):
+    product_id: str
+    movement_type: InventoryMovementType
+    quantity: int = Field(..., gt=0)
+    unit_cost: Optional[float] = Field(None, ge=0)
+    reason: Optional[str] = Field(None, max_length=500)
+    reference: Optional[str] = Field(None, max_length=100)  # Order ID, supplier ref, etc.
+
+class InventoryMovement(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    product_id: str
+    product_name: str
+    movement_type: InventoryMovementType
+    quantity: int
+    unit_cost: Optional[float]
+    reason: Optional[str]
+    reference: Optional[str]
+    previous_stock: int
+    new_stock: int
+    created_by: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+    class Config:
+        use_enum_values = True
+
+# POS System Models
+class POSTransactionType(str, Enum):
+    sale = "sale"
+    refund = "refund"
+    exchange = "exchange"
+
+class POSPayment(BaseModel):
+    method: PaymentMethod
+    amount: float = Field(..., gt=0)
+    reference: Optional[str] = None
+
+class POSTransactionCreate(BaseModel):
+    items: List[OrderItemCreate]
+    payments: List[POSPayment]
+    customer_name: Optional[str] = Field(None, max_length=100)
+    customer_phone: Optional[str] = Field(None, max_length=20)
+    discount_percent: float = Field(default=0, ge=0, le=100)
+    notes: Optional[str] = Field(None, max_length=500)
+
+class POSTransaction(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    transaction_number: str
+    transaction_type: POSTransactionType = POSTransactionType.sale
+    items: List[OrderItem]
+    payments: List[POSPayment]
+    customer_name: Optional[str]
+    customer_phone: Optional[str]
+    subtotal: float
+    discount_amount: float
+    tax_amount: float
+    total_amount: float
+    notes: Optional[str]
+    cashier_id: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+    class Config:
+        use_enum_values = True
+
+# Service Booking Models
+class ServiceType(str, Enum):
+    it_support = "it_support"
+    network_installation = "network_installation"
+    starlink_installation = "starlink_installation"
+    software_development = "software_development"
+    logistics_support = "logistics_support"
+    consultation = "consultation"
+
+class ServiceStatus(str, Enum):
+    requested = "requested"
+    confirmed = "confirmed"
+    in_progress = "in_progress"
+    completed = "completed"
+    cancelled = "cancelled"
+    rescheduled = "rescheduled"
+
+class ServiceBookingCreate(BaseModel):
+    client_name: str = Field(..., min_length=2, max_length=100)
+    client_email: EmailStr
+    client_phone: str = Field(..., max_length=20)
+    service_type: ServiceType
+    description: str = Field(..., min_length=10, max_length=1000)
+    preferred_date: datetime
+    location: str = Field(..., max_length=200)
+    urgency: str = Field(default="normal")  # urgent, normal, low
+    estimated_duration: Optional[int] = Field(None, gt=0)  # in hours
+
+class ServiceBooking(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    booking_number: str
+    client_name: str
+    client_email: EmailStr
+    client_phone: str
+    service_type: ServiceType
+    description: str
+    preferred_date: datetime
+    scheduled_date: Optional[datetime] = None
+    location: str
+    urgency: str
+    estimated_duration: Optional[int]
+    actual_duration: Optional[int] = None
+    status: ServiceStatus = ServiceStatus.requested
+    assigned_technician: Optional[str] = None
+    service_cost: Optional[float] = None
+    notes: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        use_enum_values = True
+
+# Finance Models
+class TransactionType(str, Enum):
+    income = "income"
+    expense = "expense"
+    transfer = "transfer"
+
+class ExpenseCategory(str, Enum):
+    office_supplies = "office_supplies"
+    utilities = "utilities"
+    rent = "rent"
+    salaries = "salaries"
+    marketing = "marketing"
+    transportation = "transportation"
+    maintenance = "maintenance"
+    other = "other"
+
+class FinancialTransactionCreate(BaseModel):
+    transaction_type: TransactionType
+    amount: float = Field(..., gt=0)
+    description: str = Field(..., min_length=1, max_length=500)
+    category: Optional[ExpenseCategory] = None
+    reference: Optional[str] = Field(None, max_length=100)
+    payment_method: PaymentMethod
+    date: Optional[datetime] = None
+
+class FinancialTransaction(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    transaction_number: str
+    transaction_type: TransactionType
+    amount: float
+    description: str
+    category: Optional[ExpenseCategory]
+    reference: Optional[str]
+    payment_method: PaymentMethod
+    date: datetime
+    created_by: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+    class Config:
+        use_enum_values = True
+
+class FinancialSummary(BaseModel):
+    total_income: float
+    total_expenses: float
+    net_profit: float
+    cash_on_hand: float
+    pending_payments: float
