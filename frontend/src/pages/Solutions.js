@@ -30,6 +30,66 @@ const Solutions = () => {
         </div>
       </section>
 
+      {/* Featured ERP/POS System */}
+      <section className="py-20 bg-gradient-to-br from-[#0c4864] to-[#3b8ea4] text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <Badge className="mb-4 bg-[#66cadb] text-white px-4 py-2">🏆 Featured Solution</Badge>
+            <h2 className="text-3xl md:text-4xl font-bold mb-6">Afro Experts ERP & POS System</h2>
+            <p className="text-xl opacity-90 max-w-4xl mx-auto">
+              Comprehensive business management system designed specifically for African enterprises operating across multiple verticals including marble dust production, IT services, second-hand products, and Starlink resale.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+            {[
+              {
+                title: "15+ Core Modules",
+                description: "Dashboard, POS, Inventory, CRM, Finance, HR and more",
+                icon: "🔧"
+              },
+              {
+                title: "Multi-Business Support",
+                description: "Marble dust, IT services, second-hand products, Starlink",
+                icon: "🏭"
+              },
+              {
+                title: "Multi-Language",
+                description: "English, French, Kinyarwanda support",
+                icon: "🌍"
+              },
+              {
+                title: "Multi-Currency",
+                description: "RWF and USD with real-time conversion",
+                icon: "💰"
+              }
+            ].map((feature, index) => (
+              <Card key={index} className="bg-white/10 border-white/20 backdrop-blur-sm text-white text-center">
+                <CardContent className="p-6">
+                  <div className="text-3xl mb-4">{feature.icon}</div>
+                  <h3 className="font-semibold text-lg mb-2">{feature.title}</h3>
+                  <p className="text-gray-300 text-sm">{feature.description}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          <div className="text-center">
+            <Button 
+              size="lg" 
+              className="bg-[#66cadb] hover:bg-white hover:text-[#0c4864] text-white px-8 py-3 text-lg font-semibold mr-4"
+              onClick={() => window.location.href = '/erp-pos-system'}
+            >
+              View Full Specifications
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+            <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-[#0c4864] px-8 py-3 text-lg font-semibold">
+              Request Demo
+            </Button>
+          </div>
+        </div>
+      </section>
+
       {/* Solutions Overview */}
       <section className="py-20 bg-gradient-to-br from-gray-50 to-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
