@@ -7,18 +7,14 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Database connection
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
-
-# Collections
-contact_collection = db.contact_submissions
-quote_collection = db.quote_requests  
-service_inquiry_collection = db.service_inquiries
-newsletter_collection = db.newsletter_subscriptions
-impact_stats_collection = db.impact_stats
-testimonial_collection = db.testimonials
+# Initialize database connection variables
+db = None
+contact_collection = None
+quote_collection = None
+service_inquiry_collection = None
+newsletter_collection = None
+impact_stats_collection = None
+testimonial_collection = None
 
 # Service names mapping
 SERVICE_NAMES = {
@@ -27,6 +23,24 @@ SERVICE_NAMES = {
     3: "Server Installation",
     4: "Technical Support"
 }
+
+def initialize_database():
+    """Initialize database connections"""
+    global db, contact_collection, quote_collection, service_inquiry_collection
+    global newsletter_collection, impact_stats_collection, testimonial_collection
+    
+    # Database connection
+    mongo_url = os.environ['MONGO_URL']
+    client = AsyncIOMotorClient(mongo_url)
+    db = client[os.environ['DB_NAME']]
+
+    # Collections
+    contact_collection = db.contact_submissions
+    quote_collection = db.quote_requests  
+    service_inquiry_collection = db.service_inquiries
+    newsletter_collection = db.newsletter_subscriptions
+    impact_stats_collection = db.impact_stats
+    testimonial_collection = db.testimonials
 
 class DatabaseManager:
     
