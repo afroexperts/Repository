@@ -330,6 +330,400 @@ class BackendTester:
         else:
             self.log_test("Create Client", False, f"Status: {status_code}", data)
 
+    # NEW MODULE TESTS - INVENTORY MANAGEMENT
+    def test_inventory_movements_get(self):
+        """Test get inventory movements endpoint"""
+        if not self.token:
+            self.log_test("Get Inventory Movements", False, "No token available - login failed")
+            return
+            
+        success, data, status_code = self.make_request("GET", "/inventory/movements?limit=10")
+        
+        if success and status_code == 200 and isinstance(data, list):
+            count = len(data)
+            if count > 0:
+                movement_types = list(set(movement.get("movement_type", "Unknown") for movement in data))
+                self.log_test("Get Inventory Movements", True, f"Retrieved {count} inventory movements of types: {movement_types}")
+            else:
+                self.log_test("Get Inventory Movements", True, "No inventory movements found")
+        else:
+            self.log_test("Get Inventory Movements", False, f"Status: {status_code}", data)
+
+    def test_inventory_movements_create(self):
+        """Test create inventory movement endpoint"""
+        if not self.token:
+            self.log_test("Create Inventory Movement", False, "No token available - login failed")
+            return
+            
+        # First get a product to use in the movement
+        success, products, _ = self.make_request("GET", "/products?limit=1")
+        if not success or not products or len(products) == 0:
+            self.log_test("Create Inventory Movement", False, "No products available for inventory movement")
+            return
+            
+        product = products[0]
+        product_id = product.get("id")
+        
+        movement_data = {
+            "product_id": product_id,
+            "movement_type": "stock_in",
+            "quantity": 10,
+            "unit_cost": 50000.0,
+            "reference": "TEST-STOCK-IN-001",
+            "notes": "Test stock in movement for API validation"
+        }
+        
+        success, data, status_code = self.make_request("POST", "/inventory/movements", movement_data)
+        
+        if success and status_code == 200 and data.get("success"):
+            movement_id = data.get("id")
+            self.log_test("Create Inventory Movement", True, f"Created inventory movement with ID: {movement_id}")
+        else:
+            self.log_test("Create Inventory Movement", False, f"Status: {status_code}", data)
+
+    def test_inventory_movements_types(self):
+        """Test different inventory movement types"""
+        if not self.token:
+            self.log_test("Test Movement Types", False, "No token available - login failed")
+            return
+            
+        # Get a product for testing
+        success, products, _ = self.make_request("GET", "/products?limit=1")
+        if not success or not products or len(products) == 0:
+            self.log_test("Test Movement Types", False, "No products available for movement testing")
+            return
+            
+        product_id = products[0].get("id")
+        movement_types = ["stock_out", "adjustment", "damaged", "return"]
+        successful_types = []
+        
+        for movement_type in movement_types:
+            movement_data = {
+                "product_id": product_id,
+                "movement_type": movement_type,
+                "quantity": 2,
+                "unit_cost": 25000.0,
+                "reference": f"TEST-{movement_type.upper()}-001",
+                "notes": f"Test {movement_type} movement"
+            }
+            
+            success, data, status_code = self.make_request("POST", "/inventory/movements", movement_data)
+            if success and status_code == 200:
+                successful_types.append(movement_type)
+        
+        if len(successful_types) == len(movement_types):
+            self.log_test("Test Movement Types", True, f"All movement types working: {successful_types}")
+        else:
+            failed_types = [t for t in movement_types if t not in successful_types]
+            self.log_test("Test Movement Types", False, f"Failed types: {failed_types}, Successful: {successful_types}")
+
+    # NEW MODULE TESTS - POS SYSTEM
+    def test_pos_transactions_get(self):
+        """Test get POS transactions endpoint"""
+        if not self.token:
+            self.log_test("Get POS Transactions", False, "No token available - login failed")
+            return
+            
+        success, data, status_code = self.make_request("GET", "/pos/transactions?limit=10")
+        
+        if success and status_code == 200 and isinstance(data, list):
+            count = len(data)
+            if count > 0:
+                payment_methods = list(set(transaction.get("payment_method", "Unknown") for transaction in data))
+                self.log_test("Get POS Transactions", True, f"Retrieved {count} POS transactions with payment methods: {payment_methods}")
+            else:
+                self.log_test("Get POS Transactions", True, "No POS transactions found")
+        else:
+            self.log_test("Get POS Transactions", False, f"Status: {status_code}", data)
+
+    def test_pos_transactions_create(self):
+        """Test create POS transaction endpoint"""
+        if not self.token:
+            self.log_test("Create POS Transaction", False, "No token available - login failed")
+            return
+            
+        # Get products for the transaction
+        success, products, _ = self.make_request("GET", "/products?limit=2")
+        if not success or not products or len(products) == 0:
+            self.log_test("Create POS Transaction", False, "No products available for POS transaction")
+            return
+            
+        # Create transaction with multiple items
+        items = []
+        for i, product in enumerate(products[:2]):
+            items.append({
+                "product_id": product.get("id"),
+                "quantity": i + 1,
+                "unit_price": product.get("price", 10000)
+            })
+        
+        transaction_data = {
+            "customer_name": "Walk-in Customer",
+            "customer_phone": "+250788123456",
+            "items": items,
+            "payment_method": "cash",
+            "discount_percentage": 5.0,
+            "tax_percentage": 18.0,
+            "notes": "Test POS transaction with discount and tax"
+        }
+        
+        success, data, status_code = self.make_request("POST", "/pos/transactions", transaction_data)
+        
+        if success and status_code == 200 and data.get("success"):
+            transaction_id = data.get("id")
+            self.log_test("Create POS Transaction", True, f"Created POS transaction with ID: {transaction_id}")
+        else:
+            self.log_test("Create POS Transaction", False, f"Status: {status_code}", data)
+
+    def test_pos_payment_methods(self):
+        """Test different payment methods in POS"""
+        if not self.token:
+            self.log_test("Test POS Payment Methods", False, "No token available - login failed")
+            return
+            
+        # Get a product for testing
+        success, products, _ = self.make_request("GET", "/products?limit=1")
+        if not success or not products or len(products) == 0:
+            self.log_test("Test POS Payment Methods", False, "No products available for payment testing")
+            return
+            
+        product = products[0]
+        payment_methods = ["cash", "card", "mobile_money", "bank_transfer"]
+        successful_methods = []
+        
+        for payment_method in payment_methods:
+            transaction_data = {
+                "customer_name": f"Test Customer {payment_method}",
+                "items": [{
+                    "product_id": product.get("id"),
+                    "quantity": 1,
+                    "unit_price": product.get("price", 10000)
+                }],
+                "payment_method": payment_method,
+                "notes": f"Test transaction with {payment_method}"
+            }
+            
+            success, data, status_code = self.make_request("POST", "/pos/transactions", transaction_data)
+            if success and status_code == 200:
+                successful_methods.append(payment_method)
+        
+        if len(successful_methods) == len(payment_methods):
+            self.log_test("Test POS Payment Methods", True, f"All payment methods working: {successful_methods}")
+        else:
+            failed_methods = [m for m in payment_methods if m not in successful_methods]
+            self.log_test("Test POS Payment Methods", False, f"Failed methods: {failed_methods}, Successful: {successful_methods}")
+
+    # NEW MODULE TESTS - SERVICE BOOKING
+    def test_service_bookings_get(self):
+        """Test get service bookings endpoint"""
+        if not self.token:
+            self.log_test("Get Service Bookings", False, "No token available - login failed")
+            return
+            
+        success, data, status_code = self.make_request("GET", "/services/bookings?limit=10")
+        
+        if success and status_code == 200 and isinstance(data, list):
+            count = len(data)
+            if count > 0:
+                statuses = list(set(booking.get("status", "Unknown") for booking in data))
+                self.log_test("Get Service Bookings", True, f"Retrieved {count} service bookings with statuses: {statuses}")
+            else:
+                self.log_test("Get Service Bookings", True, "No service bookings found")
+        else:
+            self.log_test("Get Service Bookings", False, f"Status: {status_code}", data)
+
+    def test_service_bookings_create(self):
+        """Test create service booking endpoint"""
+        if not self.token:
+            self.log_test("Create Service Booking", False, "No token available - login failed")
+            return
+            
+        booking_data = {
+            "client_name": "Kigali Business Center",
+            "client_email": "admin@kigalibiz.rw",
+            "client_phone": "+250788555444",
+            "service_type": "network_setup",
+            "description": "Complete network infrastructure setup for new office",
+            "preferred_date": "2025-01-20",
+            "preferred_time": "09:00",
+            "location": "Kimisagara, Kigali",
+            "estimated_cost": 500000.0,
+            "priority": "high"
+        }
+        
+        success, data, status_code = self.make_request("POST", "/services/bookings", booking_data)
+        
+        if success and status_code == 200 and data.get("success"):
+            booking_id = data.get("id")
+            self.log_test("Create Service Booking", True, f"Created service booking with ID: {booking_id}")
+            return booking_id
+        else:
+            self.log_test("Create Service Booking", False, f"Status: {status_code}", data)
+            return None
+
+    def test_service_bookings_update(self):
+        """Test update service booking endpoint"""
+        if not self.token:
+            self.log_test("Update Service Booking", False, "No token available - login failed")
+            return
+            
+        # First create a booking to update
+        booking_id = self.test_service_bookings_create()
+        if not booking_id:
+            # Try to get an existing booking
+            success, bookings, _ = self.make_request("GET", "/services/bookings?limit=1")
+            if success and bookings and len(bookings) > 0:
+                booking_id = bookings[0].get("id")
+            else:
+                self.log_test("Update Service Booking", False, "No booking ID available for testing")
+                return
+        
+        update_data = {
+            "status": "in_progress",
+            "technician_notes": "Started network assessment and planning"
+        }
+        
+        success, data, status_code = self.make_request("PUT", f"/services/bookings/{booking_id}", update_data)
+        
+        if success and status_code == 200 and data.get("success"):
+            self.log_test("Update Service Booking", True, f"Updated service booking {booking_id}")
+        else:
+            self.log_test("Update Service Booking", False, f"Status: {status_code}", data)
+
+    def test_service_types(self):
+        """Test different service types in bookings"""
+        if not self.token:
+            self.log_test("Test Service Types", False, "No token available - login failed")
+            return
+            
+        service_types = ["network_setup", "system_maintenance", "software_installation", "hardware_repair", "consultation"]
+        successful_types = []
+        
+        for service_type in service_types:
+            booking_data = {
+                "client_name": f"Test Client {service_type}",
+                "client_email": f"test{service_type}@example.rw",
+                "client_phone": "+250788000111",
+                "service_type": service_type,
+                "description": f"Test booking for {service_type} service",
+                "preferred_date": "2025-01-25",
+                "location": "Test Location",
+                "estimated_cost": 100000.0
+            }
+            
+            success, data, status_code = self.make_request("POST", "/services/bookings", booking_data)
+            if success and status_code == 200:
+                successful_types.append(service_type)
+        
+        if len(successful_types) == len(service_types):
+            self.log_test("Test Service Types", True, f"All service types working: {successful_types}")
+        else:
+            failed_types = [t for t in service_types if t not in successful_types]
+            self.log_test("Test Service Types", False, f"Failed types: {failed_types}, Successful: {successful_types}")
+
+    # NEW MODULE TESTS - FINANCE MODULE
+    def test_financial_transactions_get(self):
+        """Test get financial transactions endpoint"""
+        if not self.token:
+            self.log_test("Get Financial Transactions", False, "No token available - login failed")
+            return
+            
+        success, data, status_code = self.make_request("GET", "/finance/transactions?limit=10")
+        
+        if success and status_code == 200 and isinstance(data, list):
+            count = len(data)
+            if count > 0:
+                transaction_types = list(set(transaction.get("transaction_type", "Unknown") for transaction in data))
+                self.log_test("Get Financial Transactions", True, f"Retrieved {count} financial transactions of types: {transaction_types}")
+            else:
+                self.log_test("Get Financial Transactions", True, "No financial transactions found")
+        else:
+            self.log_test("Get Financial Transactions", False, f"Status: {status_code}", data)
+
+    def test_financial_transactions_create(self):
+        """Test create financial transaction endpoint"""
+        if not self.token:
+            self.log_test("Create Financial Transaction", False, "No token available - login failed")
+            return
+            
+        transaction_data = {
+            "transaction_type": "income",
+            "category": "sales",
+            "amount": 150000.0,
+            "description": "Product sales revenue for January",
+            "reference": "SALES-JAN-2025-001",
+            "payment_method": "bank_transfer"
+        }
+        
+        success, data, status_code = self.make_request("POST", "/finance/transactions", transaction_data)
+        
+        if success and status_code == 200 and data.get("success"):
+            transaction_id = data.get("id")
+            self.log_test("Create Financial Transaction", True, f"Created financial transaction with ID: {transaction_id}")
+        else:
+            self.log_test("Create Financial Transaction", False, f"Status: {status_code}", data)
+
+    def test_financial_summary(self):
+        """Test get financial summary endpoint"""
+        if not self.token:
+            self.log_test("Get Financial Summary", False, "No token available - login failed")
+            return
+            
+        success, data, status_code = self.make_request("GET", "/finance/summary")
+        
+        if success and status_code == 200:
+            summary_keys = ["total_income", "total_expenses", "net_profit", "transaction_count"]
+            has_required_keys = all(key in data for key in summary_keys)
+            
+            if has_required_keys:
+                summary = {
+                    "Total Income": data.get("total_income", 0),
+                    "Total Expenses": data.get("total_expenses", 0),
+                    "Net Profit": data.get("net_profit", 0),
+                    "Transactions": data.get("transaction_count", 0)
+                }
+                self.log_test("Get Financial Summary", True, f"Retrieved financial summary: {summary}")
+            else:
+                self.log_test("Get Financial Summary", False, f"Missing required keys in response: {data}")
+        else:
+            self.log_test("Get Financial Summary", False, f"Status: {status_code}", data)
+
+    def test_financial_transaction_types(self):
+        """Test different financial transaction types"""
+        if not self.token:
+            self.log_test("Test Financial Transaction Types", False, "No token available - login failed")
+            return
+            
+        transaction_types = [
+            {"type": "expense", "category": "office_supplies", "amount": 50000.0, "description": "Office supplies purchase"},
+            {"type": "income", "category": "services", "amount": 200000.0, "description": "Service consultation fee"},
+            {"type": "expense", "category": "utilities", "amount": 75000.0, "description": "Monthly electricity bill"},
+            {"type": "income", "category": "sales", "amount": 300000.0, "description": "Hardware sales revenue"}
+        ]
+        
+        successful_types = []
+        
+        for trans in transaction_types:
+            transaction_data = {
+                "transaction_type": trans["type"],
+                "category": trans["category"],
+                "amount": trans["amount"],
+                "description": trans["description"],
+                "reference": f"TEST-{trans['type'].upper()}-{trans['category'].upper()}",
+                "payment_method": "bank_transfer"
+            }
+            
+            success, data, status_code = self.make_request("POST", "/finance/transactions", transaction_data)
+            if success and status_code == 200:
+                successful_types.append(f"{trans['type']}-{trans['category']}")
+        
+        if len(successful_types) == len(transaction_types):
+            self.log_test("Test Financial Transaction Types", True, f"All transaction types working: {successful_types}")
+        else:
+            expected_types = [f"{t['type']}-{t['category']}" for t in transaction_types]
+            failed_types = [t for t in expected_types if t not in successful_types]
+            self.log_test("Test Financial Transaction Types", False, f"Failed types: {failed_types}, Successful: {successful_types}")
+
     def run_all_tests(self):
         """Run all backend tests in sequence"""
         print("=" * 80)
