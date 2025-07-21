@@ -404,7 +404,7 @@ class BackendTester:
                 "quantity": 2,
                 "unit_cost": 25000.0,
                 "reference": f"TEST-{movement_type.upper()}-001",
-                "notes": f"Test {movement_type} movement"
+                "reason": f"Test {movement_type} movement"
             }
             
             success, data, status_code = self.make_request("POST", "/inventory/movements", movement_data)
