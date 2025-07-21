@@ -614,3 +614,250 @@ class DatabaseManager:
             "total_service_inquiries": service_count,
             "newsletter_subscribers": newsletter_count
         }
+
+    # Inventory Management Methods
+    @staticmethod
+    async def create_inventory_movement(movement_data: InventoryMovementCreate, created_by: str) -> str:
+        """Create a new inventory movement"""
+        # Get current product to record previous stock
+        product = await products_collection.find_one({"id": movement_data.product_id})
+        if not product:
+            raise ValueError(f"Product not found: {movement_data.product_id}")
+        
+        previous_stock = product["current_stock"]
+        
+        # Calculate new stock based on movement type
+        if movement_data.movement_type in ["stock_in", "return_item"]:
+            new_stock = previous_stock + movement_data.quantity
+        else:  # stock_out, adjustment, transfer, damaged
+            new_stock = previous_stock - movement_data.quantity
+            if new_stock < 0:
+                raise ValueError(f"Insufficient stock for movement")
+        
+        # Create movement record
+        movement = InventoryMovement(
+            product_id=movement_data.product_id,
+            product_name=product["name"],
+            movement_type=movement_data.movement_type,
+            quantity=movement_data.quantity,
+            unit_cost=movement_data.unit_cost,
+            reason=movement_data.reason,
+            reference=movement_data.reference,
+            previous_stock=previous_stock,
+            new_stock=new_stock,
+            created_by=created_by
+        )
+        
+        # Update product stock
+        await products_collection.update_one(
+            {"id": movement_data.product_id},
+            {"$set": {"current_stock": new_stock, "updated_at": datetime.utcnow()}}
+        )
+        
+        result = await inventory_movements_collection.insert_one(movement.dict())
+        logger.info(f"Inventory movement created: {result.inserted_id}")
+        return movement.id
+
+    @staticmethod
+    async def get_inventory_movements(product_id: Optional[str] = None, limit: int = 100, skip: int = 0) -> List[InventoryMovement]:
+        """Get inventory movements with optional product filter"""
+        query = {}
+        if product_id:
+            query["product_id"] = product_id
+            
+        cursor = inventory_movements_collection.find(query).sort("created_at", -1).skip(skip).limit(limit)
+        movements = await cursor.to_list(length=limit)
+        return [InventoryMovement(**movement) for movement in movements]
+
+    # POS System Methods
+    @staticmethod
+    async def create_pos_transaction(transaction_data: POSTransactionCreate, cashier_id: str) -> str:
+        """Create a new POS transaction"""
+        # Generate transaction number
+        trans_count = await pos_transactions_collection.count_documents({}) + 1
+        trans_number = f"POS{datetime.now().strftime('%Y%m%d')}{trans_count:04d}"
+        
+        # Calculate totals
+        subtotal = sum(item.quantity * item.unit_price for item in transaction_data.items)
+        discount_amount = subtotal * (transaction_data.discount_percent / 100)
+        tax_rate = 0.18  # 18% VAT
+        tax_amount = (subtotal - discount_amount) * tax_rate
+        total_amount = subtotal - discount_amount + tax_amount
+        
+        # Validate payment amounts
+        total_payments = sum(payment.amount for payment in transaction_data.payments)
+        if abs(total_payments - total_amount) > 0.01:  # Allow for small rounding differences
+            raise ValueError(f"Payment amount ({total_payments}) does not match total ({total_amount})")
+        
+        # Prepare transaction items with product names and update stock
+        transaction_items = []
+        for item_data in transaction_data.items:
+            product = await products_collection.find_one({"id": item_data.product_id})
+            if not product:
+                raise ValueError(f"Product not found: {item_data.product_id}")
+            
+            transaction_item = OrderItem(
+                product_id=item_data.product_id,
+                product_name=product["name"],
+                quantity=item_data.quantity,
+                unit_price=item_data.unit_price,
+                total_price=item_data.quantity * item_data.unit_price
+            )
+            transaction_items.append(transaction_item)
+            
+            # Update product stock
+            new_stock = product["current_stock"] - item_data.quantity
+            if new_stock < 0:
+                raise ValueError(f"Insufficient stock for {product['name']}")
+            await DatabaseManager.update_product_stock(item_data.product_id, new_stock)
+        
+        transaction = POSTransaction(
+            transaction_number=trans_number,
+            items=transaction_items,
+            payments=transaction_data.payments,
+            customer_name=transaction_data.customer_name,
+            customer_phone=transaction_data.customer_phone,
+            subtotal=subtotal,
+            discount_amount=discount_amount,
+            tax_amount=tax_amount,
+            total_amount=total_amount,
+            notes=transaction_data.notes,
+            cashier_id=cashier_id
+        )
+        
+        result = await pos_transactions_collection.insert_one(transaction.dict())
+        logger.info(f"POS transaction created: {trans_number}")
+        return transaction.id
+
+    @staticmethod
+    async def get_pos_transactions(limit: int = 100, skip: int = 0) -> List[POSTransaction]:
+        """Get POS transactions with pagination"""
+        cursor = pos_transactions_collection.find().sort("created_at", -1).skip(skip).limit(limit)
+        transactions = await cursor.to_list(length=limit)
+        return [POSTransaction(**transaction) for transaction in transactions]
+
+    # Service Booking Methods
+    @staticmethod
+    async def create_service_booking(booking_data: ServiceBookingCreate) -> str:
+        """Create a new service booking"""
+        # Generate booking number
+        booking_count = await service_bookings_collection.count_documents({}) + 1
+        booking_number = f"SRV{datetime.now().strftime('%Y%m%d')}{booking_count:04d}"
+        
+        booking = ServiceBooking(
+            booking_number=booking_number,
+            **booking_data.dict()
+        )
+        
+        result = await service_bookings_collection.insert_one(booking.dict())
+        logger.info(f"Service booking created: {booking_number}")
+        return booking.id
+
+    @staticmethod
+    async def get_service_bookings(status: Optional[str] = None, limit: int = 100, skip: int = 0) -> List[ServiceBooking]:
+        """Get service bookings with optional status filter"""
+        query = {}
+        if status:
+            query["status"] = status
+            
+        cursor = service_bookings_collection.find(query).sort("created_at", -1).skip(skip).limit(limit)
+        bookings = await cursor.to_list(length=limit)
+        return [ServiceBooking(**booking) for booking in bookings]
+
+    @staticmethod
+    async def update_service_booking(booking_id: str, update_data: dict) -> bool:
+        """Update service booking"""
+        result = await service_bookings_collection.update_one(
+            {"id": booking_id},
+            {"$set": {**update_data, "updated_at": datetime.utcnow()}}
+        )
+        return result.modified_count > 0
+
+    # Financial Management Methods
+    @staticmethod
+    async def create_financial_transaction(transaction_data: FinancialTransactionCreate, created_by: str) -> str:
+        """Create a new financial transaction"""
+        # Generate transaction number
+        trans_count = await financial_transactions_collection.count_documents({}) + 1
+        trans_number = f"FIN{datetime.now().strftime('%Y%m%d')}{trans_count:04d}"
+        
+        transaction = FinancialTransaction(
+            transaction_number=trans_number,
+            transaction_type=transaction_data.transaction_type,
+            amount=transaction_data.amount,
+            description=transaction_data.description,
+            category=transaction_data.category,
+            reference=transaction_data.reference,
+            payment_method=transaction_data.payment_method,
+            date=transaction_data.date or datetime.utcnow(),
+            created_by=created_by
+        )
+        
+        result = await financial_transactions_collection.insert_one(transaction.dict())
+        logger.info(f"Financial transaction created: {trans_number}")
+        return transaction.id
+
+    @staticmethod
+    async def get_financial_transactions(transaction_type: Optional[str] = None, limit: int = 100, skip: int = 0) -> List[FinancialTransaction]:
+        """Get financial transactions with optional type filter"""
+        query = {}
+        if transaction_type:
+            query["transaction_type"] = transaction_type
+            
+        cursor = financial_transactions_collection.find(query).sort("date", -1).skip(skip).limit(limit)
+        transactions = await cursor.to_list(length=limit)
+        return [FinancialTransaction(**transaction) for transaction in transactions]
+
+    @staticmethod
+    async def get_financial_summary(start_date: Optional[datetime] = None, end_date: Optional[datetime] = None) -> FinancialSummary:
+        """Get financial summary for a date range"""
+        if not start_date:
+            start_date = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        if not end_date:
+            end_date = datetime.utcnow()
+        
+        # Income pipeline
+        income_pipeline = [
+            {"$match": {"transaction_type": "income", "date": {"$gte": start_date, "$lte": end_date}}},
+            {"$group": {"_id": None, "total": {"$sum": "$amount"}}}
+        ]
+        
+        # Expense pipeline
+        expense_pipeline = [
+            {"$match": {"transaction_type": "expense", "date": {"$gte": start_date, "$lte": end_date}}},
+            {"$group": {"_id": None, "total": {"$sum": "$amount"}}}
+        ]
+        
+        income_result = await financial_transactions_collection.aggregate(income_pipeline).to_list(1)
+        expense_result = await financial_transactions_collection.aggregate(expense_pipeline).to_list(1)
+        
+        total_income = income_result[0]["total"] if income_result else 0
+        total_expenses = expense_result[0]["total"] if expense_result else 0
+        net_profit = total_income - total_expenses
+        
+        # Get cash on hand from POS sales
+        pos_cash_pipeline = [
+            {"$match": {"created_at": {"$gte": start_date, "$lte": end_date}}},
+            {"$unwind": "$payments"},
+            {"$match": {"payments.method": "cash"}},
+            {"$group": {"_id": None, "total": {"$sum": "$payments.amount"}}}
+        ]
+        
+        cash_result = await pos_transactions_collection.aggregate(pos_cash_pipeline).to_list(1)
+        cash_on_hand = cash_result[0]["total"] if cash_result else 0
+        
+        # Get pending payments from unpaid orders
+        pending_orders = await orders_collection.aggregate([
+            {"$match": {"status": {"$in": ["pending", "processing"]}}},
+            {"$group": {"_id": None, "total": {"$sum": "$total_amount"}}}
+        ]).to_list(1)
+        
+        pending_payments = pending_orders[0]["total"] if pending_orders else 0
+        
+        return FinancialSummary(
+            total_income=total_income,
+            total_expenses=total_expenses,
+            net_profit=net_profit,
+            cash_on_hand=cash_on_hand,
+            pending_payments=pending_payments
+        )
