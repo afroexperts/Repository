@@ -662,7 +662,6 @@ class BackendTester:
             
         transaction_data = {
             "transaction_type": "income",
-            "category": "sales",
             "amount": 150000.0,
             "description": "Product sales revenue for January",
             "reference": "SALES-JAN-2025-001",
