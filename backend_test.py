@@ -759,6 +759,40 @@ class BackendTester:
         self.test_clients_get()
         self.test_clients_create()
         
+        # NEW MODULE TESTS - Inventory Management
+        print("\n" + "="*50)
+        print("TESTING NEW MODULE: INVENTORY MANAGEMENT")
+        print("="*50)
+        self.test_inventory_movements_get()
+        self.test_inventory_movements_create()
+        self.test_inventory_movements_types()
+        
+        # NEW MODULE TESTS - POS System
+        print("\n" + "="*50)
+        print("TESTING NEW MODULE: POS SYSTEM")
+        print("="*50)
+        self.test_pos_transactions_get()
+        self.test_pos_transactions_create()
+        self.test_pos_payment_methods()
+        
+        # NEW MODULE TESTS - Service Booking
+        print("\n" + "="*50)
+        print("TESTING NEW MODULE: SERVICE BOOKING")
+        print("="*50)
+        self.test_service_bookings_get()
+        self.test_service_bookings_create()
+        self.test_service_bookings_update()
+        self.test_service_types()
+        
+        # NEW MODULE TESTS - Finance Module
+        print("\n" + "="*50)
+        print("TESTING NEW MODULE: FINANCE MODULE")
+        print("="*50)
+        self.test_financial_transactions_get()
+        self.test_financial_transactions_create()
+        self.test_financial_summary()
+        self.test_financial_transaction_types()
+        
         # Print summary
         self.print_summary()
 
