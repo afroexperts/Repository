@@ -685,19 +685,21 @@ class BackendTester:
         success, data, status_code = self.make_request("GET", "/finance/summary")
         
         if success and status_code == 200:
-            summary_keys = ["total_income", "total_expenses", "net_profit", "transaction_count"]
-            has_required_keys = all(key in data for key in summary_keys)
+            required_keys = ["total_income", "total_expenses", "net_profit", "cash_on_hand", "pending_payments"]
+            has_required_keys = all(key in data for key in required_keys)
             
             if has_required_keys:
                 summary = {
                     "Total Income": data.get("total_income", 0),
                     "Total Expenses": data.get("total_expenses", 0),
                     "Net Profit": data.get("net_profit", 0),
-                    "Transactions": data.get("transaction_count", 0)
+                    "Cash on Hand": data.get("cash_on_hand", 0),
+                    "Pending Payments": data.get("pending_payments", 0)
                 }
                 self.log_test("Get Financial Summary", True, f"Retrieved financial summary: {summary}")
             else:
-                self.log_test("Get Financial Summary", False, f"Missing required keys in response: {data}")
+                missing_keys = [key for key in required_keys if key not in data]
+                self.log_test("Get Financial Summary", False, f"Missing required keys: {missing_keys}, Got: {data}")
         else:
             self.log_test("Get Financial Summary", False, f"Status: {status_code}", data)
 
