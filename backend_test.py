@@ -557,13 +557,12 @@ class BackendTester:
             "client_name": "Kigali Business Center",
             "client_email": "admin@kigalibiz.rw",
             "client_phone": "+250788555444",
-            "service_type": "network_setup",
+            "service_type": "network_installation",
             "description": "Complete network infrastructure setup for new office",
-            "preferred_date": "2025-01-20",
-            "preferred_time": "09:00",
+            "preferred_date": "2025-01-20T09:00:00",
             "location": "Kimisagara, Kigali",
-            "estimated_cost": 500000.0,
-            "priority": "high"
+            "urgency": "high",
+            "estimated_duration": 8
         }
         
         success, data, status_code = self.make_request("POST", "/services/bookings", booking_data)
