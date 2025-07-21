@@ -450,20 +450,29 @@ class BackendTester:
             
         # Create transaction with multiple items
         items = []
+        total_amount = 0
         for i, product in enumerate(products[:2]):
+            quantity = i + 1
+            unit_price = product.get("price", 10000)
             items.append({
                 "product_id": product.get("id"),
-                "quantity": i + 1,
-                "unit_price": product.get("price", 10000)
+                "quantity": quantity,
+                "unit_price": unit_price
             })
+            total_amount += quantity * unit_price
+        
+        # Calculate discount and tax
+        discount_percent = 5.0
+        discount_amount = total_amount * (discount_percent / 100)
+        tax_amount = (total_amount - discount_amount) * 0.18
+        final_total = total_amount - discount_amount + tax_amount
         
         transaction_data = {
             "customer_name": "Walk-in Customer",
             "customer_phone": "+250788123456",
             "items": items,
-            "payment_method": "cash",
-            "discount_percentage": 5.0,
-            "tax_percentage": 18.0,
+            "payments": [{"method": "cash", "amount": final_total}],
+            "discount_percent": discount_percent,
             "notes": "Test POS transaction with discount and tax"
         }
         
@@ -488,6 +497,12 @@ class BackendTester:
             return
             
         product = products[0]
+        unit_price = product.get("price", 10000)
+        # Calculate total with tax
+        subtotal = unit_price
+        tax_amount = subtotal * 0.18
+        total_amount = subtotal + tax_amount
+        
         payment_methods = ["cash", "card", "mobile_money", "bank_transfer"]
         successful_methods = []
         
@@ -497,9 +512,9 @@ class BackendTester:
                 "items": [{
                     "product_id": product.get("id"),
                     "quantity": 1,
-                    "unit_price": product.get("price", 10000)
+                    "unit_price": unit_price
                 }],
-                "payment_method": payment_method,
+                "payments": [{"method": payment_method, "amount": total_amount}],
                 "notes": f"Test transaction with {payment_method}"
             }
             
