@@ -5,6 +5,9 @@ import { Input } from "../components/ui/input";
 import { Badge } from "../components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { useAuth } from "../contexts/AuthContext";
+import { useToast } from "../hooks/use-toast";
+import axios from "axios";
 import { 
   BarChart3,
   Package,
@@ -30,161 +33,248 @@ import {
   User,
   LogOut,
   Home,
-  Menu
+  Menu,
+  Loader2,
+  AlertTriangle,
+  CheckCircle
 } from "lucide-react";
 
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const API = `${BACKEND_URL}/api`;
+
 const Dashboard = () => {
+  const { user, logout, hasPermission } = useAuth();
+  const { toast } = useToast();
   const [activeModule, setActiveModule] = useState("dashboard");
-  const [notifications, setNotifications] = useState(3);
+  const [notifications, setNotifications] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [dashboardData, setDashboardData] = useState({
+    stats: {},
+    recentTransactions: [],
+    lowStockProducts: [],
+    products: [],
+    orders: [],
+    clients: []
+  });
 
-  // Mock data for dashboard
-  const dashboardStats = {
-    totalSales: 125000,
-    monthlyGrowth: 12.5,
-    activeOrders: 45,
-    lowStockItems: 8,
-    totalClients: 234,
-    pendingQuotes: 12
-  };
+  // Fetch dashboard data on component mount
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch dashboard stats
+        const statsResponse = await axios.get(`${API}/dashboard/stats`);
+        const recentTransactionsResponse = await axios.get(`${API}/dashboard/recent-transactions?limit=5`);
+        const lowStockResponse = await axios.get(`${API}/products/low-stock`);
+        
+        // Set notifications count based on low stock items
+        setNotifications(lowStockResponse.data.length);
+        
+        setDashboardData(prev => ({
+          ...prev,
+          stats: statsResponse.data,
+          recentTransactions: recentTransactionsResponse.data.transactions,
+          lowStockProducts: lowStockResponse.data
+        }));
+        
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load dashboard data. Please refresh the page.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const recentTransactions = [
-    { id: 1, type: "Sale", client: "ABC Construction", amount: 15000, product: "Marble Dust - 5 tons", status: "Completed" },
-    { id: 2, type: "Service", client: "Tech Solutions Ltd", amount: 2500, product: "Network Setup", status: "In Progress" },
-    { id: 3, type: "Product", client: "Rural Connectivity", amount: 5000, product: "Starlink Residential Kit", status: "Shipped" },
-    { id: 4, type: "Refurbished", client: "Local Merchant", amount: 800, product: "Refurbished Laptop", status: "Completed" }
-  ];
+    fetchDashboardData();
+  }, [toast]);
 
-  const lowStockAlerts = [
-    { product: "Starlink Business Kit", current: 2, minimum: 5, category: "starlink" },
-    { product: "Marble Dust Premium", current: 8, minimum: 20, category: "marble", unit: "tons" },
-    { product: "Refurbished Tablets", current: 1, minimum: 3, category: "secondhand" },
-    { product: "Network Cables", current: 15, minimum: 25, category: "services" }
-  ];
+  // Fetch module-specific data when switching modules
+  useEffect(() => {
+    const fetchModuleData = async () => {
+      try {
+        switch (activeModule) {
+          case "products":
+          case "inventory":
+            if (dashboardData.products.length === 0) {
+              const productsResponse = await axios.get(`${API}/products`);
+              setDashboardData(prev => ({ ...prev, products: productsResponse.data }));
+            }
+            break;
+          case "orders":
+            if (dashboardData.orders.length === 0) {
+              const ordersResponse = await axios.get(`${API}/orders`);
+              setDashboardData(prev => ({ ...prev, orders: ordersResponse.data }));
+            }
+            break;
+          case "clients":
+            if (dashboardData.clients.length === 0) {
+              const clientsResponse = await axios.get(`${API}/clients`);
+              setDashboardData(prev => ({ ...prev, clients: clientsResponse.data }));
+            }
+            break;
+        }
+      } catch (error) {
+        console.error(`Error fetching ${activeModule} data:`, error);
+      }
+    };
+
+    if (!loading) {
+      fetchModuleData();
+    }
+  }, [activeModule, loading, dashboardData.products.length, dashboardData.orders.length, dashboardData.clients.length]);
 
   const modules = [
     {
       id: "dashboard",
       title: "Dashboard",
       icon: BarChart3,
-      description: "Overview and Analytics"
+      description: "Overview and Analytics",
+      permission: "view_dashboard"
     },
     {
       id: "products",
       title: "Product Management",
       icon: Package,
-      description: "Manage Products & Services"
+      description: "Manage Products & Services",
+      permission: "manage_products"
     },
     {
       id: "inventory",
       title: "Inventory",
       icon: Warehouse,
-      description: "Stock Management"
+      description: "Stock Management", 
+      permission: "manage_products"
     },
     {
       id: "pos",
       title: "Point of Sale",
       icon: ShoppingCart,
-      description: "Sales Terminal"
+      description: "Sales Terminal",
+      permission: "create_orders"
     },
     {
       id: "orders",
       title: "Order Management",
       icon: FileText,
-      description: "Track Orders & Deliveries"
+      description: "Track Orders & Deliveries",
+      permission: "manage_orders"
     },
     {
       id: "clients",
       title: "Client Management",
       icon: Users,
-      description: "Customer Relations"
+      description: "Customer Relations",
+      permission: "manage_clients"
     },
     {
       id: "services",
       title: "Service Booking",
       icon: Calendar,
-      description: "IT & Logistics Services"
+      description: "IT & Logistics Services",
+      permission: "view_services"
     },
     {
       id: "secondhand",
       title: "Second-Hand Sales",
       icon: Recycle,
-      description: "Used Products Management"
+      description: "Used Products Management",
+      permission: "manage_products"
     },
     {
       id: "marble",
       title: "Marble Dust",
       icon: Mountain,
-      description: "Production & Sales"
+      description: "Production & Sales",
+      permission: "manage_products"
     },
     {
       id: "starlink",
       title: "Starlink Resale",
       icon: Satellite,
-      description: "Satellite Internet Products"
+      description: "Satellite Internet Products",
+      permission: "manage_products"
     },
     {
       id: "finance",
       title: "Finance",
       icon: CreditCard,
-      description: "Financial Management"
+      description: "Financial Management",
+      permission: "view_reports"
     },
     {
       id: "reports",
       title: "Reports",
       icon: TrendingUp,
-      description: "Business Analytics"
+      description: "Business Analytics",
+      permission: "view_reports"
     }
-  ];
+  ].filter(module => hasPermission(module.permission));
 
   const renderDashboardContent = () => {
+    if (loading) {
+      return (
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <Loader2 className="h-12 w-12 animate-spin text-[#0c4864] mx-auto mb-4" />
+            <p className="text-gray-600">Loading dashboard data...</p>
+          </div>
+        </div>
+      );
+    }
+
     switch (activeModule) {
       case "dashboard":
         return (
           <div className="space-y-6">
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Card>
+              <Card className="hover:shadow-lg transition-all duration-300">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Total Sales (RWF)</CardTitle>
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{dashboardStats.totalSales.toLocaleString()}</div>
+                  <div className="text-2xl font-bold">{dashboardData.stats.total_sales?.toLocaleString() || 0}</div>
                   <p className="text-xs text-muted-foreground">
-                    <span className="text-green-600">+{dashboardStats.monthlyGrowth}%</span> from last month
+                    <span className="text-green-600">+{dashboardData.stats.monthly_growth || 0}%</span> from last month
                   </p>
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="hover:shadow-lg transition-all duration-300">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Active Orders</CardTitle>
                   <FileText className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{dashboardStats.activeOrders}</div>
+                  <div className="text-2xl font-bold">{dashboardData.stats.active_orders || 0}</div>
                   <p className="text-xs text-muted-foreground">Processing & Delivery</p>
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="hover:shadow-lg transition-all duration-300">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Total Clients</CardTitle>
                   <Users className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{dashboardStats.totalClients}</div>
+                  <div className="text-2xl font-bold">{dashboardData.stats.total_clients || 0}</div>
                   <p className="text-xs text-muted-foreground">Active customers</p>
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="hover:shadow-lg transition-all duration-300 border-l-4 border-red-500">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Low Stock Alerts</CardTitle>
-                  <TrendingDown className="h-4 w-4 text-red-500" />
+                  <AlertTriangle className="h-4 w-4 text-red-500" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-red-600">{dashboardStats.lowStockItems}</div>
+                  <div className="text-2xl font-bold text-red-600">{dashboardData.stats.low_stock_items || 0}</div>
                   <p className="text-xs text-muted-foreground">Items need restocking</p>
                 </CardContent>
               </Card>
@@ -199,261 +289,199 @@ const Dashboard = () => {
                   <CardDescription>Latest business activity across all verticals</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {recentTransactions.map((transaction) => (
-                      <div key={transaction.id} className="flex items-center justify-between p-3 border rounded-lg">
-                        <div className="space-y-1">
-                          <p className="text-sm font-medium">{transaction.client}</p>
-                          <p className="text-xs text-gray-600">{transaction.product}</p>
+                  {dashboardData.recentTransactions.length > 0 ? (
+                    <div className="space-y-4">
+                      {dashboardData.recentTransactions.map((transaction) => (
+                        <div key={transaction.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors">
+                          <div className="space-y-1">
+                            <p className="text-sm font-medium">{transaction.client}</p>
+                            <p className="text-xs text-gray-600">{transaction.product}</p>
+                            <p className="text-xs text-gray-500">
+                              {new Date(transaction.created_at).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-semibold">RWF {transaction.amount?.toLocaleString()}</p>
+                            <Badge 
+                              variant={transaction.status === 'Completed' ? 'default' : 'secondary'}
+                              className="text-xs"
+                            >
+                              {transaction.status}
+                            </Badge>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <p className="text-sm font-semibold">RWF {transaction.amount.toLocaleString()}</p>
-                          <Badge 
-                            variant={transaction.status === 'Completed' ? 'default' : 'secondary'}
-                            className="text-xs"
-                          >
-                            {transaction.status}
-                          </Badge>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>No recent transactions</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
               {/* Low Stock Alerts */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-red-600">Low Stock Alerts</CardTitle>
+                  <CardTitle className="text-red-600 flex items-center">
+                    <AlertTriangle className="h-5 w-5 mr-2" />
+                    Low Stock Alerts
+                  </CardTitle>
                   <CardDescription>Items requiring immediate attention</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {lowStockAlerts.map((item, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 border border-red-200 rounded-lg bg-red-50">
-                        <div className="space-y-1">
-                          <p className="text-sm font-medium">{item.product}</p>
-                          <p className="text-xs text-red-600">
-                            Current: {item.current}{item.unit ? ` ${item.unit}` : ' units'} 
-                            (Min: {item.minimum})
-                          </p>
+                  {dashboardData.lowStockProducts.length > 0 ? (
+                    <div className="space-y-4">
+                      {dashboardData.lowStockProducts.slice(0, 5).map((item) => (
+                        <div key={item.id} className="flex items-center justify-between p-3 border border-red-200 rounded-lg bg-red-50">
+                          <div className="space-y-1">
+                            <p className="text-sm font-medium">{item.name}</p>
+                            <p className="text-xs text-red-600">
+                              Current: {item.current_stock} {item.unit} 
+                              (Min: {item.minimum_stock})
+                            </p>
+                          </div>
+                          <Badge variant="destructive" className="text-xs">
+                            Restock
+                          </Badge>
                         </div>
-                        <Badge variant="destructive" className="text-xs">
-                          Restock
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-                  <Button className="w-full mt-4 bg-red-600 hover:bg-red-700">
-                    View All Inventory Alerts
-                  </Button>
+                      ))}
+                      {dashboardData.lowStockProducts.length > 5 && (
+                        <Button 
+                          className="w-full mt-4 bg-red-600 hover:bg-red-700"
+                          onClick={() => setActiveModule('inventory')}
+                        >
+                          View All {dashboardData.lowStockProducts.length} Alerts
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <CheckCircle className="h-12 w-12 mx-auto mb-4 text-green-500" />
+                      <p>All products are well stocked!</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
           </div>
         );
 
-      case "pos":
+      case "products":
         return (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-2xl font-bold">Point of Sale Terminal</h2>
-                <p className="text-gray-600">Process sales across all business verticals</p>
-              </div>
-              <div className="flex space-x-2">
-                <Button variant="outline">
-                  <Search className="h-4 w-4 mr-2" />
-                  Search Products
-                </Button>
-                <Button className="bg-[#0c4864]">
-                  <Plus className="h-4 w-4 mr-2" />
-                  New Sale
-                </Button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Product Categories */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Product Categories</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {[
-                    { name: "Marble Dust", icon: Mountain, count: 15 },
-                    { name: "IT Services", icon: Settings, count: 8 },
-                    { name: "Starlink Products", icon: Satellite, count: 12 },
-                    { name: "Second-Hand Items", icon: Recycle, count: 25 }
-                  ].map((category, index) => {
-                    const IconComponent = category.icon;
-                    return (
-                      <Button 
-                        key={index}
-                        variant="ghost" 
-                        className="w-full justify-between h-12"
-                      >
-                        <div className="flex items-center">
-                          <IconComponent className="h-4 w-4 mr-3" />
-                          {category.name}
-                        </div>
-                        <Badge variant="secondary">{category.count}</Badge>
-                      </Button>
-                    );
-                  })}
-                </CardContent>
-              </Card>
-
-              {/* Sales Cart */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Current Sale</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-8 text-gray-500">
-                    <ShoppingCart className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>No items in cart</p>
-                    <p className="text-sm">Scan or search products to add</p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Quick Actions */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Quick Actions</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <Button variant="outline" className="w-full justify-start">
-                    <Eye className="h-4 w-4 mr-2" />
-                    View Sales History
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start">
-                    <Users className="h-4 w-4 mr-2" />
-                    Select Customer
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start">
-                    <CreditCard className="h-4 w-4 mr-2" />
-                    Payment Methods
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start">
-                    <Download className="h-4 w-4 mr-2" />
-                    Print Receipt
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        );
-
-      case "inventory":
-        return (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-bold">Inventory Management</h2>
-                <p className="text-gray-600">Track stock levels across all locations and categories</p>
+                <h2 className="text-2xl font-bold">Product Management</h2>
+                <p className="text-gray-600">Manage your inventory across all business verticals</p>
               </div>
               <div className="flex space-x-2">
                 <Button variant="outline">
                   <Filter className="h-4 w-4 mr-2" />
                   Filter
                 </Button>
-                <Button className="bg-[#0c4864]">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Stock
-                </Button>
+                {hasPermission('manage_products') && (
+                  <Button className="bg-[#0c4864]">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Product
+                  </Button>
+                )}
               </div>
             </div>
 
-            <Tabs defaultValue="overview" className="w-full">
-              <TabsList>
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="marble">Marble Dust</TabsTrigger>
-                <TabsTrigger value="starlink">Starlink</TabsTrigger>
-                <TabsTrigger value="secondhand">Second-Hand</TabsTrigger>
-                <TabsTrigger value="services">Services</TabsTrigger>
-              </TabsList>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Total Products</p>
+                      <p className="text-2xl font-bold">{dashboardData.products.length}</p>
+                    </div>
+                    <Package className="h-8 w-8 text-[#3b8ea4]" />
+                  </div>
+                </CardContent>
+              </Card>
 
-              <TabsContent value="overview" className="mt-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                  <Card>
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm text-gray-600">Total Products</p>
-                          <p className="text-2xl font-bold">1,247</p>
-                        </div>
-                        <Package className="h-8 w-8 text-[#3b8ea4]" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm text-gray-600">Low Stock</p>
-                          <p className="text-2xl font-bold text-red-600">8</p>
-                        </div>
-                        <TrendingDown className="h-8 w-8 text-red-500" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm text-gray-600">Total Value</p>
-                          <p className="text-2xl font-bold">RWF 2.1M</p>
-                        </div>
-                        <DollarSign className="h-8 w-8 text-green-600" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm text-gray-600">Locations</p>
-                          <p className="text-2xl font-bold">3</p>
-                        </div>
-                        <Warehouse className="h-8 w-8 text-[#66cadb]" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Categories</p>
+                      <p className="text-2xl font-bold">
+                        {new Set(dashboardData.products.map(p => p.category)).size}
+                      </p>
+                    </div>
+                    <Warehouse className="h-8 w-8 text-[#66cadb]" />
+                  </div>
+                </CardContent>
+              </Card>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Inventory Status by Category</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {[
-                        { category: "Marble Dust", total: 45, unit: "tons", value: 850000, status: "Good" },
-                        { category: "Starlink Products", total: 23, unit: "units", value: 580000, status: "Low" },
-                        { category: "Second-Hand Items", total: 156, unit: "items", value: 234000, status: "Good" },
-                        { category: "Service Equipment", total: 67, unit: "items", value: 445000, status: "Adequate" }
-                      ].map((item, index) => (
-                        <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
-                          <div>
-                            <h4 className="font-medium">{item.category}</h4>
-                            <p className="text-sm text-gray-600">
-                              {item.total} {item.unit} • RWF {item.value.toLocaleString()}
-                            </p>
-                          </div>
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Low Stock</p>
+                      <p className="text-2xl font-bold text-red-600">{dashboardData.lowStockProducts.length}</p>
+                    </div>
+                    <TrendingDown className="h-8 w-8 text-red-500" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Total Value</p>
+                      <p className="text-2xl font-bold">
+                        RWF {dashboardData.products.reduce((sum, p) => sum + (p.price * p.current_stock), 0).toLocaleString()}
+                      </p>
+                    </div>
+                    <DollarSign className="h-8 w-8 text-green-600" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Product List</CardTitle>
+                <CardDescription>All products across business verticals</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {dashboardData.products.length > 0 ? (
+                  <div className="space-y-4">
+                    {dashboardData.products.slice(0, 10).map((product) => (
+                      <div key={product.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+                        <div className="space-y-1">
+                          <h4 className="font-medium">{product.name}</h4>
+                          <p className="text-sm text-gray-600 capitalize">{product.category.replace('_', ' ')}</p>
+                          <p className="text-xs text-gray-500">SKU: {product.sku}</p>
+                        </div>
+                        <div className="text-right space-y-1">
+                          <p className="font-semibold">RWF {product.price.toLocaleString()}</p>
+                          <p className="text-sm text-gray-600">
+                            Stock: {product.current_stock} {product.unit}
+                          </p>
                           <Badge 
-                            variant={item.status === 'Low' ? 'destructive' : item.status === 'Good' ? 'default' : 'secondary'}
+                            variant={product.current_stock <= product.minimum_stock ? 'destructive' : 'default'}
+                            className="text-xs"
                           >
-                            {item.status}
+                            {product.current_stock <= product.minimum_stock ? 'Low Stock' : 'In Stock'}
                           </Badge>
                         </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>No products found</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         );
 
@@ -493,10 +521,16 @@ const Dashboard = () => {
                 </span>
               )}
             </Button>
-            <Button variant="ghost" size="icon">
-              <User className="h-5 w-5" />
-            </Button>
-            <Button variant="ghost" size="icon">
+            <div className="flex items-center space-x-2">
+              <div className="bg-[#3b8ea4] text-white w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold">
+                {user?.full_name.split(' ').map(n => n[0]).join('').toUpperCase()}
+              </div>
+              <div className="text-sm">
+                <p className="font-medium">{user?.full_name}</p>
+                <p className="text-gray-500 capitalize">{user?.role}</p>
+              </div>
+            </div>
+            <Button variant="ghost" size="icon" onClick={logout}>
               <LogOut className="h-5 w-5" />
             </Button>
           </div>
