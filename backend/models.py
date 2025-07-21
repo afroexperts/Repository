@@ -40,10 +40,20 @@ class Timeline(str, Enum):
     six_months = "6months"
 
 class ServiceType(str, Enum):
-    starlink = "starlink"
-    network = "network"
-    software = "software"
-    other = "other"
+    it_support = "it_support"
+    network_installation = "network_installation"
+    starlink_installation = "starlink_installation"
+    software_development = "software_development"
+    logistics_support = "logistics_support"
+    consultation = "consultation"
+
+class ServiceBookingServiceType(str, Enum):
+    it_support = "it_support"
+    network_installation = "network_installation"
+    starlink_installation = "starlink_installation"
+    software_development = "software_development"
+    logistics_support = "logistics_support"
+    consultation = "consultation"
 
 class UserRole(str, Enum):
     admin = "admin"
