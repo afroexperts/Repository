@@ -99,9 +99,19 @@ const Products = () => {
                       </div>
                       
                       <div className="flex space-x-3">
-                        <Button className="flex-1 bg-[#3b8ea4] hover:bg-[#0c4864] text-white">
+                        <Button 
+                          className="flex-1 bg-[#3b8ea4] hover:bg-[#0c4864] text-white"
+                          onClick={() => {
+                            if (product.category === 'erp') {
+                              window.location.href = '/erp-pos-system';
+                            } else {
+                              // Handle other product orders
+                              console.log('Order product:', product.title);
+                            }
+                          }}
+                        >
                           <ShoppingCart className="mr-2 h-4 w-4" />
-                          Order Now
+                          {product.category === 'erp' ? 'View Details' : 'Order Now'}
                         </Button>
                         <Button variant="outline" className="border-[#3b8ea4] text-[#3b8ea4] hover:bg-[#3b8ea4] hover:text-white">
                           <Download className="h-4 w-4" />
