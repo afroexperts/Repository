@@ -130,10 +130,10 @@ const Layout = ({ children }) => {
           title: "Featured Solution",
           items: [
             {
-              title: "Afro Experts ERP & POS",
-              description: "Complete business management for multiple verticals",
+              title: "Business Management System",
+              description: "Complete ERP & POS solution for African enterprises",
               icon: BarChart3,
-              link: "/erp-pos-system",
+              link: "/dashboard",
               featured: true
             }
           ]
