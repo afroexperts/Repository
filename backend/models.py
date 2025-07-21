@@ -468,7 +468,7 @@ class ServiceBookingCreate(BaseModel):
     client_name: str = Field(..., min_length=2, max_length=100)
     client_email: EmailStr
     client_phone: str = Field(..., max_length=20)
-    service_type: ServiceType
+    service_type: ServiceBookingServiceType
     description: str = Field(..., min_length=10, max_length=1000)
     preferred_date: datetime
     location: str = Field(..., max_length=200)
@@ -481,7 +481,7 @@ class ServiceBooking(BaseModel):
     client_name: str
     client_email: EmailStr
     client_phone: str
-    service_type: ServiceType
+    service_type: ServiceBookingServiceType
     description: str
     preferred_date: datetime
     scheduled_date: Optional[datetime] = None
