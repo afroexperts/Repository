@@ -610,7 +610,7 @@ class BackendTester:
             self.log_test("Test Service Types", False, "No token available - login failed")
             return
             
-        service_types = ["network_setup", "system_maintenance", "software_installation", "hardware_repair", "consultation"]
+        service_types = ["it_support", "network_installation", "starlink_installation", "software_development", "consultation"]
         successful_types = []
         
         for service_type in service_types:
@@ -620,9 +620,9 @@ class BackendTester:
                 "client_phone": "+250788000111",
                 "service_type": service_type,
                 "description": f"Test booking for {service_type} service",
-                "preferred_date": "2025-01-25",
+                "preferred_date": "2025-01-25T10:00:00",
                 "location": "Test Location",
-                "estimated_cost": 100000.0
+                "urgency": "normal"
             }
             
             success, data, status_code = self.make_request("POST", "/services/bookings", booking_data)
