@@ -177,7 +177,7 @@ const Layout = ({ children }) => {
               title: "ERP System",
               description: "Enterprise resource planning suite",
               icon: BarChart3,
-              link: "/erp-pos-system",
+              link: "/dashboard",
               price: "Custom"
             }
           ]
