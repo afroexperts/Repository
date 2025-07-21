@@ -34,9 +34,209 @@ import { mockData } from "../mock";
 
 const Layout = ({ children }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [activeMenu, setActiveMenu] = useState(null);
   const location = useLocation();
 
   const isActive = (path) => location.pathname === path;
+
+  // Mega menu data structure
+  const megaMenuData = {
+    services: {
+      title: "IT Services",
+      subtitle: "Professional technology infrastructure services",
+      sections: [
+        {
+          title: "Core Services",
+          items: [
+            {
+              title: "Network Setup & Maintenance",
+              description: "Professional network infrastructure design and implementation",
+              icon: Network,
+              link: "/services#network"
+            },
+            {
+              title: "CCTV & Access Control",
+              description: "Comprehensive security solutions with advanced monitoring",
+              icon: Camera,
+              link: "/services#cctv"
+            },
+            {
+              title: "Server Installation",
+              description: "Enterprise-grade server deployment and configuration",
+              icon: Server,
+              link: "/services#server"
+            },
+            {
+              title: "Technical Support",
+              description: "Round-the-clock technical assistance and IT support",
+              icon: Headphones,
+              link: "/services#support"
+            }
+          ]
+        },
+        {
+          title: "Featured",
+          items: [
+            {
+              title: "Starlink Installation",
+              description: "High-speed satellite internet for rural Africa",
+              icon: Satellite,
+              link: "/products#starlink",
+              featured: true
+            }
+          ]
+        }
+      ]
+    },
+    solutions: {
+      title: "IT Solutions",
+      subtitle: "Custom software development and business solutions",
+      sections: [
+        {
+          title: "Development Services",
+          items: [
+            {
+              title: "Custom Software Development",
+              description: "Tailored applications for your business needs",
+              icon: Code,
+              link: "/solutions#software"
+            },
+            {
+              title: "Cloud Hosting Solutions",
+              description: "Reliable and scalable cloud infrastructure",
+              icon: Cloud,
+              link: "/solutions#cloud"
+            }
+          ]
+        },
+        {
+          title: "Business Solutions",
+          items: [
+            {
+              title: "ERP/CRM Solutions", 
+              description: "Comprehensive business management systems",
+              icon: Users,
+              link: "/solutions#erp"
+            },
+            {
+              title: "IoT & Smart Office",
+              description: "Intelligent automation and connected devices",
+              icon: Smartphone,
+              link: "/solutions#iot"
+            }
+          ]
+        },
+        {
+          title: "Featured Solution",
+          items: [
+            {
+              title: "Afro Experts ERP & POS",
+              description: "Complete business management for multiple verticals",
+              icon: BarChart3,
+              link: "/erp-pos-system",
+              featured: true
+            }
+          ]
+        }
+      ]
+    },
+    products: {
+      title: "Products & Partners",
+      subtitle: "Premium technology products and strategic partnerships",
+      sections: [
+        {
+          title: "Starlink Products",
+          items: [
+            {
+              title: "Residential Kit",
+              description: "Complete home internet solution",
+              icon: Wifi,
+              link: "/products#residential",
+              price: "$599"
+            },
+            {
+              title: "Business Kit",
+              description: "Enterprise-grade internet solution",
+              icon: Building,
+              link: "/products#business", 
+              price: "$2,500"
+            }
+          ]
+        },
+        {
+          title: "Business Systems",
+          items: [
+            {
+              title: "POS Terminal",
+              description: "Advanced point-of-sale system",
+              icon: ShoppingCart,
+              link: "/products#pos",
+              price: "$399"
+            },
+            {
+              title: "ERP System",
+              description: "Enterprise resource planning suite",
+              icon: BarChart3,
+              link: "/erp-pos-system",
+              price: "Custom"
+            }
+          ]
+        }
+      ]
+    },
+    "erp-pos-system": {
+      title: "ERP & POS System",
+      subtitle: "Comprehensive business management for African enterprises",
+      sections: [
+        {
+          title: "Business Verticals",
+          items: [
+            {
+              title: "Marble Dust Production",
+              description: "Production tracking and wholesale management",
+              icon: Mountain,
+              link: "/erp-pos-system#marble"
+            },
+            {
+              title: "IT & Logistics Services",
+              description: "Service scheduling and project management",
+              icon: Wrench,
+              link: "/erp-pos-system#services"
+            },
+            {
+              title: "Second-Hand Products",
+              description: "Purchase logging and resale management",
+              icon: Recycle,
+              link: "/erp-pos-system#secondhand"
+            },
+            {
+              title: "Starlink Resale",
+              description: "Inventory and warranty management",
+              icon: Satellite,
+              link: "/erp-pos-system#starlink"
+            }
+          ]
+        },
+        {
+          title: "Core Features",
+          items: [
+            {
+              title: "15+ Modules",
+              description: "Complete business management suite",
+              icon: BarChart3,
+              link: "/erp-pos-system#modules"
+            },
+            {
+              title: "Multi-Language",
+              description: "English, French, Kinyarwanda support",
+              icon: Globe,
+              link: "/erp-pos-system#features"
+            }
+          ]
+        }
+      ]
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
