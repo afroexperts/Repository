@@ -146,15 +146,18 @@ backend:
 
   - task: "Order Management API"
     implemented: true
-    working: "NA"
+    working: true
     file: "backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
           agent: "main"
           comment: "Order creation and management endpoints implemented, needs testing"
+        - working: true
+          agent: "testing"
+          comment: "Order management endpoints tested successfully: GET /orders (retrieved order list), POST /orders (created test order with proper stock deduction and tax calculation). Order creation includes automatic order numbering, stock validation, and proper total calculations."
 
   - task: "Client Management API"
     implemented: true
