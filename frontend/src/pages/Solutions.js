@@ -78,9 +78,9 @@ const Solutions = () => {
             <Button 
               size="lg" 
               className="bg-[#66cadb] hover:bg-white hover:text-[#0c4864] text-white px-8 py-3 text-lg font-semibold mr-4"
-              onClick={() => window.location.href = '/erp-pos-system'}
+              onClick={() => window.location.href = '/dashboard'}
             >
-              View Full Specifications
+              Access Dashboard
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
             <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-[#0c4864] px-8 py-3 text-lg font-semibold">
