@@ -444,26 +444,6 @@ const Layout = ({ children }) => {
                 {activeMenu === 'products' && renderMegaMenu('products')}
               </div>
 
-              {/* ERP & POS System with Mega Menu */}
-              <div 
-                className="relative"
-                onMouseEnter={() => handleMenuEnter('erp-pos-system')}
-                onMouseLeave={handleMenuLeave}
-              >
-                <Link
-                  to="/erp-pos-system"
-                  className={`font-medium transition-colors duration-200 flex items-center ${
-                    isActive("/erp-pos-system")
-                      ? "text-[#0c4864] border-b-2 border-[#3b8ea4]"
-                      : "text-gray-700 hover:text-[#3b8ea4]"
-                  }`}
-                >
-                  ERP & POS System
-                  <ChevronDown className="ml-1 h-4 w-4" />
-                </Link>
-                {activeMenu === 'erp-pos-system' && renderMegaMenu('erp-pos-system')}
-              </div>
-
               <Link
                 to="/contact"
                 className={`font-medium transition-colors duration-200 ${
