@@ -2,7 +2,34 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
-import { Menu, Phone, Mail, MapPin } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import { Badge } from "./ui/badge";
+import { 
+  Menu, 
+  Phone, 
+  Mail, 
+  MapPin, 
+  ChevronDown,
+  Network,
+  Camera,
+  Server,
+  Headphones,
+  Code,
+  Cloud,
+  Users,
+  Smartphone,
+  Wifi,
+  ShoppingCart,
+  BarChart3,
+  Building,
+  ArrowRight,
+  Zap,
+  Globe,
+  Mountain,
+  Wrench,
+  Recycle,
+  Satellite
+} from "lucide-react";
 import { mockData } from "../mock";
 
 const Layout = ({ children }) => {
