@@ -260,7 +260,6 @@ export const mockData = {
     { name: "IT Services", path: "/services" },
     { name: "IT Solutions", path: "/solutions" },
     { name: "Products & Partners", path: "/products" },
-    { name: "ERP & POS System", path: "/erp-pos-system" },
     { name: "Contact Us", path: "/contact" }
   ]
 };
