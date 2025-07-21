@@ -7,7 +7,7 @@ import Services from "./pages/Services";
 import Solutions from "./pages/Solutions";
 import Products from "./pages/Products";
 import Contact from "./pages/Contact";
-import ErpPosSystem from "./pages/ErpPosSystem";
+import Dashboard from "./pages/Dashboard";
 import "./App.css";
 
 function App() {
