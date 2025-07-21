@@ -183,58 +183,6 @@ const Layout = ({ children }) => {
           ]
         }
       ]
-    },
-    "erp-pos-system": {
-      title: "ERP & POS System",
-      subtitle: "Comprehensive business management for African enterprises",
-      sections: [
-        {
-          title: "Business Verticals",
-          items: [
-            {
-              title: "Marble Dust Production",
-              description: "Production tracking and wholesale management",
-              icon: Mountain,
-              link: "/erp-pos-system#marble"
-            },
-            {
-              title: "IT & Logistics Services",
-              description: "Service scheduling and project management",
-              icon: Wrench,
-              link: "/erp-pos-system#services"
-            },
-            {
-              title: "Second-Hand Products",
-              description: "Purchase logging and resale management",
-              icon: Recycle,
-              link: "/erp-pos-system#secondhand"
-            },
-            {
-              title: "Starlink Resale",
-              description: "Inventory and warranty management",
-              icon: Satellite,
-              link: "/erp-pos-system#starlink"
-            }
-          ]
-        },
-        {
-          title: "Core Features",
-          items: [
-            {
-              title: "15+ Modules",
-              description: "Complete business management suite",
-              icon: BarChart3,
-              link: "/erp-pos-system#modules"
-            },
-            {
-              title: "Multi-Language",
-              description: "English, French, Kinyarwanda support",
-              icon: Globe,
-              link: "/erp-pos-system#features"
-            }
-          ]
-        }
-      ]
     }
   };
 
