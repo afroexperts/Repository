@@ -7,6 +7,7 @@ import About from "./pages/About";
 import Services from "./pages/Services";
 import Solutions from "./pages/Solutions";
 import Products from "./pages/Products";
+import Portfolio from "./pages/Portfolio";
 import Contact from "./pages/Contact";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
