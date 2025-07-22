@@ -61,8 +61,20 @@ const Dashboard = () => {
   const [showAddProductModal, setShowAddProductModal] = useState(false);
   const [showAddClientModal, setShowAddClientModal] = useState(false);
   const [showAddOrderModal, setShowAddOrderModal] = useState(false);
+  const [showPosModal, setShowPosModal] = useState(false);
+  const [showInventoryModal, setShowInventoryModal] = useState(false);
+  const [showServiceBookingModal, setShowServiceBookingModal] = useState(false);
+  const [showFinanceModal, setShowFinanceModal] = useState(false);
+  const [showSecondHandModal, setShowSecondHandModal] = useState(false);
+  const [showMarbleDustModal, setShowMarbleDustModal] = useState(false);
+  const [showStarlinkModal, setShowStarlinkModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [formLoading, setFormLoading] = useState(false);
+  
+  // POS State
+  const [posCart, setPosCart] = useState([]);
+  const [posSelectedProduct, setPosSelectedProduct] = useState('');
+  const [posQuantity, setPosQuantity] = useState(1);
   
   // Form Data States
   const [productForm, setProductForm] = useState({
@@ -86,6 +98,66 @@ const Dashboard = () => {
     client_type: 'individual',
     company_name: '',
     tax_number: ''
+  });
+  
+  const [orderForm, setOrderForm] = useState({
+    client_id: '',
+    items: [],
+    payment_method: 'cash',
+    notes: ''
+  });
+  
+  const [inventoryForm, setInventoryForm] = useState({
+    product_id: '',
+    movement_type: 'stock_in',
+    quantity: '',
+    unit_cost: '',
+    notes: '',
+    reference_number: ''
+  });
+  
+  const [serviceBookingForm, setServiceBookingForm] = useState({
+    client_name: '',
+    client_email: '',
+    client_phone: '',
+    service_type: 'it_support',
+    description: '',
+    location: '',
+    preferred_date: ''
+  });
+  
+  const [financeForm, setFinanceForm] = useState({
+    transaction_type: 'income',
+    category: '',
+    description: '',
+    amount: '',
+    reference_id: ''
+  });
+  
+  const [secondHandForm, setSecondHandForm] = useState({
+    product_name: '',
+    condition: 'good',
+    original_price: '',
+    selling_price: '',
+    description: '',
+    category: ''
+  });
+  
+  const [marbleDustForm, setMarbleDustForm] = useState({
+    batch_number: '',
+    production_date: '',
+    quantity_kg: '',
+    quality_grade: 'premium',
+    notes: ''
+  });
+  
+  const [starlinkForm, setStarlinkForm] = useState({
+    customer_name: '',
+    customer_phone: '',
+    installation_address: '',
+    kit_type: 'residential',
+    installation_date: '',
+    technician_id: ''
   });
   
   const [dashboardData, setDashboardData] = useState({
