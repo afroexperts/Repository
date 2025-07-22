@@ -492,6 +492,1004 @@ const Dashboard = () => {
           </div>
         );
 
+      case "inventory":
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold">Inventory Management</h2>
+                <p className="text-gray-600">Track stock movements and manage inventory across all products</p>
+              </div>
+              <div className="flex space-x-2">
+                <Button variant="outline">
+                  <Download className="h-4 w-4 mr-2" />
+                  Export
+                </Button>
+                {hasPermission('manage_products') && (
+                  <Button className="bg-[#0c4864]">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Stock Movement
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* Inventory Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Total Stock Value</p>
+                      <p className="text-2xl font-bold">RWF {dashboardData.products.reduce((sum, p) => sum + (p.price * p.current_stock), 0).toLocaleString()}</p>
+                    </div>
+                    <DollarSign className="h-8 w-8 text-green-600" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Low Stock Items</p>
+                      <p className="text-2xl font-bold text-red-600">{dashboardData.lowStockProducts.length}</p>
+                    </div>
+                    <AlertTriangle className="h-8 w-8 text-red-500" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Total Items</p>
+                      <p className="text-2xl font-bold">{dashboardData.products.length}</p>
+                    </div>
+                    <Package className="h-8 w-8 text-[#3b8ea4]" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Categories</p>
+                      <p className="text-2xl font-bold">{new Set(dashboardData.products.map(p => p.category)).size}</p>
+                    </div>
+                    <Warehouse className="h-8 w-8 text-[#66cadb]" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Stock Alerts */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-red-600">Stock Alerts</CardTitle>
+                <CardDescription>Items requiring immediate attention</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {dashboardData.lowStockProducts.length > 0 ? (
+                  <div className="space-y-4">
+                    {dashboardData.lowStockProducts.map((item) => (
+                      <div key={item.id} className="flex items-center justify-between p-3 border border-red-200 rounded-lg bg-red-50">
+                        <div>
+                          <h4 className="font-medium">{item.name}</h4>
+                          <p className="text-sm text-red-600">Current: {item.current_stock} {item.unit} (Min: {item.minimum_stock})</p>
+                        </div>
+                        <div className="flex space-x-2">
+                          <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white">
+                            Restock
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <CheckCircle className="h-12 w-12 mx-auto mb-4 text-green-500" />
+                    <p className="text-gray-500">All items are well stocked!</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        );
+
+      case "pos":
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold">Point of Sale</h2>
+                <p className="text-gray-600">Process sales transactions and manage cash register</p>
+              </div>
+              <div className="flex space-x-2">
+                <Button variant="outline">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Sales Report
+                </Button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Product Selection */}
+              <div className="lg:col-span-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Select Products</CardTitle>
+                    <div className="flex space-x-2">
+                      <Input placeholder="Search products..." className="flex-1" />
+                      <Button variant="outline">
+                        <Search className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto">
+                      {dashboardData.products.slice(0, 6).map((product) => (
+                        <div key={product.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                          <div>
+                            <h4 className="font-medium">{product.name}</h4>
+                            <p className="text-sm text-gray-600">RWF {product.price.toLocaleString()}</p>
+                            <p className="text-xs text-gray-500">Stock: {product.current_stock}</p>
+                          </div>
+                          <Button size="sm" className="bg-[#0c4864]">
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Cart & Payment */}
+              <div>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Current Sale</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="text-center py-8 text-gray-500">
+                        <ShoppingCart className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <p>No items added</p>
+                      </div>
+                      
+                      <div className="border-t pt-4">
+                        <div className="flex justify-between text-sm">
+                          <span>Subtotal:</span>
+                          <span>RWF 0</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span>Tax (18%):</span>
+                          <span>RWF 0</span>
+                        </div>
+                        <div className="flex justify-between font-bold">
+                          <span>Total:</span>
+                          <span>RWF 0</span>
+                        </div>
+                      </div>
+                      
+                      <Button className="w-full bg-green-600 hover:bg-green-700" disabled>
+                        Complete Sale
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </div>
+        );
+
+      case "orders":
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold">Order Management</h2>
+                <p className="text-gray-600">Track and manage customer orders</p>
+              </div>
+              <div className="flex space-x-2">
+                <Select>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Orders</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="processing">Processing</SelectItem>
+                    <SelectItem value="shipped">Shipped</SelectItem>
+                    <SelectItem value="delivered">Delivered</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button className="bg-[#0c4864]">
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Order
+                </Button>
+              </div>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Orders</CardTitle>
+                <CardDescription>Latest customer orders and their status</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {dashboardData.orders.length > 0 ? (
+                  <div className="space-y-4">
+                    {dashboardData.orders.map((order) => (
+                      <div key={order.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+                        <div className="space-y-1">
+                          <h4 className="font-medium">{order.order_number}</h4>
+                          <p className="text-sm text-gray-600">{order.client_name}</p>
+                          <p className="text-xs text-gray-500">{new Date(order.created_at).toLocaleDateString()}</p>
+                        </div>
+                        <div className="text-right space-y-1">
+                          <p className="font-semibold">RWF {order.total_amount.toLocaleString()}</p>
+                          <Badge variant={order.status === 'completed' ? 'default' : 'secondary'}>
+                            {order.status}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>No orders found</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        );
+
+      case "clients":
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold">Client Management</h2>
+                <p className="text-gray-600">Manage customer relationships and information</p>
+              </div>
+              <div className="flex space-x-2">
+                <Input placeholder="Search clients..." className="w-64" />
+                <Button className="bg-[#0c4864]">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Client
+                </Button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Total Clients</p>
+                      <p className="text-2xl font-bold">{dashboardData.clients.length}</p>
+                    </div>
+                    <Users className="h-8 w-8 text-[#3b8ea4]" />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Business Clients</p>
+                      <p className="text-2xl font-bold">{dashboardData.clients.filter(c => c.client_type === 'business').length}</p>
+                    </div>
+                    <Building className="h-8 w-8 text-[#66cadb]" />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Individual Clients</p>
+                      <p className="text-2xl font-bold">{dashboardData.clients.filter(c => c.client_type === 'individual').length}</p>
+                    </div>
+                    <User className="h-8 w-8 text-green-600" />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Total Credit</p>
+                      <p className="text-2xl font-bold">RWF {dashboardData.clients.reduce((sum, c) => sum + c.credit_limit, 0).toLocaleString()}</p>
+                    </div>
+                    <CreditCard className="h-8 w-8 text-purple-600" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Client List</CardTitle>
+                <CardDescription>All registered clients and their information</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {dashboardData.clients.length > 0 ? (
+                  <div className="space-y-4">
+                    {dashboardData.clients.map((client) => (
+                      <div key={client.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+                        <div className="space-y-1">
+                          <h4 className="font-medium">{client.name}</h4>
+                          <p className="text-sm text-gray-600">{client.email}</p>
+                          <div className="flex items-center space-x-2">
+                            <Badge variant="outline" className="text-xs">
+                              {client.client_type === 'business' ? 'Business' : 'Individual'}
+                            </Badge>
+                            <span className="text-xs text-gray-500">{client.phone}</span>
+                          </div>
+                        </div>
+                        <div className="text-right space-y-1">
+                          <p className="text-sm font-medium">Credit Limit: RWF {client.credit_limit.toLocaleString()}</p>
+                          <p className="text-xs text-gray-500">Orders: {client.total_orders || 0}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>No clients found</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        );
+
+      case "services":
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold">Service Booking</h2>
+                <p className="text-gray-600">Manage IT services and logistics bookings</p>
+              </div>
+              <div className="flex space-x-2">
+                <Select>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Services</SelectItem>
+                    <SelectItem value="requested">Requested</SelectItem>
+                    <SelectItem value="confirmed">Confirmed</SelectItem>
+                    <SelectItem value="in_progress">In Progress</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button className="bg-[#0c4864]">
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Booking
+                </Button>
+              </div>
+            </div>
+
+            {/* Service Categories */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                <CardHeader>
+                  <div className="flex items-center space-x-2">
+                    <Network className="h-6 w-6 text-[#0c4864]" />
+                    <CardTitle className="text-lg">Network Installation</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-600 mb-4">Professional network infrastructure setup</p>
+                  <div className="flex justify-between items-center">
+                    <Badge variant="outline">5 Active</Badge>
+                    <Button size="sm">View Details</Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                <CardHeader>
+                  <div className="flex items-center space-x-2">
+                    <Satellite className="h-6 w-6 text-[#0c4864]" />
+                    <CardTitle className="text-lg">Starlink Installation</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-600 mb-4">Satellite internet setup and configuration</p>
+                  <div className="flex justify-between items-center">
+                    <Badge variant="outline">8 Active</Badge>
+                    <Button size="sm">View Details</Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                <CardHeader>
+                  <div className="flex items-center space-x-2">
+                    <Headphones className="h-6 w-6 text-[#0c4864]" />
+                    <CardTitle className="text-lg">Technical Support</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-600 mb-4">24/7 technical assistance and maintenance</p>
+                  <div className="flex justify-between items-center">
+                    <Badge variant="outline">12 Active</Badge>
+                    <Button size="sm">View Details</Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Recent Bookings */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Service Bookings</CardTitle>
+                <CardDescription>Latest service requests and their status</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {[
+                    { id: 1, client: "ABC Construction Ltd", service: "Network Installation", date: "2025-01-22", status: "In Progress" },
+                    { id: 2, client: "Tech Solutions Rwanda", service: "Starlink Installation", date: "2025-01-21", status: "Confirmed" },
+                    { id: 3, client: "Jean Baptiste", service: "Technical Support", date: "2025-01-20", status: "Completed" }
+                  ].map((booking) => (
+                    <div key={booking.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+                      <div className="space-y-1">
+                        <h4 className="font-medium">{booking.client}</h4>
+                        <p className="text-sm text-gray-600">{booking.service}</p>
+                        <p className="text-xs text-gray-500">{booking.date}</p>
+                      </div>
+                      <div className="text-right">
+                        <Badge variant={booking.status === 'Completed' ? 'default' : 'secondary'}>
+                          {booking.status}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        );
+
+      case "finance":
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold">Financial Management</h2>
+                <p className="text-gray-600">Track income, expenses, and financial performance</p>
+              </div>
+              <div className="flex space-x-2">
+                <Select>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="This Month" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="this-month">This Month</SelectItem>
+                    <SelectItem value="last-month">Last Month</SelectItem>
+                    <SelectItem value="this-year">This Year</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button variant="outline">
+                  <Download className="h-4 w-4 mr-2" />
+                  Export Report
+                </Button>
+                <Button className="bg-[#0c4864]">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Transaction
+                </Button>
+              </div>
+            </div>
+
+            {/* Financial Overview */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Total Income</p>
+                      <p className="text-2xl font-bold text-green-600">RWF 2,450,000</p>
+                    </div>
+                    <TrendingUp className="h-8 w-8 text-green-600" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Total Expenses</p>
+                      <p className="text-2xl font-bold text-red-600">RWF 890,000</p>
+                    </div>
+                    <TrendingDown className="h-8 w-8 text-red-600" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Net Profit</p>
+                      <p className="text-2xl font-bold text-blue-600">RWF 1,560,000</p>
+                    </div>
+                    <DollarSign className="h-8 w-8 text-blue-600" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Cash on Hand</p>
+                      <p className="text-2xl font-bold text-purple-600">RWF 750,000</p>
+                    </div>
+                    <CreditCard className="h-8 w-8 text-purple-600" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Recent Transactions */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-green-600">Recent Income</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {[
+                      { description: "Starlink Installation - ABC Ltd", amount: 2500000, date: "2025-01-22" },
+                      { description: "Network Setup - Tech Solutions", amount: 850000, date: "2025-01-21" },
+                      { description: "POS System Sale", amount: 399000, date: "2025-01-20" }
+                    ].map((transaction, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div>
+                          <p className="font-medium text-sm">{transaction.description}</p>
+                          <p className="text-xs text-gray-500">{transaction.date}</p>
+                        </div>
+                        <p className="font-semibold text-green-600">+RWF {transaction.amount.toLocaleString()}</p>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-red-600">Recent Expenses</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {[
+                      { description: "Office Supplies", amount: 150000, date: "2025-01-22" },
+                      { description: "Equipment Maintenance", amount: 200000, date: "2025-01-21" },
+                      { description: "Transportation", amount: 75000, date: "2025-01-20" }
+                    ].map((transaction, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div>
+                          <p className="font-medium text-sm">{transaction.description}</p>
+                          <p className="text-xs text-gray-500">{transaction.date}</p>
+                        </div>
+                        <p className="font-semibold text-red-600">-RWF {transaction.amount.toLocaleString()}</p>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        );
+
+      case "reports":
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold">Reports & Analytics</h2>
+                <p className="text-gray-600">Business intelligence and performance metrics</p>
+              </div>
+              <div className="flex space-x-2">
+                <Select>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Select Period" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="today">Today</SelectItem>
+                    <SelectItem value="week">This Week</SelectItem>
+                    <SelectItem value="month">This Month</SelectItem>
+                    <SelectItem value="quarter">This Quarter</SelectItem>
+                    <SelectItem value="year">This Year</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button variant="outline">
+                  <Download className="h-4 w-4 mr-2" />
+                  Export All
+                </Button>
+              </div>
+            </div>
+
+            {/* Report Categories */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                <CardHeader>
+                  <div className="flex items-center space-x-2">
+                    <BarChart3 className="h-6 w-6 text-[#0c4864]" />
+                    <CardTitle className="text-lg">Sales Report</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-600 mb-4">Comprehensive sales analysis and trends</p>
+                  <Button size="sm" className="w-full">Generate Report</Button>
+                </CardContent>
+              </Card>
+
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                <CardHeader>
+                  <div className="flex items-center space-x-2">
+                    <Package className="h-6 w-6 text-[#0c4864]" />
+                    <CardTitle className="text-lg">Inventory Report</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-600 mb-4">Stock levels and movement analysis</p>
+                  <Button size="sm" className="w-full">Generate Report</Button>
+                </CardContent>
+              </Card>
+
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                <CardHeader>
+                  <div className="flex items-center space-x-2">
+                    <Users className="h-6 w-6 text-[#0c4864]" />
+                    <CardTitle className="text-lg">Client Report</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-600 mb-4">Customer behavior and analytics</p>
+                  <Button size="sm" className="w-full">Generate Report</Button>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Performance Metrics */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Key Performance Indicators</CardTitle>
+                <CardDescription>Real-time business performance metrics</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="text-center p-4 border rounded-lg">
+                    <p className="text-2xl font-bold text-[#0c4864]">85%</p>
+                    <p className="text-sm text-gray-600">Customer Satisfaction</p>
+                  </div>
+                  <div className="text-center p-4 border rounded-lg">
+                    <p className="text-2xl font-bold text-green-600">+12%</p>
+                    <p className="text-sm text-gray-600">Monthly Growth</p>
+                  </div>
+                  <div className="text-center p-4 border rounded-lg">
+                    <p className="text-2xl font-bold text-blue-600">95%</p>
+                    <p className="text-sm text-gray-600">Order Fulfillment</p>
+                  </div>
+                  <div className="text-center p-4 border rounded-lg">
+                    <p className="text-2xl font-bold text-purple-600">24h</p>
+                    <p className="text-sm text-gray-600">Avg Response Time</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        );
+
+      case "settings":
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold">Website Settings</h2>
+                <p className="text-gray-600">Manage homepage content and website configurations</p>
+              </div>
+              <div className="flex space-x-2">
+                <Button variant="outline">
+                  <Eye className="h-4 w-4 mr-2" />
+                  Preview Changes
+                </Button>
+                <Button className="bg-[#0c4864]">
+                  Save Changes
+                </Button>
+              </div>
+            </div>
+
+            {/* Settings Categories */}
+            <Tabs defaultValue="homepage" className="w-full">
+              <TabsList className="grid w-full grid-cols-5">
+                <TabsTrigger value="homepage">Homepage</TabsTrigger>
+                <TabsTrigger value="about">About</TabsTrigger>
+                <TabsTrigger value="services">Services</TabsTrigger>
+                <TabsTrigger value="general">General</TabsTrigger>
+                <TabsTrigger value="users">Users</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="homepage" className="space-y-6">
+                {/* Hero Section Settings */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Hero Section</CardTitle>
+                    <CardDescription>Manage the main hero banner content</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium">Main Title</label>
+                      <Input defaultValue="Empowering Africa's Digital Future" className="mt-1" />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Subtitle</label>
+                      <Input defaultValue="Comprehensive IT Services & Starlink Internet Solutions for Modern Africa" className="mt-1" />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Description</label>
+                      <textarea 
+                        className="w-full mt-1 p-3 border rounded-lg min-h-[100px]"
+                        defaultValue="From network infrastructure to satellite internet, we connect African businesses and communities to the global digital economy."
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Starlink Section Settings */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Starlink Promotion Section</CardTitle>
+                    <CardDescription>Configure Starlink promotional content</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium">Section Title</label>
+                      <Input defaultValue="Revolutionary Starlink Technology" className="mt-1" />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Description</label>
+                      <textarea 
+                        className="w-full mt-1 p-3 border rounded-lg min-h-[80px]"
+                        defaultValue="Experience lightning-fast internet speeds of up to 150 Mbps even in the most remote locations across Africa."
+                      />
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input type="checkbox" id="show-starlink" defaultChecked />
+                      <label htmlFor="show-starlink" className="text-sm">Show Starlink section</label>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Services Section Settings */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>IT Services Section</CardTitle>
+                    <CardDescription>Manage IT services showcase</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium">Section Title</label>
+                      <Input defaultValue="Our IT Services" className="mt-1" />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Description</label>
+                      <textarea 
+                        className="w-full mt-1 p-3 border rounded-lg min-h-[80px]"
+                        defaultValue="Comprehensive technology solutions designed to empower African businesses with modern infrastructure and support."
+                      />
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input type="checkbox" id="show-services" defaultChecked />
+                      <label htmlFor="show-services" className="text-sm">Show services section</label>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Our Clients Section Settings */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Our Clients Section</CardTitle>
+                    <CardDescription>Configure client showcase and logos</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium">Section Title</label>
+                      <Input defaultValue="Our Clients" className="mt-1" />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Description</label>
+                      <textarea 
+                        className="w-full mt-1 p-3 border rounded-lg min-h-[80px]"
+                        defaultValue="Trusted by leading organizations across Africa for reliable technology solutions and connectivity."
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Footer Text</label>
+                      <Input defaultValue="Join 1,000+ businesses already transformed by our solutions" className="mt-1" />
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input type="checkbox" id="show-clients" defaultChecked />
+                      <label htmlFor="show-clients" className="text-sm">Show clients section</label>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Impact Section Settings */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Impact Map Section</CardTitle>
+                    <CardDescription>Update impact statistics and stories</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium">Communities Connected</label>
+                        <Input type="number" defaultValue="50" className="mt-1" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium">Businesses Served</label>
+                        <Input type="number" defaultValue="1000" className="mt-1" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium">People Online</label>
+                        <Input type="number" defaultValue="10000" className="mt-1" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium">Countries Active</label>
+                        <Input type="number" defaultValue="2" className="mt-1" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="about" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>About Page Content</CardTitle>
+                    <CardDescription>Manage about page information</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium">Company Mission</label>
+                      <textarea 
+                        className="w-full mt-1 p-3 border rounded-lg min-h-[120px]"
+                        defaultValue="To bridge the digital divide across Africa by providing cutting-edge technology solutions and reliable internet connectivity that empowers communities and businesses to thrive in the digital economy."
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Company Vision</label>
+                      <textarea 
+                        className="w-full mt-1 p-3 border rounded-lg min-h-[120px]"
+                        defaultValue="To be Africa's leading technology solutions provider, connecting every community and business to the global digital future through innovative infrastructure and unparalleled service excellence."
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="services" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Services Configuration</CardTitle>
+                    <CardDescription>Manage service offerings and descriptions</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-4">
+                      {[
+                        "Network Setup & Maintenance",
+                        "CCTV & Access Control", 
+                        "Server Installation",
+                        "Technical Support"
+                      ].map((service, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex-1">
+                            <Input defaultValue={service} />
+                          </div>
+                          <div className="flex space-x-2 ml-4">
+                            <Button variant="outline" size="sm">
+                              Edit
+                            </Button>
+                            <Button variant="destructive" size="sm">
+                              Delete
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <Button className="w-full">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add New Service
+                    </Button>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="general" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>General Website Settings</CardTitle>
+                    <CardDescription>Configure global website settings</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium">Website Title</label>
+                      <Input defaultValue="Afro Experts - IT Services & Starlink Solutions" className="mt-1" />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Company Name</label>
+                      <Input defaultValue="Afro Experts" className="mt-1" />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Contact Email</label>
+                      <Input defaultValue="info@afroexperts.com" className="mt-1" />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Support Phone</label>
+                      <Input defaultValue="+250 788 123 456" className="mt-1" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="users" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>User Management</CardTitle>
+                    <CardDescription>Manage system users and permissions</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <Input placeholder="Search users..." className="flex-1 mr-4" />
+                      <Button className="bg-[#0c4864]">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add User
+                      </Button>
+                    </div>
+                    <div className="space-y-2">
+                      {[
+                        { name: "System Administrator", email: "admin@afroexperts.com", role: "Admin", status: "Active" },
+                        { name: "Business Manager", email: "manager@afroexperts.com", role: "Manager", status: "Active" },
+                        { name: "Sales Cashier", email: "cashier@afroexperts.com", role: "Cashier", status: "Active" }
+                      ].map((user, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div>
+                            <p className="font-medium">{user.name}</p>
+                            <p className="text-sm text-gray-600">{user.email}</p>
+                          </div>
+                          <div className="flex items-center space-x-4">
+                            <Badge variant="outline">{user.role}</Badge>
+                            <Badge variant={user.status === 'Active' ? 'default' : 'secondary'}>
+                              {user.status}
+                            </Badge>
+                            <Button variant="outline" size="sm">
+                              Edit
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </div>
+        );
+
       default:
         return (
           <div className="flex items-center justify-center h-64">
