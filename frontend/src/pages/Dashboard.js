@@ -3201,8 +3201,8 @@ const Dashboard = () => {
                   <div>
                     <label className="block text-sm font-medium mb-1">Company Name</label>
                     <Input
-                      value={clientForm.company}
-                      onChange={(e) => setClientForm(prev => ({ ...prev, company: e.target.value }))}
+                      value={clientForm.company_name}
+                      onChange={(e) => setClientForm(prev => ({ ...prev, company_name: e.target.value }))}
                       placeholder="Company name"
                     />
                   </div>
