@@ -152,6 +152,32 @@ const Layout = ({ children }) => {
       subtitle: "Custom software development and business solutions",
       sections: [
         {
+          title: "Our Solutions",
+          items: [
+            {
+              title: "Afro Bulk SMS",
+              description: "Professional bulk SMS messaging platform for businesses",
+              icon: Smartphone,
+              link: "https://afrobulksms.com/",
+              featured: true
+            },
+            {
+              title: "Afro Pay",
+              description: "Secure payment processing and financial solutions",
+              icon: CreditCard,
+              link: "https://afropayi.com/",
+              featured: true
+            },
+            {
+              title: "Afro Event",
+              description: "Complete event management and ticketing platform",
+              icon: Calendar,
+              link: "http://afroeventz.com/",
+              featured: true
+            }
+          ]
+        },
+        {
           title: "Development Services",
           items: [
             {
