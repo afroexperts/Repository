@@ -1326,7 +1326,11 @@ const Dashboard = () => {
                           <p className="text-sm text-red-600">Current: {item.current_stock} {item.unit} (Min: {item.minimum_stock})</p>
                         </div>
                         <div className="flex space-x-2">
-                          <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white">
+                          <Button 
+                            size="sm" 
+                            className="bg-red-600 hover:bg-red-700 text-white"
+                            onClick={() => handleRestockProduct(item.id)}
+                          >
                             Restock
                           </Button>
                         </div>
