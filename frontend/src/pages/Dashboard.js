@@ -84,7 +84,7 @@ const Dashboard = () => {
     phone: '',
     address: '',
     client_type: 'individual',
-    company: '',
+    company_name: '',
     tax_number: ''
   });
   
