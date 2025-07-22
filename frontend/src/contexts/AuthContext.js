@@ -115,6 +115,13 @@ export const ProtectedRoute = ({ children, requiredRoles = null }) => {
   const navigate = useNavigate();
   const { user, loading, hasRole } = useAuth();
 
+  // Handle navigation in useEffect to avoid render-time side effects
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/login');
+    }
+  }, [user, loading, navigate]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -127,7 +134,6 @@ export const ProtectedRoute = ({ children, requiredRoles = null }) => {
   }
 
   if (!user) {
-    navigate('/login');
     return null;
   }
 
