@@ -1952,6 +1952,253 @@ const Dashboard = () => {
                   </CardContent>
                 </Card>
               </TabsContent>
+
+              <TabsContent value="media" className="space-y-6">
+                {/* Media Library */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Media Library</CardTitle>
+                    <CardDescription>Manage all website images and media files</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {/* Upload Section */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-medium text-lg">Upload New Media</h4>
+                        <div className="flex space-x-2">
+                          <Button size="sm" className="bg-[#0c4864]">
+                            <Plus className="h-4 w-4 mr-1" />
+                            Upload Files
+                          </Button>
+                          <Button size="sm" variant="outline">
+                            <Download className="h-4 w-4 mr-1" />
+                            Bulk Download
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      {/* Upload Zone */}
+                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer">
+                        <div className="space-y-2">
+                          <div className="flex justify-center">
+                            <Plus className="h-12 w-12 text-gray-400" />
+                          </div>
+                          <p className="text-lg font-medium text-gray-600">Drop files here to upload</p>
+                          <p className="text-sm text-gray-500">or click to browse your computer</p>
+                          <p className="text-xs text-gray-400">Supported formats: JPG, PNG, GIF, SVG, MP4 (Max 10MB)</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Media Gallery */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-medium text-lg">Media Gallery</h4>
+                        <div className="flex space-x-2">
+                          <Select>
+                            <SelectTrigger className="w-[150px]">
+                              <SelectValue placeholder="Filter by type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All Files</SelectItem>
+                              <SelectItem value="images">Images</SelectItem>
+                              <SelectItem value="videos">Videos</SelectItem>
+                              <SelectItem value="docs">Documents</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Input placeholder="Search media..." className="w-48" />
+                        </div>
+                      </div>
+
+                      {/* Media Grid */}
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {[
+                          { name: "hero-background.jpg", type: "image", size: "2.1 MB", date: "Jan 20, 2025" },
+                          { name: "starlink-dish.jpg", type: "image", size: "1.8 MB", date: "Jan 19, 2025" },
+                          { name: "network-setup.jpg", type: "image", size: "1.5 MB", date: "Jan 18, 2025" },
+                          { name: "team-photo.jpg", type: "image", size: "3.2 MB", date: "Jan 17, 2025" },
+                          { name: "office-building.jpg", type: "image", size: "2.7 MB", date: "Jan 16, 2025" },
+                          { name: "client-logos.png", type: "image", size: "0.8 MB", date: "Jan 15, 2025" }
+                        ].map((file, index) => (
+                          <div key={index} className="border rounded-lg p-3 bg-white hover:shadow-md transition-shadow">
+                            <div className="w-full h-24 bg-gray-200 rounded mb-2 flex items-center justify-center">
+                              <p className="text-xs text-gray-500">{file.name.split('.')[0]}</p>
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-xs font-medium truncate">{file.name}</p>
+                              <p className="text-xs text-gray-500">{file.size} • {file.date}</p>
+                            </div>
+                            <div className="flex justify-between items-center mt-2">
+                              <Button size="xs" variant="outline">
+                                <Eye className="h-3 w-3 mr-1" />
+                                View
+                              </Button>
+                              <div className="flex space-x-1">
+                                <Button size="xs" variant="outline">Edit</Button>
+                                <Button size="xs" variant="destructive">Delete</Button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Image Optimization */}
+                    <div className="space-y-4 border-t pt-6">
+                      <h4 className="font-medium text-lg">Image Optimization</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Card>
+                          <CardContent className="p-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="font-medium">Auto-optimization</p>
+                              <input type="checkbox" defaultChecked />
+                            </div>
+                            <p className="text-sm text-gray-600">Automatically optimize images for web performance</p>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardContent className="p-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="font-medium">WebP Conversion</p>
+                              <input type="checkbox" defaultChecked />
+                            </div>
+                            <p className="text-sm text-gray-600">Convert images to WebP format for better compression</p>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="footer" className="space-y-6">
+                {/* Footer Settings */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Footer Configuration</CardTitle>
+                    <CardDescription>Manage footer content, links, and contact information</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {/* Company Information */}
+                    <div className="space-y-4">
+                      <h4 className="font-medium text-lg">Company Information</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-sm font-medium">Company Description</label>
+                          <textarea 
+                            className="w-full mt-1 p-3 border rounded-lg min-h-[100px]"
+                            defaultValue="Leading provider of IT services and Starlink internet solutions across Africa, connecting communities to the digital future."
+                          />
+                        </div>
+                        <div className="space-y-4">
+                          <div>
+                            <label className="text-sm font-medium">Address</label>
+                            <Input defaultValue="Kigali, Rwanda" className="mt-1" />
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium">Phone</label>
+                            <Input defaultValue="+250 788 123 456" className="mt-1" />
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium">Email</label>
+                            <Input defaultValue="info@afroexperts.com" className="mt-1" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Footer Links */}
+                    <div className="space-y-4 border-t pt-6">
+                      <h4 className="font-medium text-lg">Footer Navigation</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {/* Services Column */}
+                        <div>
+                          <label className="text-sm font-medium mb-3 block">Services</label>
+                          <div className="space-y-2">
+                            {[
+                              "Starlink Installation",
+                              "Network Setup", 
+                              "CCTV Systems",
+                              "Cloud Solutions",
+                              "Technical Support"
+                            ].map((service, index) => (
+                              <div key={index} className="flex items-center justify-between">
+                                <Input defaultValue={service} className="flex-1 mr-2" />
+                                <Button size="sm" variant="destructive">×</Button>
+                              </div>
+                            ))}
+                            <Button size="sm" variant="outline" className="w-full">
+                              <Plus className="h-4 w-4 mr-1" />
+                              Add Service
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Quick Links Column */}
+                        <div>
+                          <label className="text-sm font-medium mb-3 block">Quick Links</label>
+                          <div className="space-y-2">
+                            {[
+                              { text: "About Us", link: "/about" },
+                              { text: "Contact", link: "/contact" },
+                              { text: "Privacy Policy", link: "/privacy" },
+                              { text: "Terms of Service", link: "/terms" }
+                            ].map((item, index) => (
+                              <div key={index} className="flex space-x-2">
+                                <Input defaultValue={item.text} className="flex-1" />
+                                <Input defaultValue={item.link} className="flex-1" placeholder="URL" />
+                                <Button size="sm" variant="destructive">×</Button>
+                              </div>
+                            ))}
+                            <Button size="sm" variant="outline" className="w-full">
+                              <Plus className="h-4 w-4 mr-1" />
+                              Add Link
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Social Media Column */}
+                        <div>
+                          <label className="text-sm font-medium mb-3 block">Social Media</label>
+                          <div className="space-y-2">
+                            {[
+                              { platform: "LinkedIn", url: "https://linkedin.com/company/afroexperts" },
+                              { platform: "Twitter", url: "https://twitter.com/afroexperts" },
+                              { platform: "Facebook", url: "https://facebook.com/afroexperts" },
+                              { platform: "Instagram", url: "https://instagram.com/afroexperts" }
+                            ].map((social, index) => (
+                              <div key={index} className="flex space-x-2">
+                                <Input defaultValue={social.platform} className="flex-1" />
+                                <Input defaultValue={social.url} className="flex-1" placeholder="URL" />
+                                <Button size="sm" variant="destructive">×</Button>
+                              </div>
+                            ))}
+                            <Button size="sm" variant="outline" className="w-full">
+                              <Plus className="h-4 w-4 mr-1" />
+                              Add Social
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Copyright & Legal */}
+                    <div className="space-y-4 border-t pt-6">
+                      <h4 className="font-medium text-lg">Copyright & Legal</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-sm font-medium">Copyright Text</label>
+                          <Input defaultValue="© 2025 Afro Experts. All rights reserved." className="mt-1" />
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <input type="checkbox" id="show-dashboard-link" defaultChecked />
+                          <label htmlFor="show-dashboard-link" className="text-sm">Show ERP Dashboard link</label>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
             </Tabs>
           </div>
         );
