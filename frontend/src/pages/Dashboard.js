@@ -167,6 +167,135 @@ const Dashboard = () => {
     }
   }, [activeModule, loading, dashboardData.products.length, dashboardData.orders.length, dashboardData.clients.length]);
 
+  // CRUD Functions
+  const handleAddProduct = async (e) => {
+    e.preventDefault();
+    setFormLoading(true);
+    
+    try {
+      const response = await axios.post(`${API}/products`, productForm);
+      
+      if (response.status === 200) {
+        // Refresh products data
+        const productsResponse = await axios.get(`${API}/products`);
+        setDashboardData(prev => ({ ...prev, products: productsResponse.data }));
+        
+        // Reset form and close modal
+        setProductForm({
+          name: '', category: '', description: '', price: '', cost_price: '',
+          sku: '', unit: 'pieces', minimum_stock: '', current_stock: '', location: ''
+        });
+        setShowAddProductModal(false);
+        
+        toast({
+          title: "Success",
+          description: "Product added successfully!",
+        });
+      }
+    } catch (error) {
+      console.error('Error adding product:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add product. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const handleAddClient = async (e) => {
+    e.preventDefault();
+    setFormLoading(true);
+    
+    try {
+      const response = await axios.post(`${API}/clients`, clientForm);
+      
+      if (response.status === 200) {
+        // Refresh clients data
+        const clientsResponse = await axios.get(`${API}/clients`);
+        setDashboardData(prev => ({ ...prev, clients: clientsResponse.data }));
+        
+        // Reset form and close modal
+        setClientForm({
+          name: '', email: '', phone: '', address: '',
+          type: 'individual', company_name: '', tax_number: ''
+        });
+        setShowAddClientModal(false);
+        
+        toast({
+          title: "Success",
+          description: "Client added successfully!",
+        });
+      }
+    } catch (error) {
+      console.error('Error adding client:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add client. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const handleDeleteProduct = async (productId) => {
+    if (!window.confirm('Are you sure you want to delete this product?')) {
+      return;
+    }
+    
+    try {
+      await axios.delete(`${API}/products/${productId}`);
+      
+      // Remove product from local state
+      setDashboardData(prev => ({
+        ...prev,
+        products: prev.products.filter(p => p.id !== productId)
+      }));
+      
+      toast({
+        title: "Success",
+        description: "Product deleted successfully!",
+      });
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete product. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteClient = async (clientId) => {
+    if (!window.confirm('Are you sure you want to delete this client?')) {
+      return;
+    }
+    
+    try {
+      await axios.delete(`${API}/clients/${clientId}`);
+      
+      // Remove client from local state
+      setDashboardData(prev => ({
+        ...prev,
+        clients: prev.clients.filter(c => c.id !== clientId)
+      }));
+      
+      toast({
+        title: "Success",
+        description: "Client deleted successfully!",
+      });
+    } catch (error) {
+      console.error('Error deleting client:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete client. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const modules = [
     {
       id: "dashboard",
