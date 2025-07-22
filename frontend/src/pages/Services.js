@@ -21,7 +21,11 @@ import {
   Palette,
   Mic,
   Globe,
-  Building
+  Building,
+  Smartphone,
+  Paintbrush,
+  TrendingUp,
+  MessageSquareText
 } from "lucide-react";
 import { mockData } from "../mock";
 
