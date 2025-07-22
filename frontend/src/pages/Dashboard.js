@@ -3894,20 +3894,33 @@ const Dashboard = () => {
             </div>
             <form onSubmit={handleAddOrder} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Client *</label>
-                <select
-                  className="w-full p-2 border rounded-lg"
+                <label className="block text-sm font-medium mb-1">Client Name *</label>
+                <Input
                   required
-                  value={orderForm.client_id}
-                  onChange={(e) => setOrderForm(prev => ({ ...prev, client_id: e.target.value }))}
-                >
-                  <option value="">Select a client...</option>
-                  {dashboardData.clients.map((client) => (
-                    <option key={client.id} value={client.id}>
-                      {client.name} {client.company_name && `(${client.company_name})`}
-                    </option>
-                  ))}
-                </select>
+                  value={orderForm.client_name}
+                  onChange={(e) => setOrderForm(prev => ({ ...prev, client_name: e.target.value }))}
+                  placeholder="Enter client name..."
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-1">Client Email</label>
+                <Input
+                  type="email"
+                  value={orderForm.client_email}
+                  onChange={(e) => setOrderForm(prev => ({ ...prev, client_email: e.target.value }))}
+                  placeholder="client@example.com"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-1">Client Phone *</label>
+                <Input
+                  required
+                  value={orderForm.client_phone}
+                  onChange={(e) => setOrderForm(prev => ({ ...prev, client_phone: e.target.value }))}
+                  placeholder="+250788999888"
+                />
               </div>
               
               <div>
