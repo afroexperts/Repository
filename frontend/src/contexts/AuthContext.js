@@ -126,7 +126,7 @@ export const ProtectedRoute = ({ children, requiredRoles = null }) => {
   }
 
   if (!user) {
-    window.location.href = '/login';
+    navigate('/login');
     return null;
   }
 
