@@ -864,3 +864,104 @@ class DatabaseManager:
             cash_on_hand=cash_on_hand,
             pending_payments=pending_payments
         )
+
+    # Website Settings Methods
+    @staticmethod
+    async def get_website_settings(section: Optional[str] = None) -> List[WebsiteSettings]:
+        """Get website settings by section or all settings"""
+        query = {}
+        if section:
+            query["section"] = section
+        
+        cursor = website_settings_collection.find(query).sort("updated_at", -1)
+        settings = await cursor.to_list(length=100)
+        return [WebsiteSettings(**setting) for setting in settings]
+
+    @staticmethod
+    async def update_website_settings(section: str, data: dict, updated_by: str) -> str:
+        """Update or create website settings for a section"""
+        # Check if settings for this section exist
+        existing = await website_settings_collection.find_one({"section": section})
+        
+        if existing:
+            # Update existing settings
+            result = await website_settings_collection.update_one(
+                {"section": section},
+                {
+                    "$set": {
+                        "data": data,
+                        "updated_by": updated_by,
+                        "updated_at": datetime.utcnow()
+                    }
+                }
+            )
+            logger.info(f"Website settings updated for section: {section}")
+            return existing["id"]
+        else:
+            # Create new settings
+            settings = WebsiteSettings(
+                section=section,
+                data=data,
+                updated_by=updated_by
+            )
+            result = await website_settings_collection.insert_one(settings.dict())
+            logger.info(f"Website settings created for section: {section}")
+            return settings.id
+
+    @staticmethod
+    async def delete_website_settings(section: str) -> bool:
+        """Delete website settings for a specific section"""
+        result = await website_settings_collection.delete_one({"section": section})
+        return result.deleted_count > 0
+
+    @staticmethod
+    async def initialize_default_website_settings():
+        """Initialize default website settings if none exist"""
+        count = await website_settings_collection.count_documents({})
+        if count == 0:
+            default_settings = [
+                {
+                    "section": "hero",
+                    "data": {
+                        "title": "Empowering Africa's Digital Future",
+                        "subtitle": "Comprehensive IT Services & Starlink Internet Solutions for Modern Africa",
+                        "description": "From network infrastructure to satellite internet, we connect African businesses and communities to the global digital economy.",
+                        "show_section": True
+                    }
+                },
+                {
+                    "section": "starlink",
+                    "data": {
+                        "title": "Revolutionary Starlink Technology",
+                        "description": "Experience lightning-fast internet speeds of up to 150 Mbps even in the most remote locations across Africa.",
+                        "show_section": True
+                    }
+                },
+                {
+                    "section": "services",
+                    "data": {
+                        "title": "Our IT Services",
+                        "description": "Comprehensive technology solutions designed to empower African businesses with modern infrastructure and support.",
+                        "show_section": True
+                    }
+                },
+                {
+                    "section": "clients",
+                    "data": {
+                        "title": "Our Clients",
+                        "description": "Trusted by leading organizations across Africa for reliable technology solutions and connectivity.",
+                        "footer_text": "Join 1,000+ businesses already transformed by our solutions",
+                        "show_section": True
+                    }
+                }
+            ]
+            
+            for setting in default_settings:
+                settings_obj = WebsiteSettings(
+                    section=setting["section"],
+                    data=setting["data"],
+                    updated_by="system"
+                )
+                await website_settings_collection.insert_one(settings_obj.dict())
+            
+            logger.info("Default website settings initialized")
