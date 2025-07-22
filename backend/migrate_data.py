@@ -188,10 +188,15 @@ def migrate_inventory_movements(db: Session):
             for line in f:
                 data = json.loads(line.strip())
                 
+                movement_type = data['movement_type']
+                # Handle "return" vs "returned" mapping
+                if movement_type == 'return':
+                    movement_type = 'returned'
+                
                 movement = InventoryMovement(
                     id=data.get('id', str(uuid.uuid4())),
                     product_id=data['product_id'],
-                    movement_type=MovementType(data['movement_type']),
+                    movement_type=MovementType(movement_type),
                     quantity=int(data['quantity']),
                     unit_cost=float(data.get('unit_cost', 0)) if data.get('unit_cost') else None,
                     total_cost=float(data.get('total_cost', 0)) if data.get('total_cost') else None,
