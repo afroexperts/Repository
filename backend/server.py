@@ -149,6 +149,7 @@ def get_dashboard_stats(db: Session = Depends(get_db)):
             active_orders=active_orders,
             total_clients=total_clients,
             low_stock_items=low_stock_items,
+            pending_quotes=0,  # Add this field
             monthly_growth=15.2
         )
         
