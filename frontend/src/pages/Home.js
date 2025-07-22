@@ -360,6 +360,125 @@ const Home = () => {
         </div>
       </section>
 
+      {/* Our Clients Section */}
+      <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <Badge className="mb-4 bg-[#3b8ea4] text-white px-4 py-2">
+              🤝 Trusted Partners
+            </Badge>
+            <h2 className="text-3xl md:text-5xl font-bold text-[#0c4864] mb-6">
+              Our Clients
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Trusted by leading organizations across Africa for reliable technology solutions and connectivity.
+            </p>
+          </div>
+
+          {/* Animated Client Logos */}
+          <div className="relative overflow-hidden">
+            <div className="flex animate-scroll space-x-8 md:space-x-12">
+              {/* First set of logos */}
+              <div className="flex space-x-8 md:space-x-12 items-center justify-center min-w-full">
+                <div className="grayscale hover:grayscale-0 transition-all duration-300 transform hover:scale-110">
+                  <img 
+                    src="https://images.unsplash.com/photo-1496200186974-4293800e2c20?w=120&h=60&fit=crop&crop=center" 
+                    alt="Slack" 
+                    className="h-12 w-auto object-contain opacity-60 hover:opacity-100 transition-opacity"
+                  />
+                </div>
+                <div className="grayscale hover:grayscale-0 transition-all duration-300 transform hover:scale-110">
+                  <img 
+                    src="https://images.unsplash.com/photo-1704089272382-201cf5c1bbbb?w=120&h=60&fit=crop&crop=center" 
+                    alt="Microsoft" 
+                    className="h-12 w-auto object-contain opacity-60 hover:opacity-100 transition-opacity"
+                  />
+                </div>
+                <div className="grayscale hover:grayscale-0 transition-all duration-300 transform hover:scale-110">
+                  <img 
+                    src="https://images.unsplash.com/photo-1662052955282-da15376f3919?w=120&h=60&fit=crop&crop=center" 
+                    alt="Azure" 
+                    className="h-12 w-auto object-contain opacity-60 hover:opacity-100 transition-opacity"
+                  />
+                </div>
+                <div className="grayscale hover:grayscale-0 transition-all duration-300 transform hover:scale-110">
+                  <img 
+                    src="https://images.unsplash.com/photo-1663124178647-24f30cedd1ba?w=120&h=60&fit=crop&crop=center" 
+                    alt="Google" 
+                    className="h-12 w-auto object-contain opacity-60 hover:opacity-100 transition-opacity"
+                  />
+                </div>
+                <div className="grayscale hover:grayscale-0 transition-all duration-300 transform hover:scale-110">
+                  <img 
+                    src="https://images.unsplash.com/photo-1661347998648-79ad2d81bf26?w=120&h=60&fit=crop&crop=center" 
+                    alt="Razer" 
+                    className="h-12 w-auto object-contain opacity-60 hover:opacity-100 transition-opacity"
+                  />
+                </div>
+                <div className="grayscale hover:grayscale-0 transition-all duration-300 transform hover:scale-110">
+                  <img 
+                    src="https://images.unsplash.com/photo-1662052955098-042b46e60c2b?w=120&h=60&fit=crop&crop=center" 
+                    alt="Bing" 
+                    className="h-12 w-auto object-contain opacity-60 hover:opacity-100 transition-opacity"
+                  />
+                </div>
+              </div>
+              {/* Duplicate set for continuous scroll */}
+              <div className="flex space-x-8 md:space-x-12 items-center justify-center min-w-full">
+                <div className="grayscale hover:grayscale-0 transition-all duration-300 transform hover:scale-110">
+                  <img 
+                    src="https://images.unsplash.com/photo-1496200186974-4293800e2c20?w=120&h=60&fit=crop&crop=center" 
+                    alt="Slack" 
+                    className="h-12 w-auto object-contain opacity-60 hover:opacity-100 transition-opacity"
+                  />
+                </div>
+                <div className="grayscale hover:grayscale-0 transition-all duration-300 transform hover:scale-110">
+                  <img 
+                    src="https://images.unsplash.com/photo-1704089272382-201cf5c1bbbb?w=120&h=60&fit=crop&crop=center" 
+                    alt="Microsoft" 
+                    className="h-12 w-auto object-contain opacity-60 hover:opacity-100 transition-opacity"
+                  />
+                </div>
+                <div className="grayscale hover:grayscale-0 transition-all duration-300 transform hover:scale-110">
+                  <img 
+                    src="https://images.unsplash.com/photo-1662052955282-da15376f3919?w=120&h=60&fit=crop&crop=center" 
+                    alt="Azure" 
+                    className="h-12 w-auto object-contain opacity-60 hover:opacity-100 transition-opacity"
+                  />
+                </div>
+                <div className="grayscale hover:grayscale-0 transition-all duration-300 transform hover:scale-110">
+                  <img 
+                    src="https://images.unsplash.com/photo-1663124178647-24f30cedd1ba?w=120&h=60&fit=crop&crop=center" 
+                    alt="Google" 
+                    className="h-12 w-auto object-contain opacity-60 hover:opacity-100 transition-opacity"
+                  />
+                </div>
+                <div className="grayscale hover:grayscale-0 transition-all duration-300 transform hover:scale-110">
+                  <img 
+                    src="https://images.unsplash.com/photo-1661347998648-79ad2d81bf26?w=120&h=60&fit=crop&crop=center" 
+                    alt="Razer" 
+                    className="h-12 w-auto object-contain opacity-60 hover:opacity-100 transition-opacity"
+                  />
+                </div>
+                <div className="grayscale hover:grayscale-0 transition-all duration-300 transform hover:scale-110">
+                  <img 
+                    src="https://images.unsplash.com/photo-1662052955098-042b46e60c2b?w=120&h=60&fit=crop&crop=center" 
+                    alt="Bing" 
+                    className="h-12 w-auto object-contain opacity-60 hover:opacity-100 transition-opacity"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="text-center mt-12">
+            <p className="text-gray-600 font-medium">
+              Join 1,000+ businesses already transformed by our solutions
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* Testimonials */}
       <section className="py-20 bg-[#0c4864] text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
