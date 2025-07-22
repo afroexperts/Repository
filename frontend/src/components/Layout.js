@@ -391,7 +391,7 @@ const Layout = ({ children }) => {
                 About Us
               </Link>
 
-              {/* IT Services with Mega Menu */}
+              {/* Our Services with Mega Menu */}
               <div 
                 className="relative"
                 onMouseEnter={() => handleMenuEnter('services')}
@@ -405,7 +405,7 @@ const Layout = ({ children }) => {
                       : "text-gray-700 hover:text-[#3b8ea4]"
                   }`}
                 >
-                  IT Services
+                  Our Services
                   <ChevronDown className="ml-1 h-4 w-4" />
                 </Link>
                 {activeMenu === 'services' && renderMegaMenu('services')}
