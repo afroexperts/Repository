@@ -559,3 +559,63 @@ class WebsiteSettings(BaseModel):
     updated_by: str
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: Optional[datetime] = None
+
+# Portfolio Models
+class PortfolioCategory(str, Enum):
+    digital_platforms = "Digital Platforms"
+    business_solutions = "Business Solutions"
+    network_solutions = "Network Solutions"
+    security_solutions = "Security Solutions"
+    connectivity_solutions = "Connectivity Solutions"
+    media_events = "Media & Events"
+    manufacturing = "Manufacturing"
+
+class PortfolioStatus(str, Enum):
+    live = "Live"
+    active = "Active"
+    completed = "Completed"
+    operating = "Operating"
+    in_progress = "In Progress"
+
+class PortfolioItemCreate(BaseModel):
+    title: str = Field(..., min_length=1, max_length=200)
+    category: PortfolioCategory
+    description: str = Field(..., min_length=10, max_length=1000)
+    image: str = Field(...)  # URL or base64 image
+    technologies: List[str] = Field(default_factory=list)
+    client: str = Field(..., min_length=1, max_length=100)
+    date: str = Field(..., min_length=4, max_length=10)  # Year or Year-Month
+    status: PortfolioStatus
+    link: Optional[str] = Field(None, max_length=500)
+    results: List[str] = Field(default_factory=list)
+
+class PortfolioItemUpdate(BaseModel):
+    title: Optional[str] = Field(None, min_length=1, max_length=200)
+    category: Optional[PortfolioCategory] = None
+    description: Optional[str] = Field(None, min_length=10, max_length=1000)
+    image: Optional[str] = None
+    technologies: Optional[List[str]] = None
+    client: Optional[str] = Field(None, min_length=1, max_length=100)
+    date: Optional[str] = Field(None, min_length=4, max_length=10)
+    status: Optional[PortfolioStatus] = None
+    link: Optional[str] = Field(None, max_length=500)
+    results: Optional[List[str]] = None
+
+class PortfolioItem(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    title: str
+    category: PortfolioCategory
+    description: str
+    image: str
+    technologies: List[str]
+    client: str
+    date: str
+    status: PortfolioStatus
+    link: Optional[str] = None
+    results: List[str]
+    created_by: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        use_enum_values = True
