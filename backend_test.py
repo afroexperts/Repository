@@ -255,38 +255,47 @@ class BackendTester:
             self.log_test("Create Order", False, "No token available - login failed")
             return
             
-        # First get a product to use in the order
-        success, products, _ = self.make_request("GET", "/products?limit=1")
+        # First get a client to use in the order
+        success, clients, _ = self.make_request("GET", "/clients?limit=1")
+        if not success or not clients or len(clients) == 0:
+            self.log_test("Create Order", False, "No clients available for order creation")
+            return
+            
+        client = clients[0]
+        client_id = client.get("id")
+        
+        # Get products to use in the order
+        success, products, _ = self.make_request("GET", "/products?limit=2")
         if not success or not products or len(products) == 0:
             self.log_test("Create Order", False, "No products available for order creation")
             return
             
-        product = products[0]
-        product_id = product.get("id")
-        product_price = product.get("price", 10000)
+        # Create order with multiple items
+        items = []
+        for i, product in enumerate(products[:2]):
+            items.append({
+                "product_id": product.get("id"),
+                "quantity": i + 1,  # 1, 2 quantities
+                "unit_price": product.get("price", 10000)
+            })
         
         order_data = {
-            "client_name": "Test Customer Rwanda",
-            "client_email": "testcustomer@example.rw",
-            "client_phone": "+250788999888",
-            "items": [
-                {
-                    "product_id": product_id,
-                    "quantity": 2,
-                    "unit_price": product_price
-                }
-            ],
+            "client_id": client_id,
+            "items": items,
             "payment_method": "cash",
-            "notes": "Test order for API validation"
+            "notes": "Test order with multiple items for API validation"
         }
         
         success, data, status_code = self.make_request("POST", "/orders", order_data)
         
-        if success and status_code == 200 and data.get("success"):
+        if success and status_code == 200 and data.get("id"):
             order_id = data.get("id")
-            self.log_test("Create Order", True, f"Created order with ID: {order_id}")
+            order_number = data.get("order_number")
+            self.log_test("Create Order", True, f"Created order {order_number} with ID: {order_id}")
+            return order_id
         else:
             self.log_test("Create Order", False, f"Status: {status_code}", data)
+            return None
 
     def test_clients_get(self):
         """Test get clients endpoint"""
