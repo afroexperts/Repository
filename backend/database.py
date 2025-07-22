@@ -24,6 +24,7 @@ inventory_movements_collection = None
 pos_transactions_collection = None
 service_bookings_collection = None
 financial_transactions_collection = None
+website_settings_collection = None
 
 # Service names mapping
 SERVICE_NAMES = {
