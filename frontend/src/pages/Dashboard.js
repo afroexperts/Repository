@@ -1137,9 +1137,33 @@ const Dashboard = () => {
                   <CardHeader>
                     <CardTitle>Select Products</CardTitle>
                     <div className="flex space-x-2">
-                      <Input placeholder="Search products..." className="flex-1" />
-                      <Button variant="outline">
-                        <Search className="h-4 w-4" />
+                      <select
+                        className="flex-1 p-2 border rounded-lg"
+                        value={posSelectedProduct}
+                        onChange={(e) => setPosSelectedProduct(e.target.value)}
+                      >
+                        <option value="">Select a product...</option>
+                        {dashboardData.products.map((product) => (
+                          <option key={product.id} value={product.id}>
+                            {product.name} - RWF {product.price.toLocaleString()} (Stock: {product.current_stock})
+                          </option>
+                        ))}
+                      </select>
+                      <Input
+                        type="number"
+                        min="1"
+                        value={posQuantity}
+                        onChange={(e) => setPosQuantity(parseInt(e.target.value) || 1)}
+                        className="w-20"
+                        placeholder="Qty"
+                      />
+                      <Button 
+                        onClick={addToCart}
+                        className="bg-[#0c4864]"
+                        disabled={!posSelectedProduct}
+                      >
+                        <Plus className="h-4 w-4" />
+                        Add
                       </Button>
                     </div>
                   </CardHeader>
@@ -1152,7 +1176,14 @@ const Dashboard = () => {
                             <p className="text-sm text-gray-600">RWF {product.price.toLocaleString()}</p>
                             <p className="text-xs text-gray-500">Stock: {product.current_stock}</p>
                           </div>
-                          <Button size="sm" className="bg-[#0c4864]">
+                          <Button 
+                            size="sm" 
+                            className="bg-[#0c4864]"
+                            onClick={() => {
+                              setPosSelectedProduct(product.id);
+                              addToCart();
+                            }}
+                          >
                             <Plus className="h-4 w-4" />
                           </Button>
                         </div>
@@ -1170,28 +1201,62 @@ const Dashboard = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      <div className="text-center py-8 text-gray-500">
-                        <ShoppingCart className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                        <p>No items added</p>
-                      </div>
+                      {posCart.length === 0 ? (
+                        <div className="text-center py-8 text-gray-500">
+                          <ShoppingCart className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                          <p>No items added</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2 max-h-64 overflow-y-auto">
+                          {posCart.map((item) => (
+                            <div key={item.id} className="flex justify-between items-center p-2 border rounded">
+                              <div className="flex-1">
+                                <p className="font-medium text-sm">{item.name}</p>
+                                <p className="text-xs text-gray-500">{item.quantity} × RWF {item.price.toLocaleString()}</p>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <span className="font-medium">RWF {item.total.toLocaleString()}</span>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => removeFromCart(item.id)}
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                       
                       <div className="border-t pt-4">
                         <div className="flex justify-between text-sm">
                           <span>Subtotal:</span>
-                          <span>RWF 0</span>
+                          <span>RWF {posCart.reduce((sum, item) => sum + item.total, 0).toLocaleString()}</span>
                         </div>
                         <div className="flex justify-between text-sm">
                           <span>Tax (18%):</span>
-                          <span>RWF 0</span>
+                          <span>RWF {Math.round(posCart.reduce((sum, item) => sum + item.total, 0) * 0.18).toLocaleString()}</span>
                         </div>
                         <div className="flex justify-between font-bold">
                           <span>Total:</span>
-                          <span>RWF 0</span>
+                          <span>RWF {Math.round(posCart.reduce((sum, item) => sum + item.total, 0) * 1.18).toLocaleString()}</span>
                         </div>
                       </div>
                       
-                      <Button className="w-full bg-green-600 hover:bg-green-700" disabled>
-                        Complete Sale
+                      <Button 
+                        className="w-full bg-green-600 hover:bg-green-700" 
+                        disabled={posCart.length === 0 || formLoading}
+                        onClick={completePOSSale}
+                      >
+                        {formLoading ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Processing...
+                          </>
+                        ) : (
+                          'Complete Sale'
+                        )}
                       </Button>
                     </div>
                   </CardContent>
