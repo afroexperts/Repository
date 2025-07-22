@@ -2136,22 +2136,48 @@ const Dashboard = () => {
                   <CardContent className="space-y-4">
                     <div>
                       <label className="text-sm font-medium">Section Title</label>
-                      <Input defaultValue="Our Clients" className="mt-1" />
+                      <Input 
+                        value={settings.clients?.title || ""} 
+                        onChange={(e) => handleInputChange('clients', 'title', e.target.value)}
+                        className="mt-1" 
+                      />
                     </div>
                     <div>
                       <label className="text-sm font-medium">Description</label>
                       <textarea 
                         className="w-full mt-1 p-3 border rounded-lg min-h-[80px]"
-                        defaultValue="Trusted by leading organizations across Africa for reliable technology solutions and connectivity."
+                        value={settings.clients?.description || ""}
+                        onChange={(e) => handleInputChange('clients', 'description', e.target.value)}
                       />
                     </div>
                     <div>
                       <label className="text-sm font-medium">Footer Text</label>
-                      <Input defaultValue="Join 1,000+ businesses already transformed by our solutions" className="mt-1" />
+                      <Input 
+                        value={settings.clients?.footerText || ""} 
+                        onChange={(e) => handleInputChange('clients', 'footerText', e.target.value)}
+                        className="mt-1" 
+                      />
                     </div>
                     <div className="flex items-center space-x-2">
-                      <input type="checkbox" id="show-clients" defaultChecked />
+                      <input 
+                        type="checkbox" 
+                        id="show-clients" 
+                        checked={settings.clients?.showSection || false}
+                        onChange={(e) => handleInputChange('clients', 'showSection', e.target.checked)}
+                      />
                       <label htmlFor="show-clients" className="text-sm">Show clients section</label>
+                    </div>
+                    <div className="flex justify-end pt-4 border-t">
+                      <Button 
+                        className="bg-[#0c4864]"
+                        onClick={() => handleSaveSettings('clients')}
+                        disabled={saving}
+                      >
+                        {saving ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : null}
+                        Save Clients Settings
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
