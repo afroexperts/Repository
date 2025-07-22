@@ -819,6 +819,129 @@ async def delete_website_settings(
             detail="Failed to delete website settings"
         )
 
+# Portfolio Management Endpoints
+@api_router.get("/portfolio", response_model=List[PortfolioItem])
+async def get_portfolio_items(
+    category: Optional[str] = None,
+    status: Optional[str] = None,
+    limit: int = 100,
+    skip: int = 0
+):
+    """Get portfolio items with optional filters (public endpoint)"""
+    try:
+        items = await DatabaseManager.get_portfolio_items(
+            category=category, 
+            status=status, 
+            limit=limit, 
+            skip=skip
+        )
+        return items
+    except Exception as e:
+        logger.error(f"Error fetching portfolio items: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to fetch portfolio items"
+        )
+
+@api_router.get("/portfolio/{item_id}", response_model=PortfolioItem)
+async def get_portfolio_item(item_id: str):
+    """Get specific portfolio item by ID (public endpoint)"""
+    try:
+        item = await DatabaseManager.get_portfolio_item_by_id(item_id)
+        if not item:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Portfolio item not found"
+            )
+        return item
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching portfolio item: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to fetch portfolio item"
+        )
+
+@api_router.post("/portfolio", response_model=SuccessResponse)
+async def create_portfolio_item(
+    item: PortfolioItemCreate,
+    current_user: User = Depends(require_role(["admin", "manager"]))
+):
+    """Create new portfolio item (admin/manager only)"""
+    try:
+        item_id = await DatabaseManager.create_portfolio_item(item, current_user.id)
+        return SuccessResponse(
+            message="Portfolio item created successfully",
+            id=item_id
+        )
+    except Exception as e:
+        logger.error(f"Error creating portfolio item: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create portfolio item"
+        )
+
+@api_router.put("/portfolio/{item_id}", response_model=SuccessResponse)
+async def update_portfolio_item(
+    item_id: str,
+    update_data: PortfolioItemUpdate,
+    current_user: User = Depends(require_role(["admin", "manager"]))
+):
+    """Update portfolio item (admin/manager only)"""
+    try:
+        success = await DatabaseManager.update_portfolio_item(item_id, update_data)
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Portfolio item not found"
+            )
+        return SuccessResponse(message="Portfolio item updated successfully")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating portfolio item: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update portfolio item"
+        )
+
+@api_router.delete("/portfolio/{item_id}", response_model=SuccessResponse)
+async def delete_portfolio_item(
+    item_id: str,
+    current_user: User = Depends(require_role(["admin"]))
+):
+    """Delete portfolio item (admin only)"""
+    try:
+        success = await DatabaseManager.delete_portfolio_item(item_id)
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Portfolio item not found"
+            )
+        return SuccessResponse(message="Portfolio item deleted successfully")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting portfolio item: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete portfolio item"
+        )
+
+@api_router.get("/portfolio/stats", response_model=dict)
+async def get_portfolio_stats():
+    """Get portfolio statistics (public endpoint)"""
+    try:
+        stats = await DatabaseManager.get_portfolio_stats()
+        return stats
+    except Exception as e:
+        logger.error(f"Error fetching portfolio stats: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to fetch portfolio statistics"
+        )
+
 # Include the router in the main app
 app.include_router(api_router)
 
