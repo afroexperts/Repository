@@ -2089,18 +2089,40 @@ const Dashboard = () => {
                   <CardContent className="space-y-4">
                     <div>
                       <label className="text-sm font-medium">Section Title</label>
-                      <Input defaultValue="Our IT Services" className="mt-1" />
+                      <Input 
+                        value={settings.services?.title || ""} 
+                        onChange={(e) => handleInputChange('services', 'title', e.target.value)}
+                        className="mt-1" 
+                      />
                     </div>
                     <div>
                       <label className="text-sm font-medium">Description</label>
                       <textarea 
                         className="w-full mt-1 p-3 border rounded-lg min-h-[80px]"
-                        defaultValue="Comprehensive technology solutions designed to empower African businesses with modern infrastructure and support."
+                        value={settings.services?.description || ""}
+                        onChange={(e) => handleInputChange('services', 'description', e.target.value)}
                       />
                     </div>
                     <div className="flex items-center space-x-2">
-                      <input type="checkbox" id="show-services" defaultChecked />
+                      <input 
+                        type="checkbox" 
+                        id="show-services" 
+                        checked={settings.services?.showSection || false}
+                        onChange={(e) => handleInputChange('services', 'showSection', e.target.checked)}
+                      />
                       <label htmlFor="show-services" className="text-sm">Show services section</label>
+                    </div>
+                    <div className="flex justify-end pt-4 border-t">
+                      <Button 
+                        className="bg-[#0c4864]"
+                        onClick={() => handleSaveSettings('services')}
+                        disabled={saving}
+                      >
+                        {saving ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : null}
+                        Save Services Settings
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
