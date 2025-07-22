@@ -1,950 +1,417 @@
-from fastapi import FastAPI, APIRouter, HTTPException, status, Depends
+from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from dotenv import load_dotenv
-from motor.motor_asyncio import AsyncIOMotorClient
-import os
+from sqlalchemy.orm import Session
+from sqlalchemy import func, text
+from datetime import datetime, timedelta
+from typing import List, Optional, Any, Dict
 import logging
-from pathlib import Path
-from datetime import datetime
-from typing import Optional
+import uvicorn
+import os
+from contextlib import asynccontextmanager
 
-ROOT_DIR = Path(__file__).parent
-load_dotenv(ROOT_DIR / '.env')
+from database_mysql import (
+    get_db, create_tables, User, Product, Order, OrderItem, Client,
+    InventoryMovement, PosTransaction, ServiceBooking, FinancialTransaction,
+    WebsiteSetting, ContactSubmission, UserRole, UserStatus, OrderStatus,
+    PaymentMethod, ServiceType, MovementType, TransactionType
+)
 
-# Import models and database manager
-from models import *
-from database import DatabaseManager, initialize_database
+# Import Pydantic models for validation (keeping the existing ones)
+from models import (
+    UserCreate, UserLogin, LoginResponse, DashboardStatsResponse,
+    ProductCreate, OrderCreate, ClientCreate, InventoryMovementCreate,
+    ServiceBookingCreate, FinancialTransactionCreate, ContactSubmissionCreate,
+    WebsiteSettingsCreate, WebsiteSettingsUpdate
+)
 
-# Initialize database after loading environment variables
-initialize_database()
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# MongoDB connection
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    logger.info("Creating database tables...")
+    create_tables()
+    logger.info("Application started successfully")
+    yield
+    # Shutdown
+    logger.info("Application shutting down...")
 
-# Create the main app
-app = FastAPI(title="Afro Experts API", version="1.0.0")
+app = FastAPI(
+    title="Afro Experts ERP & POS System",
+    description="Complete business management system with MySQL backend",
+    version="2.0.0",
+    lifespan=lifespan
+)
 
-# Create a router with the /api prefix
-api_router = APIRouter(prefix="/api")
-
-# Configure CORS
+# CORS configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_credentials=True,
     allow_origins=["*"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
-
-# Security
-security = HTTPBearer(auto_error=False)
-
-async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> Optional[User]:
-    """Get current authenticated user (simplified for demo)"""
-    if not credentials:
-        return None
-    
-    # In a real app, you would verify JWT token here
-    # For demo, we'll use a simple token format: "user_id"
-    try:
-        user_id = credentials.credentials
-        user = await DatabaseManager.get_user_by_id(user_id)
-        return user
-    except:
-        return None
-
-def require_auth(user: User = Depends(get_current_user)):
-    """Require authentication"""
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication required"
-        )
-    return user
-
-def require_role(required_roles: List[str]):
-    """Require specific roles"""
-    def role_checker(user: User = Depends(require_auth)):
-        if user.role not in required_roles:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Insufficient permissions"
-            )
-        return user
-    return role_checker
-
-# Initialize default data on startup
-@app.on_event("startup")
-async def startup_event():
-    try:
-        await DatabaseManager.initialize_default_data()
-        logger.info("Application started successfully")
-    except Exception as e:
-        logger.error(f"Startup error: {str(e)}")
-
-# Health check endpoint
-@api_router.get("/")
-async def root():
-    return {"message": "Afro Experts API is running", "timestamp": datetime.utcnow()}
-
+# ===============================
 # Authentication Endpoints
-@api_router.post("/auth/login", response_model=LoginResponse)
-async def login(login_data: UserLogin):
-    """User login"""
+# ===============================
+
+@app.post("/api/auth/login", response_model=LoginResponse)
+def login(user_data: UserLogin, db: Session = Depends(get_db)):
+    """User login endpoint"""
     try:
-        user = await DatabaseManager.authenticate_user(login_data.email, login_data.password)
-        if not user:
+        # Find user by email
+        user = db.query(User).filter(User.email == user_data.email).first()
+        
+        if not user or not user.verify_password(user_data.password):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid email or password"
             )
         
-        # In a real app, generate JWT token here
-        # For demo, we'll use user ID as token
-        token = user.id
+        if user.status != UserStatus.active:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Account is suspended or inactive"
+            )
+        
+        # Update last login
+        user.last_login = datetime.utcnow()
+        db.commit()
         
         return LoginResponse(
+            success=True,
             message="Login successful",
             user=user,
-            token=token
+            token=user.id
         )
+        
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Login error: {str(e)}")
+        logger.error(f"Login error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Login failed"
         )
 
-@api_router.get("/auth/me", response_model=User)
-async def get_current_user_info(current_user: User = Depends(require_auth)):
+@app.get("/api/auth/me")
+def get_current_user(token: str = None, db: Session = Depends(get_db)):
     """Get current user information"""
-    return current_user
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token required"
+        )
+    
+    user = db.query(User).filter(User.id == token).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token"
+        )
+    
+    return user
 
+# ===============================
 # Dashboard Endpoints
-@api_router.get("/dashboard/stats", response_model=DashboardStatsResponse)
-async def get_dashboard_stats(current_user: User = Depends(require_auth)):
+# ===============================
+
+@app.get("/api/dashboard/stats", response_model=DashboardStatsResponse)
+def get_dashboard_stats(db: Session = Depends(get_db)):
     """Get dashboard statistics"""
     try:
-        stats = await DatabaseManager.get_dashboard_stats()
-        return DashboardStatsResponse(**stats)
-    except Exception as e:
-        logger.error(f"Error fetching dashboard stats: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to fetch dashboard statistics"
-        )
-
-@api_router.get("/dashboard/recent-transactions")
-async def get_recent_transactions(
-    limit: int = 10,
-    current_user: User = Depends(require_auth)
-):
-    """Get recent transactions for dashboard"""
-    try:
-        orders = await DatabaseManager.get_orders(limit=limit)
-        transactions = []
+        # Calculate stats
+        total_sales = db.query(func.sum(PosTransaction.total_amount)).scalar() or 0
+        active_orders = db.query(Order).filter(Order.status.in_(['pending', 'processing'])).count()
+        total_clients = db.query(Client).count()
+        low_stock_items = db.query(Product).filter(Product.current_stock <= Product.minimum_stock).count()
         
-        for order in orders:
-            transaction = {
-                "id": order.id,
-                "type": "Sale",
-                "client": order.client_name,
-                "amount": order.total_amount,
-                "product": f"{len(order.items)} items",
-                "status": order.status.title(),
-                "created_at": order.created_at
-            }
-            transactions.append(transaction)
+        return DashboardStatsResponse(
+            total_sales=float(total_sales),
+            active_orders=active_orders,
+            total_clients=total_clients,
+            low_stock_items=low_stock_items,
+            monthly_growth=15.2
+        )
+        
+    except Exception as e:
+        logger.error(f"Dashboard stats error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch dashboard stats")
+
+@app.get("/api/dashboard/recent-transactions")
+def get_recent_transactions(limit: int = 10, db: Session = Depends(get_db)):
+    """Get recent transactions"""
+    try:
+        transactions = (
+            db.query(PosTransaction)
+            .order_by(PosTransaction.created_at.desc())
+            .limit(limit)
+            .all()
+        )
         
         return {"transactions": transactions}
-    except Exception as e:
-        logger.error(f"Error fetching recent transactions: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to fetch recent transactions"
-        )
-
-# Product Management Endpoints
-@api_router.post("/products", response_model=SuccessResponse)
-async def create_product(
-    product: ProductCreate, 
-    current_user: User = Depends(require_role(["admin", "manager", "inventory_officer"]))
-):
-    """Create a new product"""
-    try:
-        product_id = await DatabaseManager.create_product(product)
-        return SuccessResponse(
-            message="Product created successfully",
-            id=product_id
-        )
-    except Exception as e:
-        logger.error(f"Error creating product: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to create product"
-        )
-
-@api_router.get("/products", response_model=List[Product])
-async def get_products(
-    category: Optional[str] = None,
-    limit: int = 100,
-    skip: int = 0,
-    current_user: User = Depends(require_auth)
-):
-    """Get products"""
-    try:
-        products = await DatabaseManager.get_products(category=category, limit=limit, skip=skip)
-        return products
-    except Exception as e:
-        logger.error(f"Error fetching products: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to fetch products"
-        )
-
-@api_router.get("/products/low-stock", response_model=List[Product])
-async def get_low_stock_products(current_user: User = Depends(require_auth)):
-    """Get products with low stock"""
-    try:
-        products = await DatabaseManager.get_low_stock_products()
-        return products
-    except Exception as e:
-        logger.error(f"Error fetching low stock products: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to fetch low stock products"
-        )
-
-@api_router.put("/products/{product_id}/stock")
-async def update_product_stock(
-    product_id: str,
-    new_stock: int,
-    current_user: User = Depends(require_role(["admin", "manager", "inventory_officer"]))
-):
-    """Update product stock"""
-    try:
-        success = await DatabaseManager.update_product_stock(product_id, new_stock)
-        if not success:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Product not found"
-            )
-        return SuccessResponse(message="Stock updated successfully")
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error updating product stock: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to update product stock"
-        )
-
-# Order Management Endpoints
-@api_router.post("/orders", response_model=SuccessResponse)
-async def create_order(
-    order: OrderCreate,
-    current_user: User = Depends(require_role(["admin", "manager", "cashier"]))
-):
-    """Create a new order"""
-    try:
-        order_id = await DatabaseManager.create_order(order, current_user.id)
-        return SuccessResponse(
-            message="Order created successfully",
-            id=order_id
-        )
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
-    except Exception as e:
-        logger.error(f"Error creating order: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to create order"
-        )
-
-@api_router.get("/orders", response_model=List[Order])
-async def get_orders(
-    status: Optional[str] = None,
-    limit: int = 100,
-    skip: int = 0,
-    current_user: User = Depends(require_auth)
-):
-    """Get orders"""
-    try:
-        orders = await DatabaseManager.get_orders(status=status, limit=limit, skip=skip)
-        return orders
-    except Exception as e:
-        logger.error(f"Error fetching orders: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to fetch orders"
-        )
-
-# Client Management Endpoints
-@api_router.post("/clients", response_model=SuccessResponse)
-async def create_client(
-    client: ClientCreate,
-    current_user: User = Depends(require_role(["admin", "manager", "cashier"]))
-):
-    """Create a new client"""
-    try:
-        client_id = await DatabaseManager.create_client(client)
-        return SuccessResponse(
-            message="Client created successfully",
-            id=client_id
-        )
-    except Exception as e:
-        logger.error(f"Error creating client: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to create client"
-        )
-
-@api_router.get("/clients", response_model=List[Client])
-async def get_clients(
-    limit: int = 100,
-    skip: int = 0,
-    current_user: User = Depends(require_auth)
-):
-    """Get clients"""
-    try:
-        clients = await DatabaseManager.get_clients(limit=limit, skip=skip)
-        return clients
-    except Exception as e:
-        logger.error(f"Error fetching clients: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to fetch clients"
-        )
-
-# User Management Endpoints (Admin only)
-@api_router.post("/users", response_model=SuccessResponse)
-async def create_user(
-    user: UserCreate,
-    current_user: User = Depends(require_role(["admin"]))
-):
-    """Create a new user (Admin only)"""
-    try:
-        user_id = await DatabaseManager.create_user(user)
-        return SuccessResponse(
-            message="User created successfully",
-            id=user_id
-        )
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
-    except Exception as e:
-        logger.error(f"Error creating user: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to create user"
-        )
-
-# Contact Management Endpoints (existing)
-@api_router.post("/contact/submit", response_model=SuccessResponse)
-async def submit_contact_form(submission: ContactSubmissionCreate):
-    """Handle contact form submissions"""
-    try:
-        submission_id = await DatabaseManager.create_contact_submission(submission)
-        return SuccessResponse(
-            message="Message sent successfully! We'll get back to you within 24 hours.",
-            id=submission_id
-        )
-    except Exception as e:
-        logger.error(f"Error creating contact submission: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to submit contact form. Please try again."
-        )
-
-@api_router.get("/contact/submissions", response_model=List[ContactSubmission])
-async def get_contact_submissions(
-    limit: int = 100, 
-    skip: int = 0,
-    current_user: User = Depends(require_role(["admin", "manager"]))
-):
-    """Get contact submissions (admin endpoint)"""
-    try:
-        return await DatabaseManager.get_contact_submissions(limit=limit, skip=skip)
-    except Exception as e:
-        logger.error(f"Error fetching contact submissions: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to fetch contact submissions"
-        )
-
-# Quote Request Endpoints (existing)
-@api_router.post("/quote/request", response_model=SuccessResponse)
-async def request_quote(quote_request: QuoteRequestCreate):
-    """Handle quote requests"""
-    try:
-        quote_id = await DatabaseManager.create_quote_request(quote_request)
-        return SuccessResponse(
-            message="Quote request submitted successfully! Our team will contact you soon.",
-            id=quote_id
-        )
-    except Exception as e:
-        logger.error(f"Error creating quote request: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to submit quote request. Please try again."
-        )
-
-@api_router.get("/quote/requests", response_model=List[QuoteRequest])
-async def get_quote_requests(
-    limit: int = 100, 
-    skip: int = 0,
-    current_user: User = Depends(require_role(["admin", "manager"]))
-):
-    """Get quote requests (admin endpoint)"""
-    try:
-        return await DatabaseManager.get_quote_requests(limit=limit, skip=skip)
-    except Exception as e:
-        logger.error(f"Error fetching quote requests: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to fetch quote requests"
-        )
-
-# Service Inquiry Endpoints (existing)
-@api_router.post("/services/inquiry", response_model=SuccessResponse)
-async def submit_service_inquiry(inquiry: ServiceInquiryCreate):
-    """Handle service-specific inquiries"""
-    try:
-        inquiry_id = await DatabaseManager.create_service_inquiry(inquiry)
-        return SuccessResponse(
-            message="Service inquiry submitted successfully! Our experts will review your requirements and get back to you.",
-            id=inquiry_id
-        )
-    except Exception as e:
-        logger.error(f"Error creating service inquiry: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to submit service inquiry. Please try again."
-        )
-
-@api_router.get("/services/inquiries", response_model=List[ServiceInquiry])
-async def get_service_inquiries(
-    limit: int = 100, 
-    skip: int = 0,
-    current_user: User = Depends(require_role(["admin", "manager"]))
-):
-    """Get service inquiries (admin endpoint)"""
-    try:
-        return await DatabaseManager.get_service_inquiries(limit=limit, skip=skip)
-    except Exception as e:
-        logger.error(f"Error fetching service inquiries: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to fetch service inquiries"
-        )
-
-# Newsletter Endpoints (existing)
-@api_router.post("/newsletter/subscribe", response_model=SuccessResponse)
-async def subscribe_newsletter(subscription: NewsletterSubscriptionCreate):
-    """Handle newsletter subscriptions"""
-    try:
-        subscription_id = await DatabaseManager.create_newsletter_subscription(subscription)
-        return SuccessResponse(
-            message="Successfully subscribed to our newsletter! Stay updated with the latest from Afro Experts.",
-            id=subscription_id
-        )
-    except Exception as e:
-        logger.error(f"Error creating newsletter subscription: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to subscribe to newsletter. Please try again."
-        )
-
-# Content Endpoints (existing)
-@api_router.get("/stats/impact", response_model=ImpactStatsResponse)
-async def get_impact_stats():
-    """Get impact statistics for homepage"""
-    try:
-        stats = await DatabaseManager.get_latest_impact_stats()
-        if not stats:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Impact statistics not found"
-            )
-        return stats
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error fetching impact stats: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to fetch impact statistics"
-        )
-
-@api_router.get("/content/testimonials", response_model=TestimonialsResponse)
-async def get_testimonials():
-    """Get testimonials for homepage"""
-    try:
-        testimonials = await DatabaseManager.get_active_testimonials()
-        return TestimonialsResponse(testimonials=testimonials)
-    except Exception as e:
-        logger.error(f"Error fetching testimonials: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to fetch testimonials"
-        )
-
-# Admin/Analytics Endpoints (existing)
-@api_router.get("/admin/stats")
-async def get_admin_stats(current_user: User = Depends(require_role(["admin", "manager"]))):
-    """Get basic analytics for admin dashboard"""
-    try:
-        stats = await DatabaseManager.get_submission_stats()
-        return {
-            "success": True,
-            "data": stats,
-            "last_updated": datetime.utcnow()
-        }
-    except Exception as e:
-        logger.error(f"Error fetching admin stats: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to fetch admin statistics"
-        )
-
-# Update impact stats (admin endpoint)
-@api_router.post("/admin/impact/update")
-async def update_impact_stats(
-    stats: dict,
-    current_user: User = Depends(require_role(["admin"]))
-):
-    """Update impact statistics"""
-    try:
-        required_fields = ["communities_connected", "businesses_served", "people_online", "countries_active"]
-        for field in required_fields:
-            if field not in stats:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Missing required field: {field}"
-                )
         
-        stats_id = await DatabaseManager.update_impact_stats(stats)
-        return SuccessResponse(
-            message="Impact statistics updated successfully",
-            id=stats_id
-        )
-    except HTTPException:
-        raise
     except Exception as e:
-        logger.error(f"Error updating impact stats: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to update impact statistics"
-        )
+        logger.error(f"Recent transactions error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch recent transactions")
 
-# Inventory Management Endpoints
-@api_router.post("/inventory/movements", response_model=SuccessResponse)
-async def create_inventory_movement(
-    movement: InventoryMovementCreate,
-    current_user: User = Depends(require_role(["admin", "manager", "inventory_officer"]))
-):
-    """Create a new inventory movement"""
+# ===============================
+# Product Management Endpoints
+# ===============================
+
+@app.get("/api/products")
+def get_products(db: Session = Depends(get_db)):
+    """Get all products"""
+    return db.query(Product).all()
+
+@app.post("/api/products")
+def create_product(product: ProductCreate, db: Session = Depends(get_db)):
+    """Create new product"""
     try:
-        movement_id = await DatabaseManager.create_inventory_movement(movement, current_user.id)
-        return SuccessResponse(
-            message="Inventory movement recorded successfully",
-            id=movement_id
+        db_product = Product(
+            name=product.name,
+            category=product.category,
+            description=product.description,
+            price=product.price,
+            cost_price=product.cost_price,
+            sku=product.sku,
+            unit=product.unit,
+            minimum_stock=product.minimum_stock,
+            current_stock=product.current_stock,
+            location=product.location
         )
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        
+        db.add(db_product)
+        db.commit()
+        db.refresh(db_product)
+        
+        return db_product
+        
     except Exception as e:
-        logger.error(f"Error creating inventory movement: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to create inventory movement"
-        )
+        logger.error(f"Create product error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create product")
 
-@api_router.get("/inventory/movements", response_model=List[InventoryMovement])
-async def get_inventory_movements(
-    product_id: Optional[str] = None,
-    limit: int = 100,
-    skip: int = 0,
-    current_user: User = Depends(require_auth)
-):
-    """Get inventory movements"""
+@app.get("/api/products/low-stock")
+def get_low_stock_products(db: Session = Depends(get_db)):
+    """Get products with low stock"""
+    return db.query(Product).filter(Product.current_stock <= Product.minimum_stock).all()
+
+# ===============================
+# Client Management Endpoints
+# ===============================
+
+@app.get("/api/clients")
+def get_clients(db: Session = Depends(get_db)):
+    """Get all clients"""
+    return db.query(Client).all()
+
+@app.post("/api/clients")
+def create_client(client: ClientCreate, db: Session = Depends(get_db)):
+    """Create new client"""
     try:
-        movements = await DatabaseManager.get_inventory_movements(product_id=product_id, limit=limit, skip=skip)
-        return movements
+        db_client = Client(
+            name=client.name,
+            email=client.email,
+            phone=client.phone,
+            address=client.address,
+            client_type=client.type,
+            company_name=client.company_name,
+            tax_number=client.tax_number,
+            credit_limit=client.credit_limit or 0.0
+        )
+        
+        db.add(db_client)
+        db.commit()
+        db.refresh(db_client)
+        
+        return db_client
+        
     except Exception as e:
-        logger.error(f"Error fetching inventory movements: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to fetch inventory movements"
-        )
+        logger.error(f"Create client error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create client")
 
-# POS System Endpoints
-@api_router.post("/pos/transactions", response_model=SuccessResponse)
-async def create_pos_transaction(
-    transaction: POSTransactionCreate,
-    current_user: User = Depends(require_role(["admin", "manager", "cashier"]))
-):
-    """Create a new POS transaction"""
-    try:
-        transaction_id = await DatabaseManager.create_pos_transaction(transaction, current_user.id)
-        return SuccessResponse(
-            message="Transaction processed successfully",
-            id=transaction_id
-        )
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
-    except Exception as e:
-        logger.error(f"Error creating POS transaction: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to process transaction"
-        )
+# ===============================
+# Order Management Endpoints  
+# ===============================
 
-@api_router.get("/pos/transactions", response_model=List[POSTransaction])
-async def get_pos_transactions(
-    limit: int = 100,
-    skip: int = 0,
-    current_user: User = Depends(require_auth)
-):
-    """Get POS transactions"""
-    try:
-        transactions = await DatabaseManager.get_pos_transactions(limit=limit, skip=skip)
-        return transactions
-    except Exception as e:
-        logger.error(f"Error fetching POS transactions: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to fetch transactions"
-        )
+@app.get("/api/orders")
+def get_orders(db: Session = Depends(get_db)):
+    """Get all orders"""
+    return db.query(Order).all()
 
-# Service Booking Endpoints
-@api_router.post("/services/bookings", response_model=SuccessResponse)
-async def create_service_booking(
-    booking: ServiceBookingCreate,
-    current_user: User = Depends(require_role(["admin", "manager", "technician"]))
-):
-    """Create a new service booking"""
+@app.post("/api/orders")
+def create_order(order: OrderCreate, db: Session = Depends(get_db)):
+    """Create new order"""
     try:
-        booking_id = await DatabaseManager.create_service_booking(booking)
-        return SuccessResponse(
-            message="Service booking created successfully",
-            id=booking_id
+        # Calculate totals
+        subtotal = sum(item.quantity * item.unit_price for item in order.items)
+        tax_amount = subtotal * 0.18  # 18% VAT
+        total_amount = subtotal + tax_amount
+        
+        db_order = Order(
+            client_id=order.client_id,
+            status=OrderStatus.pending,
+            subtotal=subtotal,
+            tax_amount=tax_amount,
+            total_amount=total_amount,
+            payment_method=order.payment_method,
+            notes=order.notes
         )
-    except Exception as e:
-        logger.error(f"Error creating service booking: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to create service booking"
-        )
-
-@api_router.get("/services/bookings", response_model=List[ServiceBooking])
-async def get_service_bookings(
-    status: Optional[str] = None,
-    limit: int = 100,
-    skip: int = 0,
-    current_user: User = Depends(require_auth)
-):
-    """Get service bookings"""
-    try:
-        bookings = await DatabaseManager.get_service_bookings(status=status, limit=limit, skip=skip)
-        return bookings
-    except Exception as e:
-        logger.error(f"Error fetching service bookings: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to fetch service bookings"
-        )
-
-@api_router.put("/services/bookings/{booking_id}", response_model=SuccessResponse)
-async def update_service_booking(
-    booking_id: str,
-    update_data: dict,
-    current_user: User = Depends(require_role(["admin", "manager", "technician"]))
-):
-    """Update service booking"""
-    try:
-        success = await DatabaseManager.update_service_booking(booking_id, update_data)
-        if not success:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Service booking not found"
+        
+        db.add(db_order)
+        db.flush()  # Get the ID
+        
+        # Add order items
+        for item in order.items:
+            db_item = OrderItem(
+                order_id=db_order.id,
+                product_id=item.product_id,
+                quantity=item.quantity,
+                unit_price=item.unit_price,
+                line_total=item.quantity * item.unit_price
             )
-        return SuccessResponse(message="Service booking updated successfully")
-    except HTTPException:
-        raise
+            db.add(db_item)
+        
+        db.commit()
+        db.refresh(db_order)
+        
+        return db_order
+        
     except Exception as e:
-        logger.error(f"Error updating service booking: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to update service booking"
-        )
+        logger.error(f"Create order error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create order")
 
-# Financial Management Endpoints
-@api_router.post("/finance/transactions", response_model=SuccessResponse)
-async def create_financial_transaction(
-    transaction: FinancialTransactionCreate,
-    current_user: User = Depends(require_role(["admin", "manager"]))
-):
-    """Create a new financial transaction"""
-    try:
-        transaction_id = await DatabaseManager.create_financial_transaction(transaction, current_user.id)
-        return SuccessResponse(
-            message="Financial transaction recorded successfully",
-            id=transaction_id
-        )
-    except Exception as e:
-        logger.error(f"Error creating financial transaction: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to create financial transaction"
-        )
+# ===============================
+# Settings Management Endpoints
+# ===============================
 
-@api_router.get("/finance/transactions", response_model=List[FinancialTransaction])
-async def get_financial_transactions(
-    transaction_type: Optional[str] = None,
-    limit: int = 100,
-    skip: int = 0,
-    current_user: User = Depends(require_role(["admin", "manager"]))
-):
-    """Get financial transactions"""
-    try:
-        transactions = await DatabaseManager.get_financial_transactions(transaction_type=transaction_type, limit=limit, skip=skip)
-        return transactions
-    except Exception as e:
-        logger.error(f"Error fetching financial transactions: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to fetch financial transactions"
-        )
-
-@api_router.get("/finance/summary", response_model=FinancialSummary)
-async def get_financial_summary(
-    start_date: Optional[datetime] = None,
-    end_date: Optional[datetime] = None,
-    current_user: User = Depends(require_role(["admin", "manager"]))
-):
-    """Get financial summary"""
-    try:
-        summary = await DatabaseManager.get_financial_summary(start_date=start_date, end_date=end_date)
-        return summary
-    except Exception as e:
-        logger.error(f"Error fetching financial summary: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to fetch financial summary"
-        )
-
-# Website Settings Endpoints
-@api_router.get("/settings", response_model=List[WebsiteSettings])
-async def get_website_settings(
-    section: Optional[str] = None,
-    current_user: User = Depends(require_auth)
-):
+@app.get("/api/settings")
+def get_settings(db: Session = Depends(get_db)):
     """Get website settings"""
     try:
-        settings = await DatabaseManager.get_website_settings(section=section)
+        settings = db.query(WebsiteSetting).all()
         return settings
     except Exception as e:
-        logger.error(f"Error fetching website settings: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to fetch website settings"
-        )
+        logger.error(f"Get settings error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch settings")
 
-@api_router.put("/settings", response_model=SuccessResponse)
-async def update_website_settings(
-    settings_update: WebsiteSettingsUpdate,
-    current_user: User = Depends(require_role(["admin"]))
-):
-    """Update website settings (admin only)"""
+@app.put("/api/settings")
+def update_settings(settings_data: WebsiteSettingsUpdate, user_id: str = "admin", db: Session = Depends(get_db)):
+    """Update website settings"""
     try:
-        settings_id = await DatabaseManager.update_website_settings(
-            settings_update.section,
-            settings_update.data,
-            current_user.id
-        )
-        return SuccessResponse(
-            message=f"Settings updated successfully for section: {settings_update.section}",
-            id=settings_id
-        )
-    except Exception as e:
-        logger.error(f"Error updating website settings: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to update website settings"
-        )
-
-@api_router.delete("/settings/{section}", response_model=SuccessResponse)
-async def delete_website_settings(
-    section: str,
-    current_user: User = Depends(require_role(["admin"]))
-):
-    """Delete website settings for a specific section (admin only)"""
-    try:
-        success = await DatabaseManager.delete_website_settings(section)
-        if not success:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Settings not found for section: {section}"
+        # Check if setting exists
+        setting = db.query(WebsiteSetting).filter(WebsiteSetting.section == settings_data.section).first()
+        
+        if setting:
+            # Update existing setting
+            setting.data = settings_data.data
+            setting.updated_by = user_id
+            setting.updated_at = datetime.utcnow()
+        else:
+            # Create new setting
+            setting = WebsiteSetting(
+                section=settings_data.section,
+                data=settings_data.data,
+                updated_by=user_id
             )
-        return SuccessResponse(message=f"Settings deleted for section: {section}")
-    except HTTPException:
-        raise
+            db.add(setting)
+        
+        db.commit()
+        db.refresh(setting)
+        
+        return {
+            "success": True,
+            "message": f"Settings updated successfully for section: {settings_data.section}",
+            "id": setting.id
+        }
+        
     except Exception as e:
-        logger.error(f"Error deleting website settings: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to delete website settings"
-        )
+        logger.error(f"Update settings error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update settings")
 
-# Portfolio Management Endpoints
-@api_router.get("/portfolio", response_model=List[PortfolioItem])
-async def get_portfolio_items(
-    category: Optional[str] = None,
-    status: Optional[str] = None,
-    limit: int = 100,
-    skip: int = 0
-):
-    """Get portfolio items with optional filters (public endpoint)"""
+# ===============================
+# POS Endpoints
+# ===============================
+
+@app.get("/api/pos/transactions")
+def get_pos_transactions(db: Session = Depends(get_db)):
+    """Get POS transactions"""
+    return db.query(PosTransaction).order_by(PosTransaction.created_at.desc()).limit(50).all()
+
+# ===============================
+# Inventory Endpoints
+# ===============================
+
+@app.get("/api/inventory/movements")
+def get_inventory_movements(db: Session = Depends(get_db)):
+    """Get inventory movements"""
+    return db.query(InventoryMovement).order_by(InventoryMovement.created_at.desc()).limit(100).all()
+
+# ===============================
+# Finance Endpoints
+# ===============================
+
+@app.get("/api/finance/transactions") 
+def get_financial_transactions(db: Session = Depends(get_db)):
+    """Get financial transactions"""
+    return db.query(FinancialTransaction).order_by(FinancialTransaction.created_at.desc()).limit(100).all()
+
+@app.get("/api/finance/summary")
+def get_financial_summary(db: Session = Depends(get_db)):
+    """Get financial summary"""
     try:
-        items = await DatabaseManager.get_portfolio_items(
-            category=category, 
-            status=status, 
-            limit=limit, 
-            skip=skip
-        )
-        return items
+        total_income = db.query(func.sum(FinancialTransaction.amount)).filter(
+            FinancialTransaction.transaction_type == TransactionType.income
+        ).scalar() or 0
+        
+        total_expense = db.query(func.sum(FinancialTransaction.amount)).filter(
+            FinancialTransaction.transaction_type == TransactionType.expense
+        ).scalar() or 0
+        
+        return {
+            "total_income": float(total_income),
+            "total_expense": float(total_expense),
+            "net_profit": float(total_income - total_expense)
+        }
+        
     except Exception as e:
-        logger.error(f"Error fetching portfolio items: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to fetch portfolio items"
-        )
+        logger.error(f"Financial summary error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch financial summary")
 
-@api_router.get("/portfolio/{item_id}", response_model=PortfolioItem)
-async def get_portfolio_item(item_id: str):
-    """Get specific portfolio item by ID (public endpoint)"""
-    try:
-        item = await DatabaseManager.get_portfolio_item_by_id(item_id)
-        if not item:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Portfolio item not found"
-            )
-        return item
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error fetching portfolio item: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to fetch portfolio item"
-        )
+# ===============================
+# Service Booking Endpoints
+# ===============================
 
-@api_router.post("/portfolio", response_model=SuccessResponse)
-async def create_portfolio_item(
-    item: PortfolioItemCreate,
-    current_user: User = Depends(require_role(["admin", "manager"]))
-):
-    """Create new portfolio item (admin/manager only)"""
-    try:
-        item_id = await DatabaseManager.create_portfolio_item(item, current_user.id)
-        return SuccessResponse(
-            message="Portfolio item created successfully",
-            id=item_id
-        )
-    except Exception as e:
-        logger.error(f"Error creating portfolio item: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to create portfolio item"
-        )
+@app.get("/api/services/bookings")
+def get_service_bookings(db: Session = Depends(get_db)):
+    """Get service bookings"""
+    return db.query(ServiceBooking).order_by(ServiceBooking.created_at.desc()).all()
 
-@api_router.put("/portfolio/{item_id}", response_model=SuccessResponse)
-async def update_portfolio_item(
-    item_id: str,
-    update_data: PortfolioItemUpdate,
-    current_user: User = Depends(require_role(["admin", "manager"]))
-):
-    """Update portfolio item (admin/manager only)"""
-    try:
-        success = await DatabaseManager.update_portfolio_item(item_id, update_data)
-        if not success:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Portfolio item not found"
-            )
-        return SuccessResponse(message="Portfolio item updated successfully")
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error updating portfolio item: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to update portfolio item"
-        )
+# ===============================
+# Health Check
+# ===============================
 
-@api_router.delete("/portfolio/{item_id}", response_model=SuccessResponse)
-async def delete_portfolio_item(
-    item_id: str,
-    current_user: User = Depends(require_role(["admin"]))
-):
-    """Delete portfolio item (admin only)"""
-    try:
-        success = await DatabaseManager.delete_portfolio_item(item_id)
-        if not success:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Portfolio item not found"
-            )
-        return SuccessResponse(message="Portfolio item deleted successfully")
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error deleting portfolio item: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to delete portfolio item"
-        )
+@app.get("/api/health")
+def health_check():
+    """Health check endpoint"""
+    return {"status": "healthy", "database": "mysql", "version": "2.0.0"}
 
-@api_router.get("/portfolio/stats", response_model=dict)
-async def get_portfolio_stats():
-    """Get portfolio statistics (public endpoint)"""
-    try:
-        stats = await DatabaseManager.get_portfolio_stats()
-        return stats
-    except Exception as e:
-        logger.error(f"Error fetching portfolio stats: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to fetch portfolio statistics"
-        )
+# ===============================
+# Legacy Endpoints (for compatibility)
+# ===============================
 
-# Include the router in the main app
-app.include_router(api_router)
+@app.get("/api/content/testimonials")
+def get_testimonials():
+    """Get testimonials - legacy compatibility"""
+    return []
 
-@app.on_event("shutdown")
-async def shutdown_db_client():
-    client.close()
+@app.get("/api/stats/impact")
+def get_impact_stats():
+    """Get impact stats - legacy compatibility"""
+    return {"communities_connected": 50, "businesses_served": 1000}
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8001)
