@@ -546,3 +546,16 @@ class FinancialSummary(BaseModel):
     net_profit: float
     cash_on_hand: float
     pending_payments: float
+
+# Website Settings Models
+class WebsiteSettingsUpdate(BaseModel):
+    section: str = Field(..., min_length=1)  # e.g., "hero", "starlink", "services"
+    data: dict = Field(...)
+
+class WebsiteSettings(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    section: str
+    data: dict
+    updated_by: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: Optional[datetime] = None
