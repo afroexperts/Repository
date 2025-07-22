@@ -106,7 +106,9 @@ const Dashboard = () => {
   });
   
   const [orderForm, setOrderForm] = useState({
-    client_id: '',
+    client_name: '',
+    client_email: '',
+    client_phone: '',
     items: [],
     payment_method: 'cash',
     notes: ''
