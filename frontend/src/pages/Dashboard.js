@@ -313,6 +313,223 @@ const Dashboard = () => {
     }
   };
 
+  const handleAddOrder = async (e) => {
+    e.preventDefault();
+    setFormLoading(true);
+    
+    try {
+      const response = await axios.post(`${API}/orders`, orderForm);
+      
+      if (response.status === 200) {
+        // Refresh orders data
+        const ordersResponse = await axios.get(`${API}/orders`);
+        setDashboardData(prev => ({ ...prev, orders: ordersResponse.data }));
+        
+        // Reset form and close modal
+        setOrderForm({
+          client_id: '', items: [], payment_method: 'cash', notes: ''
+        });
+        setShowAddOrderModal(false);
+        
+        toast({
+          title: "Success",
+          description: "Order created successfully!",
+        });
+      }
+    } catch (error) {
+      console.error('Error adding order:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create order. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const handleInventoryMovement = async (e) => {
+    e.preventDefault();
+    setFormLoading(true);
+    
+    try {
+      const response = await axios.post(`${API}/inventory/movements`, inventoryForm);
+      
+      if (response.status === 200) {
+        // Refresh inventory data
+        const inventoryResponse = await axios.get(`${API}/inventory/movements`);
+        setDashboardData(prev => ({ ...prev, inventoryMovements: inventoryResponse.data }));
+        
+        // Reset form and close modal
+        setInventoryForm({
+          product_id: '', movement_type: 'stock_in', quantity: '',
+          unit_cost: '', notes: '', reference_number: ''
+        });
+        setShowInventoryModal(false);
+        
+        toast({
+          title: "Success",
+          description: "Inventory movement recorded successfully!",
+        });
+      }
+    } catch (error) {
+      console.error('Error recording inventory movement:', error);
+      toast({
+        title: "Error",
+        description: "Failed to record inventory movement. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const handleAddServiceBooking = async (e) => {
+    e.preventDefault();
+    setFormLoading(true);
+    
+    try {
+      const response = await axios.post(`${API}/services/bookings`, serviceBookingForm);
+      
+      if (response.status === 200) {
+        // Refresh service bookings data
+        const bookingsResponse = await axios.get(`${API}/services/bookings`);
+        setDashboardData(prev => ({ ...prev, serviceBookings: bookingsResponse.data }));
+        
+        // Reset form and close modal
+        setServiceBookingForm({
+          client_name: '', client_email: '', client_phone: '',
+          service_type: 'it_support', description: '', location: '', preferred_date: ''
+        });
+        setShowServiceBookingModal(false);
+        
+        toast({
+          title: "Success",
+          description: "Service booking created successfully!",
+        });
+      }
+    } catch (error) {
+      console.error('Error adding service booking:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create service booking. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const handleAddFinanceTransaction = async (e) => {
+    e.preventDefault();
+    setFormLoading(true);
+    
+    try {
+      const response = await axios.post(`${API}/finance/transactions`, financeForm);
+      
+      if (response.status === 200) {
+        // Refresh finance data
+        const financeResponse = await axios.get(`${API}/finance/transactions`);
+        setDashboardData(prev => ({ ...prev, financialTransactions: financeResponse.data }));
+        
+        // Reset form and close modal
+        setFinanceForm({
+          transaction_type: 'income', category: '', description: '',
+          amount: '', reference_id: ''
+        });
+        setShowFinanceModal(false);
+        
+        toast({
+          title: "Success",
+          description: "Financial transaction recorded successfully!",
+        });
+      }
+    } catch (error) {
+      console.error('Error adding financial transaction:', error);
+      toast({
+        title: "Error",
+        description: "Failed to record transaction. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  // POS Functions
+  const addToCart = () => {
+    if (!posSelectedProduct || posQuantity <= 0) return;
+    
+    const product = dashboardData.products.find(p => p.id === posSelectedProduct);
+    if (!product) return;
+    
+    const existingItem = posCart.find(item => item.id === product.id);
+    
+    if (existingItem) {
+      setPosCart(posCart.map(item => 
+        item.id === product.id 
+          ? { ...item, quantity: item.quantity + posQuantity, total: (item.quantity + posQuantity) * item.price }
+          : item
+      ));
+    } else {
+      setPosCart([...posCart, {
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        quantity: posQuantity,
+        total: product.price * posQuantity
+      }]);
+    }
+    
+    setPosSelectedProduct('');
+    setPosQuantity(1);
+  };
+
+  const removeFromCart = (productId) => {
+    setPosCart(posCart.filter(item => item.id !== productId));
+  };
+
+  const completePOSSale = async () => {
+    if (posCart.length === 0) return;
+    
+    setFormLoading(true);
+    try {
+      const subtotal = posCart.reduce((sum, item) => sum + item.total, 0);
+      const taxAmount = subtotal * 0.18;
+      const total = subtotal + taxAmount;
+      
+      const posTransaction = {
+        items: posCart,
+        subtotal,
+        tax_percentage: 18,
+        tax_amount: taxAmount,
+        total_amount: total,
+        payment_method: 'cash',
+        payment_received: total,
+        change_given: 0
+      };
+      
+      const response = await axios.post(`${API}/pos/transactions`, posTransaction);
+      
+      if (response.status === 200) {
+        setPosCart([]);
+        toast({
+          title: "Success",
+          description: "Sale completed successfully!",
+        });
+      }
+    } catch (error) {
+      console.error('Error completing sale:', error);
+      toast({
+        title: "Error",
+        description: "Failed to complete sale. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
   const handleDeleteProduct = async (productId) => {
     if (!window.confirm('Are you sure you want to delete this product?')) {
       return;
