@@ -256,8 +256,44 @@ def create_client(client: ClientCreate, db: Session = Depends(get_db)):
 
 @app.get("/api/orders")
 def get_orders(db: Session = Depends(get_db)):
-    """Get all orders"""
-    return db.query(Order).all()
+    """Get all orders with client and item details"""
+    try:
+        orders = db.query(Order).all()
+        
+        # Format response with client details
+        formatted_orders = []
+        for order in orders:
+            formatted_order = {
+                "id": order.id,
+                "order_number": order.order_number,
+                "client_id": order.client_id,
+                "client_name": order.client.name if order.client else "Unknown",
+                "status": order.status.value,
+                "subtotal": order.subtotal,
+                "tax_amount": order.tax_amount,
+                "total_amount": order.total_amount,
+                "payment_method": order.payment_method.value if order.payment_method else None,
+                "payment_status": order.payment_status,
+                "notes": order.notes,
+                "created_at": order.created_at.isoformat() if order.created_at else None,
+                "updated_at": order.updated_at.isoformat() if order.updated_at else None,
+                "items": [
+                    {
+                        "id": item.id,
+                        "product_id": item.product_id,
+                        "product_name": item.product.name if item.product else "Unknown",
+                        "quantity": item.quantity,
+                        "unit_price": item.unit_price,
+                        "line_total": item.line_total
+                    } for item in order.items
+                ]
+            }
+            formatted_orders.append(formatted_order)
+        
+        return formatted_orders
+    except Exception as e:
+        logger.error(f"Get orders error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve orders")
 
 @app.post("/api/orders")
 def create_order(order: OrderCreate, db: Session = Depends(get_db)):
