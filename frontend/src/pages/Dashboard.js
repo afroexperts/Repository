@@ -2986,6 +2986,266 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Add Product Modal */}
+      {showAddProductModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Add New Product</h3>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowAddProductModal(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <form onSubmit={handleAddProduct} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Product Name *</label>
+                <Input
+                  required
+                  value={productForm.name}
+                  onChange={(e) => setProductForm(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="Enter product name"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Category *</label>
+                <Input
+                  required
+                  value={productForm.category}
+                  onChange={(e) => setProductForm(prev => ({ ...prev, category: e.target.value }))}
+                  placeholder="e.g., satellite_internet, network_hardware"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Description</label>
+                <textarea
+                  className="w-full p-2 border rounded-lg"
+                  value={productForm.description}
+                  onChange={(e) => setProductForm(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Product description"
+                  rows="3"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Price (RWF) *</label>
+                  <Input
+                    required
+                    type="number"
+                    value={productForm.price}
+                    onChange={(e) => setProductForm(prev => ({ ...prev, price: e.target.value }))}
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Cost Price (RWF)</label>
+                  <Input
+                    type="number"
+                    value={productForm.cost_price}
+                    onChange={(e) => setProductForm(prev => ({ ...prev, cost_price: e.target.value }))}
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">SKU</label>
+                  <Input
+                    value={productForm.sku}
+                    onChange={(e) => setProductForm(prev => ({ ...prev, sku: e.target.value }))}
+                    placeholder="Product SKU"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Unit</label>
+                  <select
+                    className="w-full p-2 border rounded-lg"
+                    value={productForm.unit}
+                    onChange={(e) => setProductForm(prev => ({ ...prev, unit: e.target.value }))}
+                  >
+                    <option value="pieces">Pieces</option>
+                    <option value="kg">Kilograms</option>
+                    <option value="meters">Meters</option>
+                    <option value="hours">Hours</option>
+                    <option value="kit">Kit</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Current Stock</label>
+                  <Input
+                    type="number"
+                    value={productForm.current_stock}
+                    onChange={(e) => setProductForm(prev => ({ ...prev, current_stock: e.target.value }))}
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Minimum Stock</label>
+                  <Input
+                    type="number"
+                    value={productForm.minimum_stock}
+                    onChange={(e) => setProductForm(prev => ({ ...prev, minimum_stock: e.target.value }))}
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Location</label>
+                <Input
+                  value={productForm.location}
+                  onChange={(e) => setProductForm(prev => ({ ...prev, location: e.target.value }))}
+                  placeholder="e.g., Warehouse A"
+                />
+              </div>
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowAddProductModal(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  className="bg-[#0c4864]"
+                  disabled={formLoading}
+                >
+                  {formLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Adding...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Product
+                    </>
+                  )}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Client Modal */}
+      {showAddClientModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Add New Client</h3>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowAddClientModal(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <form onSubmit={handleAddClient} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Client Name *</label>
+                <Input
+                  required
+                  value={clientForm.name}
+                  onChange={(e) => setClientForm(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="Enter client name"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Email</label>
+                <Input
+                  type="email"
+                  value={clientForm.email}
+                  onChange={(e) => setClientForm(prev => ({ ...prev, email: e.target.value }))}
+                  placeholder="client@example.com"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Phone</label>
+                <Input
+                  value={clientForm.phone}
+                  onChange={(e) => setClientForm(prev => ({ ...prev, phone: e.target.value }))}
+                  placeholder="+250 788 123 456"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Address</label>
+                <textarea
+                  className="w-full p-2 border rounded-lg"
+                  value={clientForm.address}
+                  onChange={(e) => setClientForm(prev => ({ ...prev, address: e.target.value }))}
+                  placeholder="Client address"
+                  rows="2"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Client Type</label>
+                <select
+                  className="w-full p-2 border rounded-lg"
+                  value={clientForm.type}
+                  onChange={(e) => setClientForm(prev => ({ ...prev, type: e.target.value }))}
+                >
+                  <option value="individual">Individual</option>
+                  <option value="business">Business</option>
+                </select>
+              </div>
+              {clientForm.type === 'business' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Company Name</label>
+                    <Input
+                      value={clientForm.company_name}
+                      onChange={(e) => setClientForm(prev => ({ ...prev, company_name: e.target.value }))}
+                      placeholder="Company name"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Tax Number</label>
+                    <Input
+                      value={clientForm.tax_number}
+                      onChange={(e) => setClientForm(prev => ({ ...prev, tax_number: e.target.value }))}
+                      placeholder="Tax registration number"
+                    />
+                  </div>
+                </>
+              )}
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowAddClientModal(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  className="bg-[#0c4864]"
+                  disabled={formLoading}
+                >
+                  {formLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Adding...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Client
+                    </>
+                  )}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
