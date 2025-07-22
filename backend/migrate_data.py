@@ -296,7 +296,7 @@ def migrate_financial_transactions(db: Session):
                     id=data.get('id', str(uuid.uuid4())),
                     transaction_number=data.get('transaction_number', f"TXN-{str(uuid.uuid4())[:8]}"),
                     transaction_type=TransactionType(data['transaction_type']),
-                    category=data['category'],
+                    category=data.get('category', 'general'),  # Default category
                     description=data['description'],
                     amount=float(data['amount']),
                     reference_id=data.get('reference_id'),
