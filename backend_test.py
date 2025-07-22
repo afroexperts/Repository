@@ -683,92 +683,401 @@ class BackendTester:
         else:
             self.log_test("Create Client", False, f"Status: {status_code}", data)
 
-    # NEW MODULE TESTS - INVENTORY MANAGEMENT
+    # ENHANCED INVENTORY MANAGEMENT API TESTS
     def test_inventory_movements_get(self):
-        """Test get inventory movements endpoint"""
+        """Test GET /api/inventory/movements - Get all movements with product details"""
         if not self.token:
             self.log_test("Get Inventory Movements", False, "No token available - login failed")
             return
             
-        success, data, status_code = self.make_request("GET", "/inventory/movements?limit=10")
+        success, data, status_code = self.make_request("GET", "/inventory/movements")
         
         if success and status_code == 200 and isinstance(data, list):
             count = len(data)
             if count > 0:
+                # Check if movements have product details
+                first_movement = data[0]
+                has_product_details = "product_name" in first_movement and "product_id" in first_movement
                 movement_types = list(set(movement.get("movement_type", "Unknown") for movement in data))
-                self.log_test("Get Inventory Movements", True, f"Retrieved {count} inventory movements of types: {movement_types}")
+                
+                if has_product_details:
+                    self.log_test("Get Inventory Movements", True, f"Retrieved {count} inventory movements with product details, types: {movement_types}")
+                else:
+                    self.log_test("Get Inventory Movements", False, f"Retrieved {count} movements but missing product details")
             else:
                 self.log_test("Get Inventory Movements", True, "No inventory movements found")
         else:
             self.log_test("Get Inventory Movements", False, f"Status: {status_code}", data)
 
+    def test_inventory_movement_single(self):
+        """Test GET /api/inventory/movements/{movement_id} - Get single movement details"""
+        if not self.token:
+            self.log_test("Get Single Movement", False, "No token available - login failed")
+            return
+            
+        # First get existing movements to test with
+        success, movements, _ = self.make_request("GET", "/inventory/movements")
+        if not success or not movements or len(movements) == 0:
+            self.log_test("Get Single Movement", False, "No movements available for single movement test")
+            return
+            
+        movement_id = movements[0].get("id")
+        
+        success, data, status_code = self.make_request("GET", f"/inventory/movements/{movement_id}")
+        
+        if success and status_code == 200 and data.get("id"):
+            movement_type = data.get("movement_type", "Unknown")
+            quantity = data.get("quantity", 0)
+            self.log_test("Get Single Movement", True, f"Retrieved movement {movement_id}: {movement_type}, quantity: {quantity}")
+        else:
+            self.log_test("Get Single Movement", False, f"Status: {status_code}", data)
+
     def test_inventory_movements_create(self):
-        """Test create inventory movement endpoint"""
+        """Test POST /api/inventory/movements - Create new movement with stock validation"""
         if not self.token:
             self.log_test("Create Inventory Movement", False, "No token available - login failed")
             return
             
         # First get a product to use in the movement
-        success, products, _ = self.make_request("GET", "/products?limit=1")
+        success, products, _ = self.make_request("GET", "/products")
         if not success or not products or len(products) == 0:
             self.log_test("Create Inventory Movement", False, "No products available for inventory movement")
             return
             
         product = products[0]
         product_id = product.get("id")
+        initial_stock = product.get("current_stock", 0)
         
         movement_data = {
             "product_id": product_id,
             "movement_type": "stock_in",
             "quantity": 10,
             "unit_cost": 50000.0,
-            "reference": "TEST-STOCK-IN-001",
-            "reason": "Test stock in movement for API validation"
+            "reference_number": "TEST-STOCK-IN-001",
+            "notes": "Test stock in movement for API validation"
         }
         
         success, data, status_code = self.make_request("POST", "/inventory/movements", movement_data)
         
-        if success and status_code == 200 and data.get("success"):
+        if success and status_code == 200 and data.get("id"):
             movement_id = data.get("id")
-            self.log_test("Create Inventory Movement", True, f"Created inventory movement with ID: {movement_id}")
+            
+            # Verify stock was updated
+            success, updated_products, _ = self.make_request("GET", "/products")
+            if success:
+                updated_product = next((p for p in updated_products if p.get("id") == product_id), None)
+                if updated_product:
+                    new_stock = updated_product.get("current_stock", 0)
+                    expected_stock = initial_stock + 10
+                    
+                    if new_stock == expected_stock:
+                        self.log_test("Create Inventory Movement", True, f"Created movement {movement_id}, stock updated: {initial_stock} → {new_stock}")
+                        return movement_id
+                    else:
+                        self.log_test("Create Inventory Movement", False, f"Stock not updated correctly: expected {expected_stock}, got {new_stock}")
+                else:
+                    self.log_test("Create Inventory Movement", False, "Could not find product after movement creation")
+            else:
+                self.log_test("Create Inventory Movement", False, "Could not verify stock update")
         else:
             self.log_test("Create Inventory Movement", False, f"Status: {status_code}", data)
+            return None
 
-    def test_inventory_movements_types(self):
-        """Test different inventory movement types"""
+    def test_inventory_movement_update(self):
+        """Test PUT /api/inventory/movements/{movement_id} - Update movement details"""
         if not self.token:
-            self.log_test("Test Movement Types", False, "No token available - login failed")
+            self.log_test("Update Inventory Movement", False, "No token available - login failed")
             return
             
-        # Get a product for testing
-        success, products, _ = self.make_request("GET", "/products?limit=1")
+        # First get existing movements to test with
+        success, movements, _ = self.make_request("GET", "/inventory/movements")
+        if not success or not movements or len(movements) == 0:
+            self.log_test("Update Inventory Movement", False, "No movements available for update test")
+            return
+            
+        movement_id = movements[0].get("id")
+        
+        update_data = {
+            "notes": "Updated movement notes via API test",
+            "reference_number": "UPDATED-REF-001"
+        }
+        
+        success, data, status_code = self.make_request("PUT", f"/inventory/movements/{movement_id}", update_data)
+        
+        if success and status_code == 200 and data.get("id"):
+            updated_notes = data.get("notes", "")
+            self.log_test("Update Inventory Movement", True, f"Updated movement {movement_id}: {updated_notes}")
+        else:
+            self.log_test("Update Inventory Movement", False, f"Status: {status_code}", data)
+
+    def test_inventory_movement_delete(self):
+        """Test DELETE /api/inventory/movements/{movement_id} - Delete movement and reverse stock changes"""
+        if not self.token:
+            self.log_test("Delete Inventory Movement", False, "No token available - login failed")
+            return
+            
+        # First create a movement to delete
+        movement_id = self.test_inventory_movements_create()
+        if not movement_id:
+            self.log_test("Delete Inventory Movement", False, "Could not create movement for deletion test")
+            return
+        
+        # Get product stock before deletion
+        success, movement_data, _ = self.make_request("GET", f"/inventory/movements/{movement_id}")
+        if not success:
+            self.log_test("Delete Inventory Movement", False, "Could not get movement data before deletion")
+            return
+            
+        product_id = movement_data.get("product_id")
+        success, products, _ = self.make_request("GET", "/products")
+        if success:
+            product = next((p for p in products if p.get("id") == product_id), None)
+            if product:
+                stock_before_delete = product.get("current_stock", 0)
+            else:
+                self.log_test("Delete Inventory Movement", False, "Could not find product before deletion")
+                return
+        else:
+            self.log_test("Delete Inventory Movement", False, "Could not get products before deletion")
+            return
+        
+        # Delete the movement
+        success, data, status_code = self.make_request("DELETE", f"/inventory/movements/{movement_id}")
+        
+        if success and status_code == 200:
+            # Verify stock was reversed
+            success, updated_products, _ = self.make_request("GET", "/products")
+            if success:
+                updated_product = next((p for p in updated_products if p.get("id") == product_id), None)
+                if updated_product:
+                    stock_after_delete = updated_product.get("current_stock", 0)
+                    # Since we created a stock_in movement of 10, deleting should reduce stock by 10
+                    expected_stock = stock_before_delete - 10
+                    
+                    if stock_after_delete == expected_stock:
+                        self.log_test("Delete Inventory Movement", True, f"Movement deleted and stock reversed: {stock_before_delete} → {stock_after_delete}")
+                    else:
+                        self.log_test("Delete Inventory Movement", False, f"Stock not reversed correctly: expected {expected_stock}, got {stock_after_delete}")
+                else:
+                    self.log_test("Delete Inventory Movement", False, "Could not find product after deletion")
+            else:
+                self.log_test("Delete Inventory Movement", False, "Could not verify stock reversal")
+        else:
+            self.log_test("Delete Inventory Movement", False, f"Status: {status_code}", data)
+
+    def test_inventory_movements_by_product(self):
+        """Test GET /api/inventory/movements/product/{product_id} - Filter movements by product"""
+        if not self.token:
+            self.log_test("Get Movements by Product", False, "No token available - login failed")
+            return
+            
+        # Get a product that has movements
+        success, products, _ = self.make_request("GET", "/products")
         if not success or not products or len(products) == 0:
-            self.log_test("Test Movement Types", False, "No products available for movement testing")
+            self.log_test("Get Movements by Product", False, "No products available for product filter test")
             return
             
         product_id = products[0].get("id")
-        movement_types = ["stock_out", "adjustment", "damaged", "return"]
+        product_name = products[0].get("name", "Unknown")
+        
+        success, data, status_code = self.make_request("GET", f"/inventory/movements/product/{product_id}")
+        
+        if success and status_code == 200 and isinstance(data, list):
+            count = len(data)
+            if count > 0:
+                # Verify all movements are for the correct product
+                correct_product = all(movement.get("product_id") == product_id for movement in data)
+                if correct_product:
+                    movement_types = list(set(movement.get("movement_type", "Unknown") for movement in data))
+                    self.log_test("Get Movements by Product", True, f"Retrieved {count} movements for product '{product_name}', types: {movement_types}")
+                else:
+                    self.log_test("Get Movements by Product", False, "Retrieved movements contain wrong product IDs")
+            else:
+                self.log_test("Get Movements by Product", True, f"No movements found for product '{product_name}'")
+        else:
+            self.log_test("Get Movements by Product", False, f"Status: {status_code}", data)
+
+    def test_inventory_movements_by_type(self):
+        """Test GET /api/inventory/movements/type/{movement_type} - Filter movements by type"""
+        if not self.token:
+            self.log_test("Get Movements by Type", False, "No token available - login failed")
+            return
+            
+        movement_types_to_test = ["stock_in", "stock_out", "adjustment"]
         successful_types = []
         
-        for movement_type in movement_types:
+        for movement_type in movement_types_to_test:
+            success, data, status_code = self.make_request("GET", f"/inventory/movements/type/{movement_type}")
+            
+            if success and status_code == 200 and isinstance(data, list):
+                count = len(data)
+                if count > 0:
+                    # Verify all movements are of the correct type
+                    correct_type = all(movement.get("movement_type") == movement_type for movement in data)
+                    if correct_type:
+                        successful_types.append(f"{movement_type}({count})")
+                    else:
+                        self.log_test("Get Movements by Type", False, f"Retrieved movements contain wrong movement types for {movement_type}")
+                        return
+                else:
+                    successful_types.append(f"{movement_type}(0)")
+        
+        if len(successful_types) == len(movement_types_to_test):
+            self.log_test("Get Movements by Type", True, f"Successfully filtered movements by type: {successful_types}")
+        else:
+            self.log_test("Get Movements by Type", False, f"Failed to filter some movement types")
+
+    def test_inventory_summary(self):
+        """Test GET /api/inventory/summary - Get inventory summary statistics"""
+        if not self.token:
+            self.log_test("Get Inventory Summary", False, "No token available - login failed")
+            return
+            
+        success, data, status_code = self.make_request("GET", "/inventory/summary")
+        
+        if success and status_code == 200:
+            required_keys = ["total_stock_value", "low_stock_items", "total_products", "recent_movements", "movement_counts"]
+            has_required_keys = all(key in data for key in required_keys)
+            
+            if has_required_keys:
+                summary = {
+                    "Total Stock Value": data.get("total_stock_value", 0),
+                    "Low Stock Items": data.get("low_stock_items", 0),
+                    "Total Products": data.get("total_products", 0),
+                    "Recent Movements": data.get("recent_movements", 0),
+                    "Movement Counts": data.get("movement_counts", {})
+                }
+                self.log_test("Get Inventory Summary", True, f"Retrieved inventory summary: {summary}")
+            else:
+                missing_keys = [key for key in required_keys if key not in data]
+                self.log_test("Get Inventory Summary", False, f"Missing required keys: {missing_keys}")
+        else:
+            self.log_test("Get Inventory Summary", False, f"Status: {status_code}", data)
+
+    def test_inventory_stock_validation(self):
+        """Test stock validation for stock_out movements"""
+        if not self.token:
+            self.log_test("Inventory Stock Validation", False, "No token available - login failed")
+            return
+            
+        # Get a product with low stock
+        success, products, _ = self.make_request("GET", "/products")
+        if not success or not products or len(products) == 0:
+            self.log_test("Inventory Stock Validation", False, "No products available for stock validation test")
+            return
+            
+        product = products[0]
+        product_id = product.get("id")
+        current_stock = product.get("current_stock", 0)
+        
+        # Try to create a stock_out movement with more quantity than available
+        excessive_quantity = current_stock + 10
+        
+        movement_data = {
+            "product_id": product_id,
+            "movement_type": "stock_out",
+            "quantity": excessive_quantity,
+            "unit_cost": 25000.0,
+            "reference_number": "TEST-VALIDATION-001",
+            "notes": "Test stock validation for insufficient stock"
+        }
+        
+        success, data, status_code = self.make_request("POST", "/inventory/movements", movement_data)
+        
+        if not success and status_code == 400:
+            error_detail = data.get("detail", "")
+            if "Insufficient stock" in error_detail:
+                self.log_test("Inventory Stock Validation", True, f"Correctly prevented stock_out with insufficient stock: {error_detail}")
+            else:
+                self.log_test("Inventory Stock Validation", False, f"Wrong error message: {error_detail}")
+        else:
+            self.log_test("Inventory Stock Validation", False, f"Should have failed but got status: {status_code}")
+
+    def test_inventory_movement_types_comprehensive(self):
+        """Test all inventory movement types with stock updates"""
+        if not self.token:
+            self.log_test("Test All Movement Types", False, "No token available - login failed")
+            return
+            
+        # Get a product for testing
+        success, products, _ = self.make_request("GET", "/products")
+        if not success or not products or len(products) == 0:
+            self.log_test("Test All Movement Types", False, "No products available for movement testing")
+            return
+            
+        product = products[0]
+        product_id = product.get("id")
+        initial_stock = product.get("current_stock", 0)
+        
+        movement_types = [
+            {"type": "stock_in", "quantity": 5, "expected_change": +5},
+            {"type": "stock_out", "quantity": 2, "expected_change": -2},
+            {"type": "adjustment", "quantity": initial_stock + 8, "expected_change": 8},  # Adjustment sets absolute value
+            {"type": "damaged", "quantity": 1, "expected_change": -1}
+        ]
+        
+        successful_types = []
+        current_stock = initial_stock
+        
+        for movement in movement_types:
             movement_data = {
                 "product_id": product_id,
-                "movement_type": movement_type,
-                "quantity": 2,
+                "movement_type": movement["type"],
+                "quantity": movement["quantity"],
                 "unit_cost": 25000.0,
-                "reference": f"TEST-{movement_type.upper()}-001",
-                "reason": f"Test {movement_type} movement"
+                "reference_number": f"TEST-{movement['type'].upper()}-001",
+                "notes": f"Test {movement['type']} movement"
             }
             
             success, data, status_code = self.make_request("POST", "/inventory/movements", movement_data)
+            
             if success and status_code == 200:
-                successful_types.append(movement_type)
+                # Verify stock change
+                success, updated_products, _ = self.make_request("GET", "/products")
+                if success:
+                    updated_product = next((p for p in updated_products if p.get("id") == product_id), None)
+                    if updated_product:
+                        new_stock = updated_product.get("current_stock", 0)
+                        
+                        if movement["type"] == "adjustment":
+                            expected_stock = movement["quantity"]  # Adjustment sets absolute value
+                        else:
+                            expected_stock = current_stock + movement["expected_change"]
+                        
+                        if new_stock == expected_stock:
+                            successful_types.append(f"{movement['type']}({movement['quantity']})")
+                            current_stock = new_stock
+                        else:
+                            self.log_test("Test All Movement Types", False, f"Stock not updated correctly for {movement['type']}: expected {expected_stock}, got {new_stock}")
+                            return
         
         if len(successful_types) == len(movement_types):
-            self.log_test("Test Movement Types", True, f"All movement types working: {successful_types}")
+            self.log_test("Test All Movement Types", True, f"All movement types working with correct stock updates: {successful_types}")
         else:
-            failed_types = [t for t in movement_types if t not in successful_types]
-            self.log_test("Test Movement Types", False, f"Failed types: {failed_types}, Successful: {successful_types}")
+            failed_types = [m["type"] for m in movement_types if f"{m['type']}({m['quantity']})" not in successful_types]
+            self.log_test("Test All Movement Types", False, f"Failed types: {failed_types}, Successful: {successful_types}")
+
+    def run_enhanced_inventory_tests(self):
+        """Run all enhanced inventory management tests"""
+        print("\n" + "="*60)
+        print("TESTING ENHANCED INVENTORY MANAGEMENT API")
+        print("="*60)
+        
+        # Core inventory tests
+        self.test_inventory_movements_get()
+        self.test_inventory_movement_single()
+        self.test_inventory_movements_create()
+        self.test_inventory_movement_update()
+        self.test_inventory_movement_delete()
+        
+        # Filtering tests
+        self.test_inventory_movements_by_product()
+        self.test_inventory_movements_by_type()
+        
+        # Summary and validation tests
+        self.test_inventory_summary()
+        self.test_inventory_stock_validation()
+        self.test_inventory_movement_types_comprehensive()
 
     # NEW MODULE TESTS - POS SYSTEM
     def test_pos_transactions_get(self):
