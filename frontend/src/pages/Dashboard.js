@@ -4303,6 +4303,182 @@ const Dashboard = () => {
         </div>
       )}
 
+      {/* Order Details Modal */}
+      {showOrderDetailsModal && selectedOrder && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Order Details</h3>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowOrderDetailsModal(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-600">Order Number</p>
+                  <p className="font-medium">{selectedOrder.order_number}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Status</p>
+                  <Badge variant={selectedOrder.status === 'delivered' ? 'default' : 'secondary'}>
+                    {selectedOrder.status}
+                  </Badge>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Client</p>
+                  <p className="font-medium">{selectedOrder.client?.name || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Payment Method</p>
+                  <p className="font-medium">{selectedOrder.payment_method || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Created Date</p>
+                  <p className="font-medium">{new Date(selectedOrder.created_at).toLocaleDateString()}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Total Amount</p>
+                  <p className="font-medium text-lg">RWF {selectedOrder.total_amount.toLocaleString()}</p>
+                </div>
+              </div>
+              
+              {selectedOrder.notes && (
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">Notes</p>
+                  <p className="text-sm bg-gray-50 p-2 rounded">{selectedOrder.notes}</p>
+                </div>
+              )}
+              
+              <div>
+                <p className="text-sm text-gray-600 mb-2">Order Items</p>
+                <div className="space-y-2">
+                  {selectedOrder.items?.map((item, index) => (
+                    <div key={index} className="flex justify-between p-2 border rounded">
+                      <div>
+                        <p className="font-medium">{item.product_name}</p>
+                        <p className="text-sm text-gray-600">Quantity: {item.quantity}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-medium">RWF {item.line_total.toLocaleString()}</p>
+                        <p className="text-sm text-gray-600">Unit: RWF {item.unit_price.toLocaleString()}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="border-t pt-4">
+                <div className="flex justify-between text-sm">
+                  <span>Subtotal:</span>
+                  <span>RWF {selectedOrder.subtotal.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Tax (18%):</span>
+                  <span>RWF {selectedOrder.tax_amount.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between font-bold text-lg">
+                  <span>Total:</span>
+                  <span>RWF {selectedOrder.total_amount.toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Order Modal */}
+      {showEditOrderModal && editingItem && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Edit Order</h3>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowEditOrderModal(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <form onSubmit={handleUpdateOrder} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Order Number</label>
+                <input
+                  type="text"
+                  className="w-full p-2 border rounded-lg bg-gray-50"
+                  value={editingItem.order_number}
+                  disabled
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-1">Client</label>
+                <input
+                  type="text"
+                  className="w-full p-2 border rounded-lg bg-gray-50"
+                  value={editingItem.client_name || 'N/A'}
+                  disabled
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-1">Payment Method</label>
+                <select
+                  className="w-full p-2 border rounded-lg"
+                  value={orderForm.payment_method}
+                  onChange={(e) => setOrderForm(prev => ({ ...prev, payment_method: e.target.value }))}
+                >
+                  <option value="cash">Cash</option>
+                  <option value="card">Card</option>
+                  <option value="mobile_money">Mobile Money</option>
+                  <option value="bank_transfer">Bank Transfer</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-1">Notes</label>
+                <textarea
+                  className="w-full p-2 border rounded-lg"
+                  value={orderForm.notes}
+                  onChange={(e) => setOrderForm(prev => ({ ...prev, notes: e.target.value }))}
+                  placeholder="Order notes..."
+                  rows="3"
+                />
+              </div>
+              
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowEditOrderModal(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  className="bg-[#0c4864]"
+                  disabled={formLoading}
+                >
+                  {formLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Updating...
+                    </>
+                  ) : (
+                    'Update Order'
+                  )}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
