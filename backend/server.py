@@ -299,6 +299,27 @@ def get_orders(db: Session = Depends(get_db)):
 def create_order(order: OrderCreate, db: Session = Depends(get_db)):
     """Create new order"""
     try:
+        # Find or create client based on provided information
+        client = None
+        if order.client_email:
+            # Try to find existing client by email
+            client = db.query(Client).filter(Client.email == order.client_email).first()
+        
+        if not client and order.client_phone:
+            # Try to find existing client by phone
+            client = db.query(Client).filter(Client.phone == order.client_phone).first()
+        
+        if not client:
+            # Create new client
+            client = Client(
+                name=order.client_name,
+                email=order.client_email,
+                phone=order.client_phone,
+                client_type="individual"
+            )
+            db.add(client)
+            db.flush()  # Get the client ID
+        
         # Generate order number
         order_count = db.query(Order).count()
         order_number = f"ORD-{datetime.utcnow().strftime('%Y%m%d')}-{order_count + 1:04d}"
@@ -310,7 +331,7 @@ def create_order(order: OrderCreate, db: Session = Depends(get_db)):
         
         db_order = Order(
             order_number=order_number,
-            client_id=order.client_id,
+            client_id=client.id,
             status=OrderStatus.pending,
             subtotal=subtotal,
             tax_amount=tax_amount,
