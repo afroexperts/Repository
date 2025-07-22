@@ -1998,19 +1998,35 @@ const Dashboard = () => {
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <label className="text-sm font-medium">Primary Button Text</label>
-                          <Input defaultValue="Get Started Today" className="mt-1" />
+                          <Input 
+                            value={settings.hero?.primaryButtonText || ""}
+                            onChange={(e) => handleInputChange('hero', 'primaryButtonText', e.target.value)}
+                            className="mt-1" 
+                          />
                         </div>
                         <div>
                           <label className="text-sm font-medium">Primary Button Link</label>
-                          <Input defaultValue="/contact" className="mt-1" />
+                          <Input 
+                            value={settings.hero?.primaryButtonLink || ""}
+                            onChange={(e) => handleInputChange('hero', 'primaryButtonLink', e.target.value)}
+                            className="mt-1" 
+                          />
                         </div>
                         <div>
                           <label className="text-sm font-medium">Secondary Button Text</label>
-                          <Input defaultValue="Learn More" className="mt-1" />
+                          <Input 
+                            value={settings.hero?.secondaryButtonText || ""}
+                            onChange={(e) => handleInputChange('hero', 'secondaryButtonText', e.target.value)}
+                            className="mt-1" 
+                          />
                         </div>
                         <div>
                           <label className="text-sm font-medium">Secondary Button Link</label>
-                          <Input defaultValue="/about" className="mt-1" />
+                          <Input 
+                            value={settings.hero?.secondaryButtonLink || ""}
+                            onChange={(e) => handleInputChange('hero', 'secondaryButtonLink', e.target.value)}
+                            className="mt-1" 
+                          />
                         </div>
                       </div>
                     </div>
