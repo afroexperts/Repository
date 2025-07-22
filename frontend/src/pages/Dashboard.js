@@ -212,6 +212,13 @@ const Dashboard = () => {
       icon: TrendingUp,
       description: "Business Analytics",
       permission: "view_reports"
+    },
+    {
+      id: "settings",
+      title: "Settings",
+      icon: Settings,
+      description: "System Configuration",
+      permission: "admin"
     }
   ].filter(module => hasPermission(module.permission));
 
