@@ -756,6 +756,69 @@ async def get_financial_summary(
             detail="Failed to fetch financial summary"
         )
 
+# Website Settings Endpoints
+@api_router.get("/settings", response_model=List[WebsiteSettings])
+async def get_website_settings(
+    section: Optional[str] = None,
+    current_user: User = Depends(require_auth)
+):
+    """Get website settings"""
+    try:
+        settings = await DatabaseManager.get_website_settings(section=section)
+        return settings
+    except Exception as e:
+        logger.error(f"Error fetching website settings: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to fetch website settings"
+        )
+
+@api_router.put("/settings", response_model=SuccessResponse)
+async def update_website_settings(
+    settings_update: WebsiteSettingsUpdate,
+    current_user: User = Depends(require_role(["admin"]))
+):
+    """Update website settings (admin only)"""
+    try:
+        settings_id = await DatabaseManager.update_website_settings(
+            settings_update.section,
+            settings_update.data,
+            current_user.id
+        )
+        return SuccessResponse(
+            message=f"Settings updated successfully for section: {settings_update.section}",
+            id=settings_id
+        )
+    except Exception as e:
+        logger.error(f"Error updating website settings: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update website settings"
+        )
+
+@api_router.delete("/settings/{section}", response_model=SuccessResponse)
+async def delete_website_settings(
+    section: str,
+    current_user: User = Depends(require_role(["admin"]))
+):
+    """Delete website settings for a specific section (admin only)"""
+    try:
+        success = await DatabaseManager.delete_website_settings(section)
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Settings not found for section: {section}"
+            )
+        return SuccessResponse(message=f"Settings deleted for section: {section}")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting website settings: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete website settings"
+        )
+
 # Include the router in the main app
 app.include_router(api_router)
 
