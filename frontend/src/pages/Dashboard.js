@@ -1852,17 +1852,21 @@ const Dashboard = () => {
                 <Card>
                   <CardHeader>
                     <CardTitle>Services Configuration</CardTitle>
-                    <CardDescription>Manage service offerings and descriptions</CardDescription>
+                    <CardDescription>Manage all service offerings across different categories</CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-4">
+                  <CardContent className="space-y-6">
+                    {/* Technology Services */}
                     <div className="space-y-4">
+                      <h4 className="font-medium text-lg text-[#0c4864] border-b border-[#3b8ea4] pb-2">Technology Services</h4>
                       {[
                         "Network Setup & Maintenance",
                         "CCTV & Access Control", 
                         "Server Installation",
-                        "Technical Support"
+                        "Technical Support",
+                        "Software Development",
+                        "Internet Provider"
                       ].map((service, index) => (
-                        <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div key={index} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
                           <div className="flex-1">
                             <Input defaultValue={service} />
                           </div>
@@ -1877,6 +1881,58 @@ const Dashboard = () => {
                         </div>
                       ))}
                     </div>
+
+                    {/* Media & Events Services */}
+                    <div className="space-y-4">
+                      <h4 className="font-medium text-lg text-[#0c4864] border-b border-[#3b8ea4] pb-2">Media & Events Services</h4>
+                      {[
+                        "Event Management",
+                        "Audio-Visual Services",
+                        "Design & Branding",
+                        "Interpretation Services"
+                      ].map((service, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
+                          <div className="flex-1">
+                            <Input defaultValue={service} />
+                          </div>
+                          <div className="flex space-x-2 ml-4">
+                            <Button variant="outline" size="sm">
+                              Edit
+                            </Button>
+                            <Button variant="destructive" size="sm">
+                              Delete
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Production & Supply Services */}
+                    <div className="space-y-4">
+                      <h4 className="font-medium text-lg text-[#0c4864] border-b border-[#3b8ea4] pb-2">Production & Supply Services</h4>
+                      {[
+                        "Marble Dust Production (Rwanda Exclusive)",
+                        "General Supply"
+                      ].map((service, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
+                          <div className="flex-1 flex items-center space-x-2">
+                            <Input defaultValue={service.replace(' (Rwanda Exclusive)', '')} />
+                            {service.includes('Rwanda Exclusive') && (
+                              <Badge className="bg-[#66cadb] text-white text-xs">🇷🇼 Rwanda Only</Badge>
+                            )}
+                          </div>
+                          <div className="flex space-x-2 ml-4">
+                            <Button variant="outline" size="sm">
+                              Edit
+                            </Button>
+                            <Button variant="destructive" size="sm">
+                              Delete
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
                     <Button className="w-full">
                       <Plus className="h-4 w-4 mr-2" />
                       Add New Service
