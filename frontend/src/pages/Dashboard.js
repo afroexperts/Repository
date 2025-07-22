@@ -1865,7 +1865,14 @@ const Dashboard = () => {
                   <Eye className="h-4 w-4 mr-2" />
                   Preview Changes
                 </Button>
-                <Button className="bg-[#0c4864]">
+                <Button 
+                  className="bg-[#0c4864]"
+                  onClick={() => handleSaveSettings('hero')}
+                  disabled={saving}
+                >
+                  {saving ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : null}
                   Save Changes
                 </Button>
               </div>
