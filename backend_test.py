@@ -297,6 +297,334 @@ class BackendTester:
             self.log_test("Create Order", False, f"Status: {status_code}", data)
             return None
 
+    # ENHANCED ORDER MANAGEMENT API TESTS
+    def test_order_get_single(self):
+        """Test GET /api/orders/{order_id} - Get single order details"""
+        if not self.token:
+            self.log_test("Get Single Order", False, "No token available - login failed")
+            return
+            
+        # First get an existing order
+        success, orders, _ = self.make_request("GET", "/orders?limit=1")
+        if not success or not orders or len(orders) == 0:
+            self.log_test("Get Single Order", False, "No orders available for single order test")
+            return
+            
+        order_id = orders[0].get("id")
+        
+        success, data, status_code = self.make_request("GET", f"/orders/{order_id}")
+        
+        if success and status_code == 200 and data.get("id"):
+            order_number = data.get("order_number", "Unknown")
+            status_value = data.get("status", "Unknown")
+            self.log_test("Get Single Order", True, f"Retrieved order {order_number} with status: {status_value}")
+        else:
+            self.log_test("Get Single Order", False, f"Status: {status_code}", data)
+
+    def test_order_update(self):
+        """Test PUT /api/orders/{order_id} - Update order details"""
+        if not self.token:
+            self.log_test("Update Order", False, "No token available - login failed")
+            return
+            
+        # First get an existing order
+        success, orders, _ = self.make_request("GET", "/orders?limit=1")
+        if not success or not orders or len(orders) == 0:
+            self.log_test("Update Order", False, "No orders available for update test")
+            return
+            
+        order_id = orders[0].get("id")
+        
+        update_data = {
+            "status": "processing",
+            "payment_method": "card",
+            "notes": "Updated order details via API test"
+        }
+        
+        success, data, status_code = self.make_request("PUT", f"/orders/{order_id}", update_data)
+        
+        if success and status_code == 200 and data.get("id"):
+            updated_status = data.get("status", "Unknown")
+            self.log_test("Update Order", True, f"Updated order {order_id} to status: {updated_status}")
+            return order_id
+        else:
+            self.log_test("Update Order", False, f"Status: {status_code}", data)
+            return None
+
+    def test_order_status_update(self):
+        """Test PUT /api/orders/{order_id}/status - Update order status specifically"""
+        if not self.token:
+            self.log_test("Update Order Status", False, "No token available - login failed")
+            return
+            
+        # First get an existing order
+        success, orders, _ = self.make_request("GET", "/orders?limit=1")
+        if not success or not orders or len(orders) == 0:
+            self.log_test("Update Order Status", False, "No orders available for status update test")
+            return
+            
+        order_id = orders[0].get("id")
+        
+        status_update = {
+            "status": "processing"
+        }
+        
+        success, data, status_code = self.make_request("PUT", f"/orders/{order_id}/status", status_update)
+        
+        if success and status_code == 200:
+            message = data.get("message", "Status updated")
+            self.log_test("Update Order Status", True, f"Order status updated: {message}")
+        else:
+            self.log_test("Update Order Status", False, f"Status: {status_code}", data)
+
+    def test_orders_by_status(self):
+        """Test GET /api/orders/status/{status} - Filter orders by status"""
+        if not self.token:
+            self.log_test("Get Orders by Status", False, "No token available - login failed")
+            return
+            
+        # Test different statuses
+        statuses_to_test = ["pending", "processing", "delivered"]
+        successful_statuses = []
+        
+        for status in statuses_to_test:
+            success, data, status_code = self.make_request("GET", f"/orders/status/{status}")
+            
+            if success and status_code == 200 and isinstance(data, list):
+                count = len(data)
+                successful_statuses.append(f"{status}({count})")
+        
+        if len(successful_statuses) > 0:
+            self.log_test("Get Orders by Status", True, f"Retrieved orders by status: {successful_statuses}")
+        else:
+            self.log_test("Get Orders by Status", False, "Failed to retrieve orders by any status")
+
+    def test_order_delete_validation(self):
+        """Test DELETE /api/orders/{order_id} - Test deletion with proper validation"""
+        if not self.token:
+            self.log_test("Delete Order Validation", False, "No token available - login failed")
+            return
+            
+        # First create a test order to delete
+        order_id = self.test_orders_create()
+        if not order_id:
+            self.log_test("Delete Order Validation", False, "Could not create test order for deletion")
+            return
+        
+        # Try to delete the order (should succeed for non-delivered orders)
+        success, data, status_code = self.make_request("DELETE", f"/orders/{order_id}")
+        
+        if success and status_code == 200:
+            message = data.get("message", "Order deleted")
+            self.log_test("Delete Order Validation", True, f"Successfully deleted order: {message}")
+        else:
+            self.log_test("Delete Order Validation", False, f"Status: {status_code}", data)
+
+    def test_order_delete_delivered_validation(self):
+        """Test DELETE validation - Should fail for delivered orders"""
+        if not self.token:
+            self.log_test("Delete Delivered Order Validation", False, "No token available - login failed")
+            return
+            
+        # First create a test order
+        order_id = self.test_orders_create()
+        if not order_id:
+            self.log_test("Delete Delivered Order Validation", False, "Could not create test order")
+            return
+        
+        # Update order status to delivered
+        status_update = {"status": "delivered"}
+        success, _, _ = self.make_request("PUT", f"/orders/{order_id}/status", status_update)
+        
+        if not success:
+            self.log_test("Delete Delivered Order Validation", False, "Could not update order to delivered status")
+            return
+        
+        # Now try to delete the delivered order (should fail)
+        success, data, status_code = self.make_request("DELETE", f"/orders/{order_id}")
+        
+        if not success and status_code == 400:
+            error_detail = data.get("detail", "Unknown error")
+            if "Cannot delete delivered orders" in error_detail:
+                self.log_test("Delete Delivered Order Validation", True, "Correctly prevented deletion of delivered order")
+            else:
+                self.log_test("Delete Delivered Order Validation", False, f"Wrong error message: {error_detail}")
+        else:
+            self.log_test("Delete Delivered Order Validation", False, f"Should have failed but got status: {status_code}")
+
+    def test_order_stock_validation(self):
+        """Test stock validation when creating orders"""
+        if not self.token:
+            self.log_test("Order Stock Validation", False, "No token available - login failed")
+            return
+            
+        # Get a product with low stock
+        success, products, _ = self.make_request("GET", "/products/low-stock?limit=1")
+        if not success or not products or len(products) == 0:
+            # Get any product and check its stock
+            success, products, _ = self.make_request("GET", "/products?limit=1")
+            if not success or not products:
+                self.log_test("Order Stock Validation", False, "No products available for stock validation test")
+                return
+        
+        product = products[0]
+        product_id = product.get("id")
+        current_stock = product.get("current_stock", 0)
+        
+        # Get a client
+        success, clients, _ = self.make_request("GET", "/clients?limit=1")
+        if not success or not clients:
+            self.log_test("Order Stock Validation", False, "No clients available for stock validation test")
+            return
+        
+        client_id = clients[0].get("id")
+        
+        # Try to order more than available stock
+        excessive_quantity = current_stock + 10
+        
+        order_data = {
+            "client_id": client_id,
+            "items": [{
+                "product_id": product_id,
+                "quantity": excessive_quantity,
+                "unit_price": product.get("price", 10000)
+            }],
+            "payment_method": "cash",
+            "notes": "Test order for stock validation"
+        }
+        
+        success, data, status_code = self.make_request("POST", "/orders", order_data)
+        
+        if not success and status_code == 400:
+            error_detail = data.get("detail", "")
+            if "Insufficient stock" in error_detail:
+                self.log_test("Order Stock Validation", True, f"Correctly prevented order with insufficient stock: {error_detail}")
+            else:
+                self.log_test("Order Stock Validation", False, f"Wrong error message: {error_detail}")
+        else:
+            self.log_test("Order Stock Validation", False, f"Should have failed but got status: {status_code}")
+
+    def test_order_number_generation(self):
+        """Test order number generation works correctly"""
+        if not self.token:
+            self.log_test("Order Number Generation", False, "No token available - login failed")
+            return
+            
+        # Create multiple orders and check order number format
+        order_numbers = []
+        
+        for i in range(3):
+            order_id = self.test_orders_create()
+            if order_id:
+                # Get the created order to check its order number
+                success, data, _ = self.make_request("GET", f"/orders/{order_id}")
+                if success and data.get("order_number"):
+                    order_numbers.append(data.get("order_number"))
+        
+        if len(order_numbers) >= 2:
+            # Check order number format (should be ORD-YYYYMMDD-XXXX)
+            import re
+            pattern = r"ORD-\d{8}-\d{4}"
+            valid_numbers = [num for num in order_numbers if re.match(pattern, num)]
+            
+            if len(valid_numbers) == len(order_numbers):
+                self.log_test("Order Number Generation", True, f"Generated valid order numbers: {order_numbers}")
+            else:
+                invalid_numbers = [num for num in order_numbers if not re.match(pattern, num)]
+                self.log_test("Order Number Generation", False, f"Invalid order number format: {invalid_numbers}")
+        else:
+            self.log_test("Order Number Generation", False, "Could not create enough orders to test number generation")
+
+    def test_order_stock_deduction(self):
+        """Test that stock is properly deducted when creating orders"""
+        if not self.token:
+            self.log_test("Order Stock Deduction", False, "No token available - login failed")
+            return
+            
+        # Get a product with sufficient stock
+        success, products, _ = self.make_request("GET", "/products?limit=1")
+        if not success or not products:
+            self.log_test("Order Stock Deduction", False, "No products available for stock deduction test")
+            return
+        
+        product = products[0]
+        product_id = product.get("id")
+        initial_stock = product.get("current_stock", 0)
+        
+        if initial_stock < 5:
+            self.log_test("Order Stock Deduction", False, f"Product has insufficient stock ({initial_stock}) for deduction test")
+            return
+        
+        # Get a client
+        success, clients, _ = self.make_request("GET", "/clients?limit=1")
+        if not success or not clients:
+            self.log_test("Order Stock Deduction", False, "No clients available for stock deduction test")
+            return
+        
+        client_id = clients[0].get("id")
+        order_quantity = 3
+        
+        # Create order
+        order_data = {
+            "client_id": client_id,
+            "items": [{
+                "product_id": product_id,
+                "quantity": order_quantity,
+                "unit_price": product.get("price", 10000)
+            }],
+            "payment_method": "cash",
+            "notes": "Test order for stock deduction validation"
+        }
+        
+        success, data, status_code = self.make_request("POST", "/orders", order_data)
+        
+        if success and status_code == 200:
+            # Check if stock was deducted
+            success, updated_product, _ = self.make_request("GET", f"/products")
+            if success:
+                # Find the product in the list
+                updated_product_data = None
+                for p in updated_product:
+                    if p.get("id") == product_id:
+                        updated_product_data = p
+                        break
+                
+                if updated_product_data:
+                    new_stock = updated_product_data.get("current_stock", 0)
+                    expected_stock = initial_stock - order_quantity
+                    
+                    if new_stock == expected_stock:
+                        self.log_test("Order Stock Deduction", True, f"Stock correctly deducted: {initial_stock} → {new_stock}")
+                    else:
+                        self.log_test("Order Stock Deduction", False, f"Stock deduction incorrect: expected {expected_stock}, got {new_stock}")
+                else:
+                    self.log_test("Order Stock Deduction", False, "Could not find product after order creation")
+            else:
+                self.log_test("Order Stock Deduction", False, "Could not retrieve products after order creation")
+        else:
+            self.log_test("Order Stock Deduction", False, f"Order creation failed: {status_code}")
+
+    def run_enhanced_order_tests(self):
+        """Run all enhanced order management tests"""
+        print("\n" + "="*60)
+        print("TESTING ENHANCED ORDER MANAGEMENT API")
+        print("="*60)
+        
+        # Basic order tests
+        self.test_orders_get()
+        self.test_orders_create()
+        
+        # Enhanced order management tests
+        self.test_order_get_single()
+        self.test_order_update()
+        self.test_order_status_update()
+        self.test_orders_by_status()
+        self.test_order_delete_validation()
+        self.test_order_delete_delivered_validation()
+        self.test_order_stock_validation()
+        self.test_order_number_generation()
+        self.test_order_stock_deduction()
+
     def test_clients_get(self):
         """Test get clients endpoint"""
         if not self.token:
