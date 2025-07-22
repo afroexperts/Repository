@@ -967,3 +967,80 @@ class DatabaseManager:
                 await website_settings_collection.insert_one(settings_obj.dict())
             
             logger.info("Default website settings initialized")
+
+    # Portfolio Management Methods
+    @staticmethod
+    async def create_portfolio_item(item_data: PortfolioItemCreate, created_by: str) -> str:
+        """Create a new portfolio item"""
+        portfolio_item = PortfolioItem(
+            **item_data.dict(),
+            created_by=created_by
+        )
+        
+        result = await portfolio_collection.insert_one(portfolio_item.dict())
+        logger.info(f"Portfolio item created: {portfolio_item.title}")
+        return portfolio_item.id
+
+    @staticmethod
+    async def get_portfolio_items(category: Optional[str] = None, status: Optional[str] = None, 
+                                  limit: int = 100, skip: int = 0) -> List[PortfolioItem]:
+        """Get portfolio items with optional filters"""
+        query = {}
+        if category:
+            query["category"] = category
+        if status:
+            query["status"] = status
+        
+        cursor = portfolio_collection.find(query).sort("created_at", -1).skip(skip).limit(limit)
+        items = await cursor.to_list(length=limit)
+        return [PortfolioItem(**item) for item in items]
+
+    @staticmethod
+    async def get_portfolio_item_by_id(item_id: str) -> Optional[PortfolioItem]:
+        """Get portfolio item by ID"""
+        item_data = await portfolio_collection.find_one({"id": item_id})
+        if item_data:
+            return PortfolioItem(**item_data)
+        return None
+
+    @staticmethod
+    async def update_portfolio_item(item_id: str, update_data: PortfolioItemUpdate) -> bool:
+        """Update portfolio item"""
+        update_dict = {k: v for k, v in update_data.dict().items() if v is not None}
+        if update_dict:
+            update_dict["updated_at"] = datetime.utcnow()
+            result = await portfolio_collection.update_one(
+                {"id": item_id},
+                {"$set": update_dict}
+            )
+            return result.modified_count > 0
+        return False
+
+    @staticmethod
+    async def delete_portfolio_item(item_id: str) -> bool:
+        """Delete portfolio item"""
+        result = await portfolio_collection.delete_one({"id": item_id})
+        return result.deleted_count > 0
+
+    @staticmethod
+    async def get_portfolio_stats() -> dict:
+        """Get portfolio statistics"""
+        total_items = await portfolio_collection.count_documents({})
+        
+        # Get items by category
+        category_pipeline = [
+            {"$group": {"_id": "$category", "count": {"$sum": 1}}}
+        ]
+        category_stats = await portfolio_collection.aggregate(category_pipeline).to_list(length=None)
+        
+        # Get items by status
+        status_pipeline = [
+            {"$group": {"_id": "$status", "count": {"$sum": 1}}}
+        ]
+        status_stats = await portfolio_collection.aggregate(status_pipeline).to_list(length=None)
+        
+        return {
+            "total_items": total_items,
+            "by_category": {item["_id"]: item["count"] for item in category_stats},
+            "by_status": {item["_id"]: item["count"] for item in status_stats}
+        }
