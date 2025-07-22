@@ -611,7 +611,10 @@ const Dashboard = () => {
                   Filter
                 </Button>
                 {hasPermission('manage_products') && (
-                  <Button className="bg-[#0c4864]">
+                  <Button 
+                    className="bg-[#0c4864]"
+                    onClick={() => setShowAddProductModal(true)}
+                  >
                     <Plus className="h-4 w-4 mr-2" />
                     Add Product
                   </Button>
