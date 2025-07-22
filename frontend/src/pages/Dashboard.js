@@ -1408,7 +1408,7 @@ const Dashboard = () => {
                 <p className="text-gray-600">Track and manage customer orders</p>
               </div>
               <div className="flex space-x-2">
-                <Select>
+                <Select value={orderStatusFilter} onValueChange={setOrderStatusFilter}>
                   <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="Filter by status" />
                   </SelectTrigger>
@@ -1418,6 +1418,7 @@ const Dashboard = () => {
                     <SelectItem value="processing">Processing</SelectItem>
                     <SelectItem value="shipped">Shipped</SelectItem>
                     <SelectItem value="delivered">Delivered</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
                   </SelectContent>
                 </Select>
                 <Button 
@@ -1430,26 +1431,157 @@ const Dashboard = () => {
               </div>
             </div>
 
+            {/* Order Statistics */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Total Orders</p>
+                      <p className="text-2xl font-bold">{dashboardData.orders.length}</p>
+                    </div>
+                    <FileText className="h-8 w-8 text-[#3b8ea4]" />
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Pending</p>
+                      <p className="text-2xl font-bold text-orange-600">
+                        {dashboardData.orders.filter(o => o.status === 'pending').length}
+                      </p>
+                    </div>
+                    <Clock className="h-8 w-8 text-orange-500" />
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Processing</p>
+                      <p className="text-2xl font-bold text-blue-600">
+                        {dashboardData.orders.filter(o => o.status === 'processing').length}
+                      </p>
+                    </div>
+                    <Package className="h-8 w-8 text-blue-500" />
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Delivered</p>
+                      <p className="text-2xl font-bold text-green-600">
+                        {dashboardData.orders.filter(o => o.status === 'delivered').length}
+                      </p>
+                    </div>
+                    <CheckCircle className="h-8 w-8 text-green-500" />
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Total Value</p>
+                      <p className="text-2xl font-bold text-purple-600">
+                        RWF {dashboardData.orders.reduce((sum, o) => sum + o.total_amount, 0).toLocaleString()}
+                      </p>
+                    </div>
+                    <DollarSign className="h-8 w-8 text-purple-500" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
             <Card>
               <CardHeader>
-                <CardTitle>Recent Orders</CardTitle>
-                <CardDescription>Latest customer orders and their status</CardDescription>
+                <CardTitle>
+                  Orders ({orderStatusFilter === 'all' ? 'All' : orderStatusFilter.charAt(0).toUpperCase() + orderStatusFilter.slice(1)})
+                </CardTitle>
+                <CardDescription>
+                  {orderStatusFilter === 'all' 
+                    ? 'All customer orders and their status' 
+                    : `Orders with ${orderStatusFilter} status`}
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                {dashboardData.orders.length > 0 ? (
+                {getFilteredOrders().length > 0 ? (
                   <div className="space-y-4">
-                    {dashboardData.orders.map((order) => (
+                    {getFilteredOrders().map((order) => (
                       <div key={order.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
                         <div className="space-y-1">
-                          <h4 className="font-medium">{order.order_number}</h4>
+                          <div className="flex items-center space-x-2">
+                            <h4 className="font-medium">{order.order_number}</h4>
+                            <Badge 
+                              variant={
+                                order.status === 'delivered' ? 'default' : 
+                                order.status === 'processing' ? 'secondary' : 
+                                order.status === 'pending' ? 'outline' : 'destructive'
+                              }
+                            >
+                              {order.status}
+                            </Badge>
+                          </div>
                           <p className="text-sm text-gray-600">{order.client_name}</p>
                           <p className="text-xs text-gray-500">{new Date(order.created_at).toLocaleDateString()}</p>
+                          <p className="text-xs text-gray-500">Items: {order.items?.length || 0}</p>
                         </div>
-                        <div className="text-right space-y-1">
+                        <div className="text-right space-y-2">
                           <p className="font-semibold">RWF {order.total_amount.toLocaleString()}</p>
-                          <Badge variant={order.status === 'completed' ? 'default' : 'secondary'}>
-                            {order.status}
-                          </Badge>
+                          <div className="flex space-x-2">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => handleViewOrderDetails(order.id)}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            {order.status === 'pending' && (
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => handleEditOrder(order)}
+                              >
+                                Edit
+                              </Button>
+                            )}
+                            {order.status === 'pending' && (
+                              <Button 
+                                size="sm" 
+                                className="bg-blue-600 hover:bg-blue-700"
+                                onClick={() => handleUpdateOrderStatus(order.id, 'processing')}
+                              >
+                                Process
+                              </Button>
+                            )}
+                            {order.status === 'processing' && (
+                              <Button 
+                                size="sm" 
+                                className="bg-green-600 hover:bg-green-700"
+                                onClick={() => handleUpdateOrderStatus(order.id, 'delivered')}
+                              >
+                                Deliver
+                              </Button>
+                            )}
+                            {order.status !== 'delivered' && (
+                              <Button 
+                                size="sm" 
+                                variant="destructive"
+                                onClick={() => handleDeleteOrder(order.id)}
+                              >
+                                Delete
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -1457,7 +1589,7 @@ const Dashboard = () => {
                 ) : (
                   <div className="text-center py-8 text-gray-500">
                     <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>No orders found</p>
+                    <p>No orders found for the selected filter</p>
                   </div>
                 )}
               </CardContent>
