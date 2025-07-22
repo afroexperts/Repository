@@ -187,3 +187,97 @@ select:focus {
 .animate-scroll:hover {
   animation-play-state: paused;
 }
+
+/* Dark mode variables */
+:root {
+  --primary: #0c4864;
+  --primary-hover: #3b8ea4;
+  --secondary: #66cadb;
+  --background: #ffffff;
+  --foreground: #000000;
+  --muted: #f8f9fa;
+  --muted-foreground: #6c757d;
+  --border: #dee2e6;
+  --input: #ffffff;
+  --card: #ffffff;
+  --card-foreground: #000000;
+  --popover: #ffffff;
+  --popover-foreground: #000000;
+  --destructive: #dc3545;
+  --destructive-foreground: #ffffff;
+  --ring: #0c4864;
+}
+
+.dark {
+  --primary: #66cadb;
+  --primary-hover: #3b8ea4;
+  --secondary: #0c4864;
+  --background: #0f172a;
+  --foreground: #f8fafc;
+  --muted: #1e293b;
+  --muted-foreground: #94a3b8;
+  --border: #334155;
+  --input: #1e293b;
+  --card: #1e293b;
+  --card-foreground: #f8fafc;
+  --popover: #1e293b;
+  --popover-foreground: #f8fafc;
+  --destructive: #ef4444;
+  --destructive-foreground: #f8fafc;
+  --ring: #66cadb;
+}
+
+/* Apply dark mode styles */
+.dark body {
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+.dark .bg-white {
+  background-color: var(--card);
+}
+
+.dark .text-gray-900 {
+  color: var(--foreground);
+}
+
+.dark .text-gray-800 {
+  color: var(--foreground);
+}
+
+.dark .text-gray-700 {
+  color: var(--muted-foreground);
+}
+
+.dark .text-gray-600 {
+  color: var(--muted-foreground);
+}
+
+.dark .text-gray-500 {
+  color: var(--muted-foreground);
+}
+
+.dark .border-gray-200 {
+  border-color: var(--border);
+}
+
+.dark .border-gray-300 {
+  border-color: var(--border);
+}
+
+.dark .bg-gray-50 {
+  background-color: var(--muted);
+}
+
+.dark .bg-gray-100 {
+  background-color: var(--muted);
+}
+
+/* Theme toggle button */
+.theme-toggle {
+  transition: transform 0.2s ease-in-out;
+}
+
+.theme-toggle:hover {
+  transform: scale(1.1);
+}
