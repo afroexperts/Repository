@@ -105,6 +105,17 @@
 user_problem_statement: "Enhance the Afro Experts ERP & POS system by implementing theme toggle, making settings module editable/savable, and adding logo management functionality. Current system has working theme toggle but settings forms are not connected to backend and missing logo upload capability."
 
 backend:
+  - task: "Settings API Testing"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: "Settings API fully tested and working: GET /api/settings retrieves settings, PUT /api/settings saves settings (tested hero and general sections), authentication required and working with Bearer tokens"
   - task: "Authentication System"
     implemented: true
     working: true
