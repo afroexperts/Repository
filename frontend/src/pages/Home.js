@@ -20,7 +20,12 @@ import {
   CheckCircle,
   ArrowRight,
   Star,
-  Loader2
+  Loader2,
+  Mountain,
+  MessageSquare,
+  CreditCard,
+  Calendar,
+  ExternalLink
 } from "lucide-react";
 import { mockData } from "../mock";
 
