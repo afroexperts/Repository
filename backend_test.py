@@ -264,7 +264,9 @@ class BackendTester:
             return
             
         client = clients[0]
-        client_id = client.get("id")
+        client_name = client.get("name", "Test Client")
+        client_email = client.get("email")
+        client_phone = client.get("phone")
         
         # Get products to use in the order
         success, products, _ = self.make_request("GET", "/products?limit=2")
@@ -282,7 +284,9 @@ class BackendTester:
             })
         
         order_data = {
-            "client_id": client_id,
+            "client_name": client_name,
+            "client_email": client_email,
+            "client_phone": client_phone,
             "items": items,
             "payment_method": "cash",
             "notes": "Test order with multiple items for API validation"
