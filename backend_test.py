@@ -61,6 +61,8 @@ class BackendTester:
                 response = requests.post(url, json=data, headers=request_headers, timeout=30)
             elif method.upper() == "PUT":
                 response = requests.put(url, json=data, headers=request_headers, timeout=30)
+            elif method.upper() == "DELETE":
+                response = requests.delete(url, headers=request_headers, timeout=30)
             else:
                 return False, f"Unsupported method: {method}", 0
                 
