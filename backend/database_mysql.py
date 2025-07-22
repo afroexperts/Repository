@@ -69,6 +69,7 @@ class MovementType(enum.Enum):
     adjustment = "adjustment"
     damaged = "damaged"
     returned = "returned"
+    return_ = "return"
 
 class TransactionType(enum.Enum):
     income = "income"
