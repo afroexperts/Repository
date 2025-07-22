@@ -12,7 +12,11 @@ import {
   Lightbulb,
   BarChart3,
   Zap,
-  Globe
+  Globe,
+  CreditCard,
+  Calendar,
+  MessageSquare,
+  ExternalLink
 } from "lucide-react";
 import { mockData } from "../mock";
 
