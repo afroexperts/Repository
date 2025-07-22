@@ -21,7 +21,7 @@ from models import (
     UserCreate, UserLogin, LoginResponse, DashboardStatsResponse,
     ProductCreate, OrderCreate, ClientCreate, InventoryMovementCreate,
     ServiceBookingCreate, FinancialTransactionCreate, ContactSubmissionCreate,
-    WebsiteSettingsCreate, WebsiteSettingsUpdate
+    WebsiteSettingsUpdate
 )
 
 # Configure logging
