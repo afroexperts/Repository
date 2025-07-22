@@ -43,6 +43,7 @@ import {
   Building,
   Camera,
   MessageSquare,
+  Clock,
   X
 } from "lucide-react";
 
