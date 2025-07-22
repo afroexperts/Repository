@@ -3747,6 +3747,293 @@ const Dashboard = () => {
         </div>
       )}
 
+      {/* Add Inventory Movement Modal */}
+      {showInventoryModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Record Inventory Movement</h3>
+              <Button variant="ghost" size="icon" onClick={() => setShowInventoryModal(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <form onSubmit={handleInventoryMovement} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Product *</label>
+                <select
+                  className="w-full p-2 border rounded-lg"
+                  required
+                  value={inventoryForm.product_id}
+                  onChange={(e) => setInventoryForm(prev => ({ ...prev, product_id: e.target.value }))}
+                >
+                  <option value="">Select product...</option>
+                  {dashboardData.products.map((product) => (
+                    <option key={product.id} value={product.id}>
+                      {product.name} (Stock: {product.current_stock})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Movement Type *</label>
+                <select
+                  className="w-full p-2 border rounded-lg"
+                  required
+                  value={inventoryForm.movement_type}
+                  onChange={(e) => setInventoryForm(prev => ({ ...prev, movement_type: e.target.value }))}
+                >
+                  <option value="stock_in">Stock In</option>
+                  <option value="stock_out">Stock Out</option>
+                  <option value="adjustment">Adjustment</option>
+                  <option value="damaged">Damaged</option>
+                  <option value="returned">Returned</option>
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Quantity *</label>
+                  <Input
+                    type="number"
+                    required
+                    min="1"
+                    value={inventoryForm.quantity}
+                    onChange={(e) => setInventoryForm(prev => ({ ...prev, quantity: e.target.value }))}
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Unit Cost</label>
+                  <Input
+                    type="number"
+                    value={inventoryForm.unit_cost}
+                    onChange={(e) => setInventoryForm(prev => ({ ...prev, unit_cost: e.target.value }))}
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Reference Number</label>
+                <Input
+                  value={inventoryForm.reference_number}
+                  onChange={(e) => setInventoryForm(prev => ({ ...prev, reference_number: e.target.value }))}
+                  placeholder="e.g., PO-123, INV-456"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Notes</label>
+                <textarea
+                  className="w-full p-2 border rounded-lg"
+                  value={inventoryForm.notes}
+                  onChange={(e) => setInventoryForm(prev => ({ ...prev, notes: e.target.value }))}
+                  placeholder="Additional notes..."
+                  rows="2"
+                />
+              </div>
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button type="button" variant="outline" onClick={() => setShowInventoryModal(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" className="bg-[#0c4864]" disabled={formLoading}>
+                  {formLoading ? (
+                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Recording...</>
+                  ) : (
+                    <><Plus className="h-4 w-4 mr-2" />Record Movement</>
+                  )}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Finance Transaction Modal */}
+      {showFinanceModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Add Financial Transaction</h3>
+              <Button variant="ghost" size="icon" onClick={() => setShowFinanceModal(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <form onSubmit={handleAddFinanceTransaction} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Transaction Type *</label>
+                <select
+                  className="w-full p-2 border rounded-lg"
+                  required
+                  value={financeForm.transaction_type}
+                  onChange={(e) => setFinanceForm(prev => ({ ...prev, transaction_type: e.target.value }))}
+                >
+                  <option value="income">Income</option>
+                  <option value="expense">Expense</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Category *</label>
+                <select
+                  className="w-full p-2 border rounded-lg"
+                  required
+                  value={financeForm.category}
+                  onChange={(e) => setFinanceForm(prev => ({ ...prev, category: e.target.value }))}
+                >
+                  <option value="">Select category...</option>
+                  <option value="sales">Sales Revenue</option>
+                  <option value="services">Service Revenue</option>
+                  <option value="office_supplies">Office Supplies</option>
+                  <option value="marketing">Marketing</option>
+                  <option value="utilities">Utilities</option>
+                  <option value="rent">Rent</option>
+                  <option value="salaries">Salaries</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Amount (RWF) *</label>
+                <Input
+                  type="number"
+                  required
+                  min="0"
+                  step="0.01"
+                  value={financeForm.amount}
+                  onChange={(e) => setFinanceForm(prev => ({ ...prev, amount: e.target.value }))}
+                  placeholder="0.00"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Description *</label>
+                <textarea
+                  className="w-full p-2 border rounded-lg"
+                  required
+                  value={financeForm.description}
+                  onChange={(e) => setFinanceForm(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Transaction description..."
+                  rows="3"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Reference ID</label>
+                <Input
+                  value={financeForm.reference_id}
+                  onChange={(e) => setFinanceForm(prev => ({ ...prev, reference_id: e.target.value }))}
+                  placeholder="e.g., Invoice #123, Receipt #456"
+                />
+              </div>
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button type="button" variant="outline" onClick={() => setShowFinanceModal(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" className="bg-[#0c4864]" disabled={formLoading}>
+                  {formLoading ? (
+                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Adding...</>
+                  ) : (
+                    <><Plus className="h-4 w-4 mr-2" />Add Transaction</>
+                  )}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Service Booking Modal */}
+      {showServiceBookingModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Book Service</h3>
+              <Button variant="ghost" size="icon" onClick={() => setShowServiceBookingModal(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <form onSubmit={handleAddServiceBooking} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Client Name *</label>
+                <Input
+                  required
+                  value={serviceBookingForm.client_name}
+                  onChange={(e) => setServiceBookingForm(prev => ({ ...prev, client_name: e.target.value }))}
+                  placeholder="Enter client name"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Client Phone *</label>
+                <Input
+                  required
+                  value={serviceBookingForm.client_phone}
+                  onChange={(e) => setServiceBookingForm(prev => ({ ...prev, client_phone: e.target.value }))}
+                  placeholder="+250 788 123 456"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Client Email</label>
+                <Input
+                  type="email"
+                  value={serviceBookingForm.client_email}
+                  onChange={(e) => setServiceBookingForm(prev => ({ ...prev, client_email: e.target.value }))}
+                  placeholder="client@example.com"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Service Type *</label>
+                <select
+                  className="w-full p-2 border rounded-lg"
+                  required
+                  value={serviceBookingForm.service_type}
+                  onChange={(e) => setServiceBookingForm(prev => ({ ...prev, service_type: e.target.value }))}
+                >
+                  <option value="it_support">IT Support</option>
+                  <option value="network_installation">Network Installation</option>
+                  <option value="starlink_installation">Starlink Installation</option>
+                  <option value="software_development">Software Development</option>
+                  <option value="consultation">Consultation</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Location *</label>
+                <Input
+                  required
+                  value={serviceBookingForm.location}
+                  onChange={(e) => setServiceBookingForm(prev => ({ ...prev, location: e.target.value }))}
+                  placeholder="Service location"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Preferred Date</label>
+                <Input
+                  type="datetime-local"
+                  value={serviceBookingForm.preferred_date}
+                  onChange={(e) => setServiceBookingForm(prev => ({ ...prev, preferred_date: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Description *</label>
+                <textarea
+                  className="w-full p-2 border rounded-lg"
+                  required
+                  value={serviceBookingForm.description}
+                  onChange={(e) => setServiceBookingForm(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Describe the service needed..."
+                  rows="3"
+                />
+              </div>
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button type="button" variant="outline" onClick={() => setShowServiceBookingModal(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" className="bg-[#0c4864]" disabled={formLoading}>
+                  {formLoading ? (
+                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Booking...</>
+                  ) : (
+                    <><Plus className="h-4 w-4 mr-2" />Book Service</>
+                  )}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
