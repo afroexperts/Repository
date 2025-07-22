@@ -220,7 +220,7 @@ const Dashboard = () => {
         // Reset form and close modal
         setClientForm({
           name: '', email: '', phone: '', address: '',
-          type: 'individual', company_name: '', tax_number: ''
+          client_type: 'individual', company: '', tax_number: ''
         });
         setShowAddClientModal(false);
         
