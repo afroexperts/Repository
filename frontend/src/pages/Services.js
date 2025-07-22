@@ -145,6 +145,91 @@ const Services = () => {
       ],
       image: "https://images.unsplash.com/photo-1586864387967-d02ef85d93e8?w=400&h=300&fit=crop"
     },
+    // New IT Services
+    {
+      id: 13,
+      title: "Web Application",
+      description: "Creating dynamic web solutions for your business",
+      icon: Globe,
+      category: "Technology Services",
+      features: [
+        "Custom Web Application Development",
+        "Responsive Design and Mobile Optimization",
+        "Database Integration and API Development",
+        "E-commerce and Business Platform Solutions"
+      ],
+      image: "https://images.unsplash.com/photo-1467232004584-a241de8bcf5d?w=400&h=300&fit=crop"
+    },
+    {
+      id: 14,
+      title: "Mobile Application",
+      description: "Building innovative and user-friendly mobile apps",
+      icon: Smartphone,
+      category: "Technology Services",
+      features: [
+        "Native iOS and Android App Development",
+        "Cross-platform Mobile Solutions",
+        "App Store Optimization and Publishing",
+        "Mobile App Maintenance and Updates"
+      ],
+      image: "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=400&h=300&fit=crop"
+    },
+    {
+      id: 15,
+      title: "UI/UX Design",
+      description: "Crafting intuitive designs for optimal user experiences",
+      icon: Paintbrush,
+      category: "Technology Services",
+      features: [
+        "User Experience Research and Analysis",
+        "Modern Interface Design and Prototyping",
+        "Usability Testing and Optimization",
+        "Design System Creation and Implementation"
+      ],
+      image: "https://images.unsplash.com/photo-1586717791821-3f44a563fa4c?w=400&h=300&fit=crop"
+    },
+    {
+      id: 16,
+      title: "Domain & Hosting",
+      description: "Providing reliable domain registration and hosting services",
+      icon: Server,
+      category: "Technology Services",
+      features: [
+        "Domain Registration and Management",
+        "Web Hosting Solutions with 99.9% Uptime",
+        "SSL Certificates and Security Features",
+        "Email Hosting and Professional Email Setup"
+      ],
+      image: "https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=400&h=300&fit=crop"
+    },
+    {
+      id: 17,
+      title: "Digital Marketing",
+      description: "Driving online growth through strategic marketing solutions",
+      icon: TrendingUp,
+      category: "Technology Services",
+      features: [
+        "Search Engine Optimization (SEO)",
+        "Social Media Marketing and Management",
+        "Pay-per-Click (PPC) Advertising Campaigns",
+        "Content Marketing and Email Marketing"
+      ],
+      image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400&h=300&fit=crop"
+    },
+    {
+      id: 18,
+      title: "Tech Consultancy",
+      description: "Offering expert guidance for technical challenges",
+      icon: MessageSquareText,
+      category: "Technology Services",
+      features: [
+        "Technology Strategy and Planning",
+        "Digital Transformation Consulting",
+        "IT Infrastructure Assessment and Recommendations",
+        "Software Architecture and Technical Advisory"
+      ],
+      image: "https://images.unsplash.com/photo-1552664730-d307ca884978?w=400&h=300&fit=crop"
+    },
     // Traditional IT Services
     {
       id: 9,
