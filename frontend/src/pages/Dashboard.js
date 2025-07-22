@@ -1573,6 +1573,234 @@ const Dashboard = () => {
           </div>
         );
 
+      case "portfolio":
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold">Portfolio Management</h2>
+                <p className="text-gray-600">Manage project showcase and company portfolio</p>
+              </div>
+              <div className="flex space-x-2">
+                <Button variant="outline">
+                  <Download className="h-4 w-4 mr-2" />
+                  Export Portfolio
+                </Button>
+                <Button className="bg-[#0c4864]">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Project
+                </Button>
+              </div>
+            </div>
+
+            {/* Portfolio Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Total Projects</p>
+                      <p className="text-2xl font-bold">9</p>
+                    </div>
+                    <Building className="h-8 w-8 text-[#3b8ea4]" />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Live Platforms</p>
+                      <p className="text-2xl font-bold text-green-600">3</p>
+                    </div>
+                    <CheckCircle className="h-8 w-8 text-green-500" />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Categories</p>
+                      <p className="text-2xl font-bold">7</p>
+                    </div>
+                    <Package className="h-8 w-8 text-blue-600" />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Happy Clients</p>
+                      <p className="text-2xl font-bold">25+</p>
+                    </div>
+                    <Users className="h-8 w-8 text-purple-600" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Portfolio Categories */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                <CardHeader>
+                  <div className="flex items-center space-x-2">
+                    <MessageSquare className="h-6 w-6 text-[#0c4864]" />
+                    <CardTitle className="text-lg">Digital Platforms</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-600 mb-4">Live operational platforms and web applications</p>
+                  <div className="flex justify-between items-center">
+                    <Badge variant="outline">3 Projects</Badge>
+                    <Button size="sm">Manage</Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                <CardHeader>
+                  <div className="flex items-center space-x-2">
+                    <Network className="h-6 w-6 text-[#0c4864]" />
+                    <CardTitle className="text-lg">Network Solutions</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-600 mb-4">Infrastructure and connectivity projects</p>
+                  <div className="flex justify-between items-center">
+                    <Badge variant="outline">2 Projects</Badge>
+                    <Button size="sm">Manage</Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                <CardHeader>
+                  <div className="flex items-center space-x-2">
+                    <Users className="h-6 w-6 text-[#0c4864]" />
+                    <CardTitle className="text-lg">Media & Events</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-600 mb-4">Creative and event management projects</p>
+                  <div className="flex justify-between items-center">
+                    <Badge variant="outline">1 Project</Badge>
+                    <Button size="sm">Manage</Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                <CardHeader>
+                  <div className="flex items-center space-x-2">
+                    <Building className="h-6 w-6 text-[#0c4864]" />
+                    <CardTitle className="text-lg">Business Solutions</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-600 mb-4">Enterprise software and ERP systems</p>
+                  <div className="flex justify-between items-center">
+                    <Badge variant="outline">1 Project</Badge>
+                    <Button size="sm">Manage</Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                <CardHeader>
+                  <div className="flex items-center space-x-2">
+                    <Mountain className="h-6 w-6 text-[#0c4864]" />
+                    <CardTitle className="text-lg">Manufacturing</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-600 mb-4">Production and manufacturing operations</p>
+                  <div className="flex justify-between items-center">
+                    <Badge variant="outline">1 Project</Badge>
+                    <Button size="sm">Manage</Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                <CardHeader>
+                  <div className="flex items-center space-x-2">
+                    <Camera className="h-6 w-6 text-[#0c4864]" />
+                    <CardTitle className="text-lg">Security Solutions</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-600 mb-4">CCTV and security system installations</p>
+                  <div className="flex justify-between items-center">
+                    <Badge variant="outline">1 Project</Badge>
+                    <Button size="sm">Manage</Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Recent Projects */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Portfolio Projects</CardTitle>
+                <CardDescription>Latest additions to the project portfolio</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {[
+                    { 
+                      title: "Afro Bulk SMS Platform", 
+                      category: "Digital Platforms", 
+                      status: "Live", 
+                      date: "2024",
+                      client: "Afro Experts"
+                    },
+                    { 
+                      title: "Enterprise ERP & POS System", 
+                      category: "Business Solutions", 
+                      status: "Active", 
+                      date: "2025",
+                      client: "Afro Experts"
+                    },
+                    { 
+                      title: "Rural School Network Infrastructure", 
+                      category: "Network Solutions", 
+                      status: "Completed", 
+                      date: "2024",
+                      client: "Nyagatare District"
+                    }
+                  ].map((project, index) => (
+                    <div key={index} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+                      <div className="space-y-1">
+                        <h4 className="font-medium">{project.title}</h4>
+                        <div className="flex items-center space-x-2">
+                          <Badge variant="outline" className="text-xs">{project.category}</Badge>
+                          <span className="text-xs text-gray-500">Client: {project.client}</span>
+                        </div>
+                        <p className="text-xs text-gray-500">{project.date}</p>
+                      </div>
+                      <div className="text-right space-y-1">
+                        <Badge variant={project.status === 'Live' ? 'default' : project.status === 'Active' ? 'secondary' : 'outline'}>
+                          {project.status}
+                        </Badge>
+                        <div className="flex space-x-2">
+                          <Button variant="outline" size="sm">
+                            Edit
+                          </Button>
+                          <Button variant="outline" size="sm">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        );
+
       case "settings":
         return (
           <div className="space-y-6">
