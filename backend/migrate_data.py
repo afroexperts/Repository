@@ -144,7 +144,7 @@ def migrate_orders(db: Session):
                 order = Order(
                     id=data.get('id', str(uuid.uuid4())),
                     order_number=data.get('order_number', f"ORD-{str(uuid.uuid4())[:8]}"),
-                    client_id=data['client_id'],
+                    client_id=data.get('client_id', ''),  # Handle missing client_id
                     status=OrderStatus(data.get('status', 'pending')),
                     subtotal=float(data.get('subtotal', 0)),
                     tax_amount=float(data.get('tax_amount', 0)),
