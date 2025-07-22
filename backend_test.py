@@ -1440,13 +1440,11 @@ class BackendTester:
         self.test_clients_get()
         self.test_clients_create()
         
-        # NEW MODULE TESTS - Inventory Management
+        # ENHANCED INVENTORY MANAGEMENT TESTS
         print("\n" + "="*50)
-        print("TESTING NEW MODULE: INVENTORY MANAGEMENT")
+        print("TESTING ENHANCED INVENTORY MANAGEMENT API")
         print("="*50)
-        self.test_inventory_movements_get()
-        self.test_inventory_movements_create()
-        self.test_inventory_movements_types()
+        self.run_enhanced_inventory_tests()
         
         # NEW MODULE TESTS - POS System
         print("\n" + "="*50)
