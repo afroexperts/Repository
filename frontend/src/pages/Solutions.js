@@ -34,6 +34,177 @@ const Solutions = () => {
         </div>
       </section>
 
+      {/* Our Afro Solutions */}
+      <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <Badge className="mb-4 bg-[#0c4864] text-white px-4 py-2">🚀 Our Solutions</Badge>
+            <h2 className="text-3xl md:text-4xl font-bold text-[#0c4864] mb-6">Afro Solutions Platform</h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Comprehensive digital solutions designed to empower African businesses with cutting-edge technology platforms.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Afro Bulk SMS */}
+            <Card className="hover:shadow-xl transition-all duration-300 group border-2 hover:border-[#3b8ea4]">
+              <div className="relative h-48 bg-gradient-to-br from-[#0c4864] to-[#3b8ea4] flex items-center justify-center">
+                <div className="bg-white/10 backdrop-blur-sm rounded-full p-6">
+                  <MessageSquare className="h-16 w-16 text-white" />
+                </div>
+                <Badge className="absolute top-4 right-4 bg-[#66cadb] text-white animate-pulse">
+                  Live Platform
+                </Badge>
+              </div>
+              
+              <CardHeader>
+                <CardTitle className="text-2xl text-[#0c4864] mb-2 flex items-center justify-between">
+                  Afro Bulk SMS
+                  <ExternalLink className="h-5 w-5 text-gray-400 group-hover:text-[#3b8ea4] transition-colors" />
+                </CardTitle>
+                <CardDescription className="text-base">
+                  Professional bulk SMS messaging platform for businesses across Africa
+                </CardDescription>
+              </CardHeader>
+              
+              <CardContent>
+                <div className="space-y-3 mb-6">
+                  {[
+                    "Bulk SMS campaigns to thousands of recipients",
+                    "API integration for automated messaging",
+                    "Delivery reports and analytics dashboard", 
+                    "Affordable rates across African networks"
+                  ].map((feature, index) => (
+                    <div key={index} className="flex items-center space-x-3">
+                      <CheckCircle className="h-5 w-5 text-[#3b8ea4] flex-shrink-0" />
+                      <span className="text-gray-700 text-sm">{feature}</span>
+                    </div>
+                  ))}
+                </div>
+                
+                <a 
+                  href="https://afrobulksms.com/" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="block"
+                >
+                  <Button className="w-full bg-[#0c4864] hover:bg-[#3b8ea4] text-white transition-all duration-300">
+                    Visit Platform
+                    <ExternalLink className="ml-2 h-4 w-4" />
+                  </Button>
+                </a>
+              </CardContent>
+            </Card>
+
+            {/* Afro Pay */}
+            <Card className="hover:shadow-xl transition-all duration-300 group border-2 hover:border-[#3b8ea4]">
+              <div className="relative h-48 bg-gradient-to-br from-[#3b8ea4] to-[#66cadb] flex items-center justify-center">
+                <div className="bg-white/10 backdrop-blur-sm rounded-full p-6">
+                  <CreditCard className="h-16 w-16 text-white" />
+                </div>
+                <Badge className="absolute top-4 right-4 bg-[#0c4864] text-white animate-pulse">
+                  Live Platform
+                </Badge>
+              </div>
+              
+              <CardHeader>
+                <CardTitle className="text-2xl text-[#0c4864] mb-2 flex items-center justify-between">
+                  Afro Pay
+                  <ExternalLink className="h-5 w-5 text-gray-400 group-hover:text-[#3b8ea4] transition-colors" />
+                </CardTitle>
+                <CardDescription className="text-base">
+                  Secure payment processing and financial solutions for African businesses
+                </CardDescription>
+              </CardHeader>
+              
+              <CardContent>
+                <div className="space-y-3 mb-6">
+                  {[
+                    "Secure online payment processing",
+                    "Mobile money integration (MTN, Airtel)",
+                    "Multi-currency support and conversion",
+                    "Real-time transaction monitoring"
+                  ].map((feature, index) => (
+                    <div key={index} className="flex items-center space-x-3">
+                      <CheckCircle className="h-5 w-5 text-[#3b8ea4] flex-shrink-0" />
+                      <span className="text-gray-700 text-sm">{feature}</span>
+                    </div>
+                  ))}
+                </div>
+                
+                <a 
+                  href="https://afropayi.com/" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="block"
+                >
+                  <Button className="w-full bg-[#3b8ea4] hover:bg-[#0c4864] text-white transition-all duration-300">
+                    Visit Platform
+                    <ExternalLink className="ml-2 h-4 w-4" />
+                  </Button>
+                </a>
+              </CardContent>
+            </Card>
+
+            {/* Afro Event */}
+            <Card className="hover:shadow-xl transition-all duration-300 group border-2 hover:border-[#3b8ea4]">
+              <div className="relative h-48 bg-gradient-to-br from-[#66cadb] to-[#0c4864] flex items-center justify-center">
+                <div className="bg-white/10 backdrop-blur-sm rounded-full p-6">
+                  <Calendar className="h-16 w-16 text-white" />
+                </div>
+                <Badge className="absolute top-4 right-4 bg-[#3b8ea4] text-white animate-pulse">
+                  Live Platform
+                </Badge>
+              </div>
+              
+              <CardHeader>
+                <CardTitle className="text-2xl text-[#0c4864] mb-2 flex items-center justify-between">
+                  Afro Event
+                  <ExternalLink className="h-5 w-5 text-gray-400 group-hover:text-[#3b8ea4] transition-colors" />
+                </CardTitle>
+                <CardDescription className="text-base">
+                  Complete event management and ticketing platform for African events
+                </CardDescription>
+              </CardHeader>
+              
+              <CardContent>
+                <div className="space-y-3 mb-6">
+                  {[
+                    "Event creation and management tools",
+                    "Online ticket sales and registration",
+                    "Attendee check-in and tracking",
+                    "Event analytics and reporting"
+                  ].map((feature, index) => (
+                    <div key={index} className="flex items-center space-x-3">
+                      <CheckCircle className="h-5 w-5 text-[#3b8ea4] flex-shrink-0" />
+                      <span className="text-gray-700 text-sm">{feature}</span>
+                    </div>
+                  ))}
+                </div>
+                
+                <a 
+                  href="http://afroeventz.com/" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="block"
+                >
+                  <Button className="w-full bg-[#66cadb] hover:bg-[#0c4864] text-white transition-all duration-300">
+                    Visit Platform
+                    <ExternalLink className="ml-2 h-4 w-4" />
+                  </Button>
+                </a>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="text-center mt-12">
+            <p className="text-gray-600 text-lg">
+              🌍 Serving businesses across Africa with innovative digital solutions
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* Featured ERP/POS System */}
       <section className="py-20 bg-gradient-to-br from-[#0c4864] to-[#3b8ea4] text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
