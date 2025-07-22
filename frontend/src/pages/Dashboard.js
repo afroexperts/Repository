@@ -2247,24 +2247,181 @@ const Dashboard = () => {
                 <Card>
                   <CardHeader>
                     <CardTitle>General Website Settings</CardTitle>
-                    <CardDescription>Configure global website settings</CardDescription>
+                    <CardDescription>Configure global website settings and branding</CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium">Website Title</label>
-                      <Input defaultValue="Afro Experts - IT Services & Starlink Solutions" className="mt-1" />
+                  <CardContent className="space-y-6">
+                    {/* Basic Information */}
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-sm font-medium">Website Title</label>
+                        <Input 
+                          value={settings.general?.websiteTitle || ""} 
+                          onChange={(e) => handleInputChange('general', 'websiteTitle', e.target.value)}
+                          className="mt-1" 
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium">Company Name</label>
+                        <Input 
+                          value={settings.general?.companyName || ""}
+                          onChange={(e) => handleInputChange('general', 'companyName', e.target.value)}
+                          className="mt-1" 
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium">Contact Email</label>
+                        <Input 
+                          value={settings.general?.contactEmail || ""}
+                          onChange={(e) => handleInputChange('general', 'contactEmail', e.target.value)}
+                          className="mt-1" 
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium">Support Phone</label>
+                        <Input 
+                          value={settings.general?.supportPhone || ""}
+                          onChange={(e) => handleInputChange('general', 'supportPhone', e.target.value)}
+                          className="mt-1" 
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <label className="text-sm font-medium">Company Name</label>
-                      <Input defaultValue="Afro Experts" className="mt-1" />
+
+                    {/* Logo Management Section */}
+                    <div className="space-y-4 border-t pt-6">
+                      <h4 className="font-medium text-lg">Branding & Logo</h4>
+                      
+                      {/* Company Logo */}
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Company Logo</label>
+                        <div className="border rounded-lg p-4 bg-gray-50">
+                          <div className="flex items-center justify-between mb-3">
+                            <p className="text-sm text-gray-600">
+                              {settings.general?.companyLogo ? 'Current Logo' : 'No Logo Uploaded'}
+                            </p>
+                            {settings.general?.companyLogo && (
+                              <div className="flex space-x-2">
+                                <Button size="sm" variant="outline">
+                                  <Eye className="h-4 w-4 mr-1" />
+                                  Preview
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="destructive"
+                                  onClick={() => handleInputChange('general', 'companyLogo', null)}
+                                >
+                                  Remove
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                          <div className="w-full h-32 bg-white border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
+                            {settings.general?.companyLogo ? (
+                              <img 
+                                src={settings.general.companyLogo} 
+                                alt="Company Logo" 
+                                className="max-h-28 max-w-full object-contain"
+                              />
+                            ) : (
+                              <div className="text-center">
+                                <div className="bg-[#0c4864] text-white px-3 py-2 rounded-lg font-bold text-lg mb-2">
+                                  AE
+                                </div>
+                                <p className="text-sm text-gray-500">Default Logo</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex space-x-2">
+                          <label className="cursor-pointer">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files[0];
+                                if (file) {
+                                  handleImageUpload(file, 'general', 'companyLogo');
+                                }
+                              }}
+                            />
+                            <Button size="sm" className="bg-[#0c4864]" asChild>
+                              <span>
+                                <Plus className="h-4 w-4 mr-1" />
+                                Upload New Logo
+                              </span>
+                            </Button>
+                          </label>
+                        </div>
+                      </div>
+
+                      {/* Favicon */}
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Favicon</label>
+                        <div className="border rounded-lg p-4 bg-gray-50">
+                          <div className="flex items-center justify-between mb-3">
+                            <p className="text-sm text-gray-600">
+                              {settings.general?.favicon ? 'Current Favicon' : 'Using Default'}
+                            </p>
+                            {settings.general?.favicon && (
+                              <Button 
+                                size="sm" 
+                                variant="destructive"
+                                onClick={() => handleInputChange('general', 'favicon', null)}
+                              >
+                                Remove
+                              </Button>
+                            )}
+                          </div>
+                          <div className="w-16 h-16 bg-white border rounded-lg flex items-center justify-center">
+                            {settings.general?.favicon ? (
+                              <img 
+                                src={settings.general.favicon} 
+                                alt="Favicon" 
+                                className="w-8 h-8 object-contain"
+                              />
+                            ) : (
+                              <div className="bg-[#0c4864] text-white px-1 py-1 rounded text-xs font-bold">
+                                AE
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex space-x-2">
+                          <label className="cursor-pointer">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files[0];
+                                if (file) {
+                                  handleImageUpload(file, 'general', 'favicon');
+                                }
+                              }}
+                            />
+                            <Button size="sm" variant="outline" asChild>
+                              <span>
+                                <Plus className="h-4 w-4 mr-1" />
+                                Upload Favicon
+                              </span>
+                            </Button>
+                          </label>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <label className="text-sm font-medium">Contact Email</label>
-                      <Input defaultValue="info@afroexperts.com" className="mt-1" />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium">Support Phone</label>
-                      <Input defaultValue="+250 788 123 456" className="mt-1" />
+
+                    {/* Save Button */}
+                    <div className="flex justify-end pt-4 border-t">
+                      <Button 
+                        className="bg-[#0c4864]"
+                        onClick={() => handleSaveSettings('general')}
+                        disabled={saving}
+                      >
+                        {saving ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : null}
+                        Save General Settings
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
