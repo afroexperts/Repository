@@ -984,7 +984,10 @@ const Dashboard = () => {
               </div>
               <div className="flex space-x-2">
                 <Input placeholder="Search clients..." className="w-64" />
-                <Button className="bg-[#0c4864]">
+                <Button 
+                  className="bg-[#0c4864]"
+                  onClick={() => setShowAddClientModal(true)}
+                >
                   <Plus className="h-4 w-4 mr-2" />
                   Add Client
                 </Button>
