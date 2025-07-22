@@ -81,19 +81,25 @@ def login(user_data: UserLogin, db: Session = Depends(get_db)):
         user.last_login = datetime.utcnow()
         db.commit()
         
+        # Create Pydantic User model for response
+        user_data = {
+            "id": user.id,
+            "full_name": user.full_name,
+            "email": user.email,
+            "password_hash": user.password_hash,
+            "role": user.role,
+            "status": user.status,
+            "phone": user.phone,
+            "department": user.department,
+            "last_login": user.last_login,
+            "created_at": user.created_at,
+            "updated_at": user.updated_at
+        }
+        
         return LoginResponse(
             success=True,
             message="Login successful",
-            user={
-                "id": user.id,
-                "full_name": user.full_name,
-                "email": user.email,
-                "role": user.role.value,
-                "status": user.status.value,
-                "phone": user.phone,
-                "department": user.department,
-                "last_login": user.last_login.isoformat() if user.last_login else None
-            },
+            user=user_data,
             token=user.id
         )
         
