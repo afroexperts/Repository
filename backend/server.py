@@ -535,8 +535,150 @@ def get_pos_transactions(db: Session = Depends(get_db)):
 
 @app.get("/api/inventory/movements")
 def get_inventory_movements(db: Session = Depends(get_db)):
-    """Get inventory movements"""
-    return db.query(InventoryMovement).order_by(InventoryMovement.created_at.desc()).limit(100).all()
+    """Get inventory movements with product details"""
+    try:
+        movements = db.query(InventoryMovement).order_by(InventoryMovement.created_at.desc()).limit(100).all()
+        
+        # Format response with product details
+        formatted_movements = []
+        for movement in movements:
+            formatted_movement = {
+                "id": movement.id,
+                "product_id": movement.product_id,
+                "product_name": movement.product.name if movement.product else "Unknown",
+                "movement_type": movement.movement_type.value,
+                "quantity": movement.quantity,
+                "unit_cost": movement.unit_cost,
+                "total_cost": movement.total_cost,
+                "reference_number": movement.reference_number,
+                "notes": movement.notes,
+                "created_at": movement.created_at.isoformat() if movement.created_at else None,
+                "created_by": movement.created_by
+            }
+            formatted_movements.append(formatted_movement)
+        
+        return formatted_movements
+    except Exception as e:
+        logger.error(f"Get inventory movements error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve inventory movements")
+
+@app.get("/api/inventory/movements/{movement_id}")
+def get_inventory_movement(movement_id: str, db: Session = Depends(get_db)):
+    """Get single inventory movement"""
+    try:
+        movement = db.query(InventoryMovement).filter(InventoryMovement.id == movement_id).first()
+        if not movement:
+            raise HTTPException(status_code=404, detail="Movement not found")
+        return movement
+    except Exception as e:
+        logger.error(f"Get inventory movement error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve inventory movement")
+
+@app.put("/api/inventory/movements/{movement_id}")
+def update_inventory_movement(movement_id: str, movement_update: dict, db: Session = Depends(get_db)):
+    """Update inventory movement"""
+    try:
+        movement = db.query(InventoryMovement).filter(InventoryMovement.id == movement_id).first()
+        if not movement:
+            raise HTTPException(status_code=404, detail="Movement not found")
+        
+        # Update allowed fields
+        if 'notes' in movement_update:
+            movement.notes = movement_update['notes']
+        if 'reference_number' in movement_update:
+            movement.reference_number = movement_update['reference_number']
+        
+        movement.updated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(movement)
+        
+        return movement
+    except Exception as e:
+        logger.error(f"Update inventory movement error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update inventory movement")
+
+@app.delete("/api/inventory/movements/{movement_id}")
+def delete_inventory_movement(movement_id: str, db: Session = Depends(get_db)):
+    """Delete inventory movement"""
+    try:
+        movement = db.query(InventoryMovement).filter(InventoryMovement.id == movement_id).first()
+        if not movement:
+            raise HTTPException(status_code=404, detail="Movement not found")
+        
+        # Reverse the stock movement before deletion
+        product = db.query(Product).filter(Product.id == movement.product_id).first()
+        if product:
+            if movement.movement_type in [MovementType.stock_in, MovementType.returned]:
+                product.current_stock = max(0, product.current_stock - movement.quantity)
+            elif movement.movement_type in [MovementType.stock_out, MovementType.damaged]:
+                product.current_stock += movement.quantity
+        
+        db.delete(movement)
+        db.commit()
+        
+        return {"message": "Movement deleted successfully"}
+    except Exception as e:
+        logger.error(f"Delete inventory movement error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete inventory movement")
+
+@app.get("/api/inventory/movements/product/{product_id}")
+def get_product_movements(product_id: str, db: Session = Depends(get_db)):
+    """Get movements for a specific product"""
+    try:
+        movements = db.query(InventoryMovement).filter(
+            InventoryMovement.product_id == product_id
+        ).order_by(InventoryMovement.created_at.desc()).all()
+        return movements
+    except Exception as e:
+        logger.error(f"Get product movements error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve product movements")
+
+@app.get("/api/inventory/movements/type/{movement_type}")
+def get_movements_by_type(movement_type: str, db: Session = Depends(get_db)):
+    """Get movements by type"""
+    try:
+        movements = db.query(InventoryMovement).filter(
+            InventoryMovement.movement_type == MovementType(movement_type)
+        ).order_by(InventoryMovement.created_at.desc()).all()
+        return movements
+    except Exception as e:
+        logger.error(f"Get movements by type error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve movements by type")
+
+@app.get("/api/inventory/summary")
+def get_inventory_summary(db: Session = Depends(get_db)):
+    """Get inventory summary statistics"""
+    try:
+        # Get total stock value
+        total_stock_value = db.query(func.sum(Product.price * Product.current_stock)).scalar() or 0
+        
+        # Get low stock items
+        low_stock_items = db.query(Product).filter(Product.current_stock <= Product.minimum_stock).count()
+        
+        # Get total products
+        total_products = db.query(Product).count()
+        
+        # Get recent movements
+        recent_movements = db.query(InventoryMovement).order_by(InventoryMovement.created_at.desc()).limit(10).all()
+        
+        # Get movement counts by type
+        movement_counts = {}
+        for movement_type in MovementType:
+            count = db.query(InventoryMovement).filter(
+                InventoryMovement.movement_type == movement_type
+            ).count()
+            movement_counts[movement_type.value] = count
+        
+        return {
+            "total_stock_value": total_stock_value,
+            "low_stock_items": low_stock_items,
+            "total_products": total_products,
+            "recent_movements": len(recent_movements),
+            "movement_counts": movement_counts
+        }
+    except Exception as e:
+        logger.error(f"Get inventory summary error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve inventory summary")
 
 @app.post("/api/inventory/movements")
 def create_inventory_movement(movement_data: dict, db: Session = Depends(get_db)):
