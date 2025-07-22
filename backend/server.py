@@ -263,26 +263,41 @@ def get_orders(db: Session = Depends(get_db)):
 def create_order(order: OrderCreate, db: Session = Depends(get_db)):
     """Create new order"""
     try:
+        # Generate order number
+        order_count = db.query(Order).count()
+        order_number = f"ORD-{datetime.utcnow().strftime('%Y%m%d')}-{order_count + 1:04d}"
+        
         # Calculate totals
         subtotal = sum(item.quantity * item.unit_price for item in order.items)
         tax_amount = subtotal * 0.18  # 18% VAT
         total_amount = subtotal + tax_amount
         
         db_order = Order(
+            order_number=order_number,
             client_id=order.client_id,
             status=OrderStatus.pending,
             subtotal=subtotal,
             tax_amount=tax_amount,
             total_amount=total_amount,
             payment_method=order.payment_method,
+            payment_status="pending",
             notes=order.notes
         )
         
         db.add(db_order)
         db.flush()  # Get the ID
         
-        # Add order items
+        # Add order items and update product stock
         for item in order.items:
+            # Check product availability
+            product = db.query(Product).filter(Product.id == item.product_id).first()
+            if not product:
+                raise HTTPException(status_code=400, detail=f"Product not found: {item.product_id}")
+            
+            if product.current_stock < item.quantity:
+                raise HTTPException(status_code=400, detail=f"Insufficient stock for {product.name}")
+            
+            # Create order item
             db_item = OrderItem(
                 order_id=db_order.id,
                 product_id=item.product_id,
@@ -291,6 +306,9 @@ def create_order(order: OrderCreate, db: Session = Depends(get_db)):
                 line_total=item.quantity * item.unit_price
             )
             db.add(db_item)
+            
+            # Update product stock
+            product.current_stock -= item.quantity
         
         db.commit()
         db.refresh(db_order)
