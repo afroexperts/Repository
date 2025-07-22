@@ -55,6 +55,38 @@ const Dashboard = () => {
   const [activeModule, setActiveModule] = useState("dashboard");
   const [notifications, setNotifications] = useState(0);
   const [loading, setLoading] = useState(true);
+  
+  // CRUD Modal States
+  const [showAddProductModal, setShowAddProductModal] = useState(false);
+  const [showAddClientModal, setShowAddClientModal] = useState(false);
+  const [showAddOrderModal, setShowAddOrderModal] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
+  const [formLoading, setFormLoading] = useState(false);
+  
+  // Form Data States
+  const [productForm, setProductForm] = useState({
+    name: '',
+    category: '',
+    description: '',
+    price: '',
+    cost_price: '',
+    sku: '',
+    unit: 'pieces',
+    minimum_stock: '',
+    current_stock: '',
+    location: ''
+  });
+  
+  const [clientForm, setClientForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    address: '',
+    type: 'individual',
+    company_name: '',
+    tax_number: ''
+  });
+  
   const [dashboardData, setDashboardData] = useState({
     stats: {},
     recentTransactions: [],
