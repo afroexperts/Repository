@@ -461,6 +461,13 @@ const Layout = ({ children }) => {
               <p className="text-gray-300 mb-4">
                 {mockData.company.description}
               </p>
+              <Link 
+                to="/dashboard"
+                className="inline-flex items-center bg-[#66cadb] hover:bg-[#3b8ea4] text-white px-4 py-2 rounded-lg font-medium transition-all duration-300 transform hover:scale-105"
+              >
+                <BarChart3 className="h-4 w-4 mr-2" />
+                Access ERP Dashboard
+              </Link>
             </div>
 
             {/* Quick Links */}
