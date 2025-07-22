@@ -1021,7 +1021,10 @@ const Dashboard = () => {
                   Export
                 </Button>
                 {hasPermission('manage_products') && (
-                  <Button className="bg-[#0c4864]">
+                  <Button 
+                    className="bg-[#0c4864]"
+                    onClick={() => setShowInventoryModal(true)}
+                  >
                     <Plus className="h-4 w-4 mr-2" />
                     Stock Movement
                   </Button>
