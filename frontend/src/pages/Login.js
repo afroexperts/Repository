@@ -48,7 +48,7 @@ const Login = () => {
         });
 
         // Redirect to dashboard
-        window.location.href = '/dashboard';
+        navigate('/dashboard');
       }
     } catch (error) {
       const errorMessage = error.response?.data?.detail || "Login failed. Please try again.";
