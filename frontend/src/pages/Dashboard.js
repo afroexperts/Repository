@@ -83,8 +83,8 @@ const Dashboard = () => {
     email: '',
     phone: '',
     address: '',
-    type: 'individual',
-    company_name: '',
+    client_type: 'individual',
+    company: '',
     tax_number: ''
   });
   
