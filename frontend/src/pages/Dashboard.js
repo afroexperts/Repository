@@ -426,7 +426,9 @@ const Dashboard = () => {
   const handleEditOrder = (order) => {
     setEditingItem(order);
     setOrderForm({
-      client_id: order.client_id,
+      client_name: order.client_name || '',
+      client_email: order.client_email || '',
+      client_phone: order.client_phone || '',
       items: order.items || [],
       payment_method: order.payment_method,
       notes: order.notes || ''
