@@ -32,24 +32,28 @@ const Login = () => {
     setError("");
 
     try {
-      const response = await axios.post(`${API}/auth/login`, formData);
+      const result = await login(formData.email, formData.password);
       
-      if (response.data.success) {
-        // Store user data and token
-        localStorage.setItem("auth_token", response.data.token);
-        localStorage.setItem("user_data", JSON.stringify(response.data.user));
-        
+      if (result.success) {
         toast({
           title: "Login Successful!",
-          description: `Welcome back, ${response.data.user.full_name}!`,
+          description: `Welcome back, ${result.user.full_name}!`,
           duration: 3000,
         });
 
         // Redirect to dashboard
         navigate('/dashboard');
+      } else {
+        setError(result.error);
+        toast({
+          title: "Login Failed",
+          description: result.error,
+          variant: "destructive",
+          duration: 5000,
+        });
       }
     } catch (error) {
-      const errorMessage = error.response?.data?.detail || "Login failed. Please try again.";
+      const errorMessage = "Login failed. Please try again.";
       setError(errorMessage);
       toast({
         title: "Login Failed",
