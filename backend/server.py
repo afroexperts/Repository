@@ -7,6 +7,7 @@ from typing import List, Optional, Any, Dict
 import logging
 import uvicorn
 import os
+import uuid
 from contextlib import asynccontextmanager
 
 from database import (
