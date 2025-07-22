@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Continue development of Afro Experts ERP & POS system by implementing full backend functionality for all 12 modules. Current system has authentication working and dashboard interface, but needs complete backend implementation for all business operations."
+user_problem_statement: "Enhance the Afro Experts ERP & POS system by implementing theme toggle, making settings module editable/savable, and adding logo management functionality. Current system has working theme toggle but settings forms are not connected to backend and missing logo upload capability."
 
 backend:
   - task: "Authentication System"
