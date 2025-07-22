@@ -233,9 +233,9 @@ def create_client(client: ClientCreate, db: Session = Depends(get_db)):
             email=client.email,
             phone=client.phone,
             address=client.address,
-            client_type=client.type,
-            company_name=client.company_name,
-            tax_number=client.tax_number,
+            client_type=client.client_type,
+            company_name=client.company,
+            tax_number=getattr(client, 'tax_number', None),
             credit_limit=client.credit_limit or 0.0
         )
         
