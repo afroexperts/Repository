@@ -2042,18 +2042,40 @@ const Dashboard = () => {
                   <CardContent className="space-y-4">
                     <div>
                       <label className="text-sm font-medium">Section Title</label>
-                      <Input defaultValue="Revolutionary Starlink Technology" className="mt-1" />
+                      <Input 
+                        value={settings.starlink?.title || ""} 
+                        onChange={(e) => handleInputChange('starlink', 'title', e.target.value)}
+                        className="mt-1" 
+                      />
                     </div>
                     <div>
                       <label className="text-sm font-medium">Description</label>
                       <textarea 
                         className="w-full mt-1 p-3 border rounded-lg min-h-[80px]"
-                        defaultValue="Experience lightning-fast internet speeds of up to 150 Mbps even in the most remote locations across Africa."
+                        value={settings.starlink?.description || ""}
+                        onChange={(e) => handleInputChange('starlink', 'description', e.target.value)}
                       />
                     </div>
                     <div className="flex items-center space-x-2">
-                      <input type="checkbox" id="show-starlink" defaultChecked />
+                      <input 
+                        type="checkbox" 
+                        id="show-starlink" 
+                        checked={settings.starlink?.showSection || false}
+                        onChange={(e) => handleInputChange('starlink', 'showSection', e.target.checked)}
+                      />
                       <label htmlFor="show-starlink" className="text-sm">Show Starlink section</label>
+                    </div>
+                    <div className="flex justify-end pt-4 border-t">
+                      <Button 
+                        className="bg-[#0c4864]"
+                        onClick={() => handleSaveSettings('starlink')}
+                        disabled={saving}
+                      >
+                        {saving ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : null}
+                        Save Starlink Settings
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
