@@ -217,6 +217,13 @@ const Dashboard = () => {
       permission: "view_reports"
     },
     {
+      id: "portfolio",
+      title: "Portfolio",
+      icon: Building,
+      description: "Project Showcase",
+      permission: "admin"
+    },
+    {
       id: "settings",
       title: "Settings",
       icon: Settings,
