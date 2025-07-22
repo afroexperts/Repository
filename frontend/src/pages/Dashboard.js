@@ -1587,10 +1587,12 @@ const Dashboard = () => {
 
             {/* Settings Categories */}
             <Tabs defaultValue="homepage" className="w-full">
-              <TabsList className="grid w-full grid-cols-5">
+              <TabsList className="grid w-full grid-cols-7">
                 <TabsTrigger value="homepage">Homepage</TabsTrigger>
+                <TabsTrigger value="media">Media</TabsTrigger>
                 <TabsTrigger value="about">About</TabsTrigger>
                 <TabsTrigger value="services">Services</TabsTrigger>
+                <TabsTrigger value="footer">Footer</TabsTrigger>
                 <TabsTrigger value="general">General</TabsTrigger>
                 <TabsTrigger value="users">Users</TabsTrigger>
               </TabsList>
