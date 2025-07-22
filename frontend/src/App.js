@@ -20,8 +20,8 @@ function App() {
     <div className="App">
       <ThemeProvider>
         <SettingsProvider>
-          <AuthProvider>
-            <BrowserRouter>
+          <BrowserRouter>
+            <AuthProvider>
               <Routes>
                 {/* Public Routes */}
                 <Route path="/" element={<Layout><Home /></Layout>} />
@@ -31,25 +31,20 @@ function App() {
                 <Route path="/products" element={<Layout><Products /></Layout>} />
                 <Route path="/portfolio" element={<Layout><Portfolio /></Layout>} />
                 <Route path="/contact" element={<Layout><Contact /></Layout>} />
-                
-                {/* Authentication Routes */}
                 <Route path="/login" element={<Login />} />
                 
                 {/* Protected Routes */}
-                <Route 
-                  path="/dashboard" 
-                  element={
-                    <ProtectedRoute>
-                      <Dashboard />
-                    </ProtectedRoute>
-                  } 
-                />
+                <Route path="/dashboard" element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                } />
               </Routes>
-              <Toaster />
-            </BrowserRouter>
-          </AuthProvider>
+            </AuthProvider>
+          </BrowserRouter>
         </SettingsProvider>
       </ThemeProvider>
+      <Toaster />
     </div>
   );
 }
