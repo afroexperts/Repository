@@ -42,7 +42,7 @@ def initialize_database():
     global users_collection, products_collection, orders_collection, clients_collection
     global inventory_movements_collection, pos_transactions_collection
     global service_bookings_collection, financial_transactions_collection
-    global website_settings_collection
+    global website_settings_collection, portfolio_collection
     
     # Database connection
     mongo_url = os.environ['MONGO_URL']
@@ -65,6 +65,7 @@ def initialize_database():
     service_bookings_collection = db.service_bookings
     financial_transactions_collection = db.financial_transactions
     website_settings_collection = db.website_settings
+    portfolio_collection = db.portfolio_items
 
 class DatabaseManager:
     
