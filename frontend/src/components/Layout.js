@@ -39,9 +39,11 @@ import {
 import { mockData } from "../mock";
 
 const Layout = ({ children }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [activeMenu, setActiveMenu] = useState(null);
   const location = useLocation();
+  const { theme, toggleTheme } = useTheme();
+  const { settings } = useSettings();
+  const [activeMenu, setActiveMenu] = useState(null);
+  const [isOpen, setIsOpen] = useState(false);
 
   const isActive = (path) => location.pathname === path;
 
