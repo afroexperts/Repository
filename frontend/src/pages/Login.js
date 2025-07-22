@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../co
 import { Alert, AlertDescription } from "../components/ui/alert";
 import { Badge } from "../components/ui/badge";
 import { useToast } from "../hooks/use-toast";
-import axios from "axios";
+import { useAuth } from "../contexts/AuthContext";
 import { Eye, EyeOff, Lock, Mail, Loader2, Shield, Users, BarChart3 } from "lucide-react";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
