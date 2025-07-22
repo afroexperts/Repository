@@ -236,6 +236,53 @@ const Dashboard = () => {
     }
   ].filter(module => hasPermission(module.permission));
 
+  // Settings form handlers
+  const handleSaveSettings = async (section) => {
+    try {
+      const result = await saveSettings(section, settings[section]);
+      toast({
+        title: result.success ? "Success" : "Error",
+        description: result.message,
+        variant: result.success ? "default" : "destructive",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save settings",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleInputChange = (section, field, value) => {
+    updateSettings(section, { [field]: value });
+  };
+
+  const handleImageUpload = async (file, section, field) => {
+    try {
+      const result = await uploadImage(file);
+      if (result.success) {
+        updateSettings(section, { [field]: result.url });
+        toast({
+          title: "Success",
+          description: "Image uploaded successfully!",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: result.message,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to upload image",
+        variant: "destructive",
+      });
+    }
+  };
+
   const renderDashboardContent = () => {
     if (loading) {
       return (
