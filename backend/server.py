@@ -681,32 +681,48 @@ def get_inventory_summary(db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail="Failed to retrieve inventory summary")
 
 @app.post("/api/inventory/movements")
-def create_inventory_movement(movement_data: dict, db: Session = Depends(get_db)):
+def create_inventory_movement(movement_data: InventoryMovementCreate, db: Session = Depends(get_db)):
     """Create inventory movement"""
     try:
         # Default user_id for now
         user_id = "357dbcec-a104-443f-8dec-9e8895417ead"
         
+        # Check if product exists
+        product = db.query(Product).filter(Product.id == movement_data.product_id).first()
+        if not product:
+            raise HTTPException(status_code=400, detail="Product not found")
+        
+        # Validate stock out movements
+        if movement_data.movement_type in ['stock_out', 'damaged'] and product.current_stock < movement_data.quantity:
+            raise HTTPException(status_code=400, detail="Insufficient stock for this movement")
+        
+        # Calculate total cost
+        total_cost = None
+        if movement_data.unit_cost:
+            total_cost = movement_data.unit_cost * movement_data.quantity
+        
         db_movement = InventoryMovement(
-            product_id=movement_data['product_id'],
-            movement_type=MovementType(movement_data['movement_type']),
-            quantity=int(movement_data['quantity']),
-            unit_cost=float(movement_data.get('unit_cost', 0)) if movement_data.get('unit_cost') else None,
-            total_cost=float(movement_data.get('unit_cost', 0)) * int(movement_data['quantity']) if movement_data.get('unit_cost') else None,
-            reference_number=movement_data.get('reference_number'),
-            notes=movement_data.get('notes'),
+            product_id=movement_data.product_id,
+            movement_type=MovementType(movement_data.movement_type),
+            quantity=movement_data.quantity,
+            unit_cost=movement_data.unit_cost,
+            total_cost=total_cost,
+            reference_number=movement_data.reference_number,
+            notes=movement_data.notes,
             created_by=user_id
         )
         
         db.add(db_movement)
+        db.flush()  # Get the ID
         
         # Update product stock
-        product = db.query(Product).filter(Product.id == movement_data['product_id']).first()
-        if product:
-            if movement_data['movement_type'] in ['stock_in', 'returned']:
-                product.current_stock += int(movement_data['quantity'])
-            elif movement_data['movement_type'] in ['stock_out', 'damaged']:
-                product.current_stock = max(0, product.current_stock - int(movement_data['quantity']))
+        if movement_data.movement_type in ['stock_in', 'returned']:
+            product.current_stock += movement_data.quantity
+        elif movement_data.movement_type in ['stock_out', 'damaged']:
+            product.current_stock = max(0, product.current_stock - movement_data.quantity)
+        elif movement_data.movement_type == 'adjustment':
+            # For adjustment, the quantity represents the new stock level
+            product.current_stock = movement_data.quantity
         
         db.commit()
         db.refresh(db_movement)
