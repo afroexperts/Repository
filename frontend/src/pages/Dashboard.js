@@ -225,6 +225,15 @@ const Dashboard = () => {
               const productsResponse = await axios.get(`${API}/products`);
               setDashboardData(prev => ({ ...prev, products: productsResponse.data }));
             }
+            if (activeModule === "inventory" && dashboardData.inventoryMovements.length === 0) {
+              const movementsResponse = await axios.get(`${API}/inventory/movements`);
+              const summaryResponse = await axios.get(`${API}/inventory/summary`);
+              setDashboardData(prev => ({ 
+                ...prev, 
+                inventoryMovements: movementsResponse.data,
+                inventorySummary: summaryResponse.data
+              }));
+            }
             break;
           case "orders":
             if (dashboardData.orders.length === 0) {
