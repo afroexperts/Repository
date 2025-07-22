@@ -453,7 +453,8 @@ const Dashboard = () => {
         
         // Reset form and close modal
         setOrderForm({
-          client_id: '', items: [], payment_method: 'cash', notes: ''
+          client_name: '', client_email: '', client_phone: '',
+          items: [], payment_method: 'cash', notes: ''
         });
         setEditingItem(null);
         setShowEditOrderModal(false);
