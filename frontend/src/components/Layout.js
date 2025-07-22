@@ -42,11 +42,11 @@ const Layout = ({ children }) => {
   // Mega menu data structure
   const megaMenuData = {
     services: {
-      title: "IT Services",
-      subtitle: "Professional technology infrastructure services",
+      title: "Our Services",
+      subtitle: "Comprehensive services across multiple industries",
       sections: [
         {
-          title: "Core Services",
+          title: "Technology Services",
           items: [
             {
               title: "Network Setup & Maintenance",
@@ -71,6 +71,65 @@ const Layout = ({ children }) => {
               description: "Round-the-clock technical assistance and IT support",
               icon: Headphones,
               link: "/services#support"
+            },
+            {
+              title: "Software Development",
+              description: "Custom software, mobile apps, and enterprise solutions",
+              icon: Code,
+              link: "/services#software"
+            },
+            {
+              title: "Internet Provider",
+              description: "Fast and reliable internet services with robust infrastructure",
+              icon: Wifi,
+              link: "/services#internet"
+            }
+          ]
+        },
+        {
+          title: "Media & Events",
+          items: [
+            {
+              title: "Event Management",
+              description: "Hybrid & virtual meetings, live streaming, video coverage",
+              icon: Users,
+              link: "/services#events"
+            },
+            {
+              title: "Audio-Visual Services",
+              description: "Documentary videos, photography, TV & radio commercials",
+              icon: Camera,
+              link: "/services#audiovisual"
+            },
+            {
+              title: "Design & Branding",
+              description: "Logo design, corporate branding, promotional materials",
+              icon: Zap,
+              link: "/services#design"
+            },
+            {
+              title: "Interpretation Services",
+              description: "Simultaneous & consecutive interpretation with equipment",
+              icon: Headphones,
+              link: "/services#interpretation"
+            }
+          ]
+        },
+        {
+          title: "Production & Supply",
+          items: [
+            {
+              title: "Marble Dust Production",
+              description: "Premium marble dust manufactured exclusively in Rwanda",
+              icon: Mountain,
+              link: "/services#marble",
+              featured: true
+            },
+            {
+              title: "General Supply",
+              description: "Quality products and materials for government & businesses",
+              icon: ShoppingCart,
+              link: "/services#supply"
             }
           ]
         },
