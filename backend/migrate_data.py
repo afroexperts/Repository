@@ -230,10 +230,10 @@ def migrate_pos_transactions(db: Session):
                     tax_percentage=float(data.get('tax_percentage', 0)),
                     tax_amount=float(data.get('tax_amount', 0)),
                     total_amount=float(data.get('total_amount', 0)),
-                    payment_method=PaymentMethod(data['payment_method']),
+                    payment_method=PaymentMethod(data.get('payment_method', 'cash')),  # Default to cash
                     payment_received=float(data.get('payment_received', 0)),
                     change_given=float(data.get('change_given', 0)),
-                    cashier_id=data['cashier_id'],
+                    cashier_id=data.get('cashier_id', ''),  # Handle missing cashier_id
                     created_at=parse_datetime(data.get('created_at')) or datetime.utcnow()
                 )
                 
