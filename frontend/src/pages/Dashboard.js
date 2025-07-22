@@ -173,7 +173,9 @@ const Dashboard = () => {
     lowStockProducts: [],
     products: [],
     orders: [],
-    clients: []
+    clients: [],
+    inventoryMovements: [],
+    inventorySummary: {}
   });
 
   // Fetch dashboard data on component mount
