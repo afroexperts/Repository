@@ -370,6 +370,148 @@ def get_inventory_movements(db: Session = Depends(get_db)):
     """Get inventory movements"""
     return db.query(InventoryMovement).order_by(InventoryMovement.created_at.desc()).limit(100).all()
 
+@app.post("/api/inventory/movements")
+def create_inventory_movement(movement_data: dict, db: Session = Depends(get_db)):
+    """Create inventory movement"""
+    try:
+        # Default user_id for now
+        user_id = "357dbcec-a104-443f-8dec-9e8895417ead"
+        
+        db_movement = InventoryMovement(
+            product_id=movement_data['product_id'],
+            movement_type=MovementType(movement_data['movement_type']),
+            quantity=int(movement_data['quantity']),
+            unit_cost=float(movement_data.get('unit_cost', 0)) if movement_data.get('unit_cost') else None,
+            total_cost=float(movement_data.get('unit_cost', 0)) * int(movement_data['quantity']) if movement_data.get('unit_cost') else None,
+            reference_number=movement_data.get('reference_number'),
+            notes=movement_data.get('notes'),
+            created_by=user_id
+        )
+        
+        db.add(db_movement)
+        
+        # Update product stock
+        product = db.query(Product).filter(Product.id == movement_data['product_id']).first()
+        if product:
+            if movement_data['movement_type'] in ['stock_in', 'returned']:
+                product.current_stock += int(movement_data['quantity'])
+            elif movement_data['movement_type'] in ['stock_out', 'damaged']:
+                product.current_stock = max(0, product.current_stock - int(movement_data['quantity']))
+        
+        db.commit()
+        db.refresh(db_movement)
+        
+        return db_movement
+        
+    except Exception as e:
+        logger.error(f"Create inventory movement error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create inventory movement")
+
+# ===============================
+# Finance Endpoints  
+# ===============================
+
+@app.post("/api/finance/transactions")
+def create_financial_transaction(transaction_data: dict, db: Session = Depends(get_db)):
+    """Create financial transaction"""
+    try:
+        # Default user_id for now
+        user_id = "357dbcec-a104-443f-8dec-9e8895417ead"
+        
+        db_transaction = FinancialTransaction(
+            transaction_number=f"TXN-{str(uuid.uuid4())[:8]}",
+            transaction_type=TransactionType(transaction_data['transaction_type']),
+            category=transaction_data.get('category', 'general'),
+            description=transaction_data['description'],
+            amount=float(transaction_data['amount']),
+            reference_id=transaction_data.get('reference_id'),
+            created_by=user_id
+        )
+        
+        db.add(db_transaction)
+        db.commit()
+        db.refresh(db_transaction)
+        
+        return db_transaction
+        
+    except Exception as e:
+        logger.error(f"Create financial transaction error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create financial transaction")
+
+# ===============================
+# POS Transaction Endpoints
+# ===============================
+
+@app.post("/api/pos/transactions")
+def create_pos_transaction(transaction_data: dict, db: Session = Depends(get_db)):
+    """Create POS transaction"""
+    try:
+        # Default cashier_id for now
+        cashier_id = "357dbcec-a104-443f-8dec-9e8895417ead"
+        
+        db_transaction = PosTransaction(
+            receipt_number=f"RCP-{str(uuid.uuid4())[:8]}",
+            client_id=transaction_data.get('client_id'),
+            items=transaction_data['items'],
+            subtotal=float(transaction_data['subtotal']),
+            discount_percentage=float(transaction_data.get('discount_percentage', 0)),
+            discount_amount=float(transaction_data.get('discount_amount', 0)),
+            tax_percentage=float(transaction_data.get('tax_percentage', 0)),
+            tax_amount=float(transaction_data['tax_amount']),
+            total_amount=float(transaction_data['total_amount']),
+            payment_method=PaymentMethod(transaction_data.get('payment_method', 'cash')),
+            payment_received=float(transaction_data['payment_received']),
+            change_given=float(transaction_data.get('change_given', 0)),
+            cashier_id=cashier_id
+        )
+        
+        db.add(db_transaction)
+        
+        # Update product stock for each item
+        for item in transaction_data['items']:
+            product = db.query(Product).filter(Product.id == item['id']).first()
+            if product:
+                product.current_stock = max(0, product.current_stock - item['quantity'])
+        
+        db.commit()
+        db.refresh(db_transaction)
+        
+        return db_transaction
+        
+    except Exception as e:
+        logger.error(f"Create POS transaction error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create POS transaction")
+
+# ===============================
+# Service Booking Endpoints (Enhanced)
+# ===============================
+
+@app.post("/api/services/bookings")  
+def create_service_booking(booking_data: dict, db: Session = Depends(get_db)):
+    """Create service booking"""
+    try:
+        db_booking = ServiceBooking(
+            booking_number=f"SRV-{str(uuid.uuid4())[:8]}",
+            client_name=booking_data['client_name'],
+            client_email=booking_data.get('client_email'),
+            client_phone=booking_data['client_phone'],
+            service_type=ServiceType(booking_data['service_type']),
+            description=booking_data['description'],
+            location=booking_data['location'],
+            preferred_date=datetime.fromisoformat(booking_data['preferred_date'].replace('Z', '+00:00')) if booking_data.get('preferred_date') else None,
+            status='pending'
+        )
+        
+        db.add(db_booking)
+        db.commit()
+        db.refresh(db_booking)
+        
+        return db_booking
+        
+    except Exception as e:
+        logger.error(f"Create service booking error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create service booking")
+
 # ===============================
 # Finance Endpoints
 # ===============================
