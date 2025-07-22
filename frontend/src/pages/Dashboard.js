@@ -61,6 +61,8 @@ const Dashboard = () => {
   const [showAddProductModal, setShowAddProductModal] = useState(false);
   const [showAddClientModal, setShowAddClientModal] = useState(false);
   const [showAddOrderModal, setShowAddOrderModal] = useState(false);
+  const [showOrderDetailsModal, setShowOrderDetailsModal] = useState(false);
+  const [showEditOrderModal, setShowEditOrderModal] = useState(false);
   const [showPosModal, setShowPosModal] = useState(false);
   const [showInventoryModal, setShowInventoryModal] = useState(false);
   const [showServiceBookingModal, setShowServiceBookingModal] = useState(false);
@@ -69,6 +71,8 @@ const Dashboard = () => {
   const [showMarbleDustModal, setShowMarbleDustModal] = useState(false);
   const [showStarlinkModal, setShowStarlinkModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [orderStatusFilter, setOrderStatusFilter] = useState('all');
   const [formLoading, setFormLoading] = useState(false);
   
   // POS State
