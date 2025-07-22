@@ -1110,6 +1110,65 @@ const Dashboard = () => {
                   )}
                 </CardContent>
               </Card>
+
+            {/* Recent Inventory Movements */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Inventory Movements</CardTitle>
+                <CardDescription>Latest stock movements and adjustments</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {dashboardData.inventoryMovements.length > 0 ? (
+                  <div className="space-y-4">
+                    {dashboardData.inventoryMovements.slice(0, 10).map((movement) => (
+                      <div key={movement.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
+                        <div className="space-y-1">
+                          <div className="flex items-center space-x-2">
+                            <h4 className="font-medium">{movement.product_name}</h4>
+                            <Badge 
+                              variant={
+                                movement.movement_type === 'stock_in' ? 'default' : 
+                                movement.movement_type === 'stock_out' ? 'destructive' : 
+                                'secondary'
+                              }
+                            >
+                              {movement.movement_type.replace('_', ' ')}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-gray-600">
+                            Quantity: {movement.quantity} 
+                            {movement.unit_cost && ` | Unit Cost: RWF ${movement.unit_cost.toLocaleString()}`}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {new Date(movement.created_at).toLocaleString()}
+                            {movement.reference_number && ` | Ref: ${movement.reference_number}`}
+                          </p>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          {movement.total_cost && (
+                            <span className="text-sm font-medium">
+                              RWF {movement.total_cost.toLocaleString()}
+                            </span>
+                          )}
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => handleDeleteInventoryMovement(movement.id)}
+                          >
+                            Delete
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <Package className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                    <p className="text-gray-500">No inventory movements recorded yet</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
             </div>
           </div>
         );
