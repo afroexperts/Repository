@@ -1602,23 +1602,115 @@ const Dashboard = () => {
                 <Card>
                   <CardHeader>
                     <CardTitle>Hero Section</CardTitle>
-                    <CardDescription>Manage the main hero banner content</CardDescription>
+                    <CardDescription>Manage the main hero banner content and background images</CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium">Main Title</label>
-                      <Input defaultValue="Empowering Africa's Digital Future" className="mt-1" />
+                  <CardContent className="space-y-6">
+                    {/* Text Content */}
+                    <div className="space-y-4">
+                      <h4 className="font-medium text-lg">Content</h4>
+                      <div>
+                        <label className="text-sm font-medium">Main Title</label>
+                        <Input defaultValue="Empowering Africa's Digital Future" className="mt-1" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium">Subtitle</label>
+                        <Input defaultValue="Comprehensive IT Services & Starlink Internet Solutions for Modern Africa" className="mt-1" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium">Description</label>
+                        <textarea 
+                          className="w-full mt-1 p-3 border rounded-lg min-h-[100px]"
+                          defaultValue="From network infrastructure to satellite internet, we connect African businesses and communities to the global digital economy."
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <label className="text-sm font-medium">Subtitle</label>
-                      <Input defaultValue="Comprehensive IT Services & Starlink Internet Solutions for Modern Africa" className="mt-1" />
+
+                    {/* Image Management */}
+                    <div className="space-y-4 border-t pt-6">
+                      <h4 className="font-medium text-lg">Background Images</h4>
+                      
+                      {/* Current Background Image */}
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Hero Background Image</label>
+                        <div className="border rounded-lg p-4 bg-gray-50">
+                          <div className="flex items-center justify-between mb-3">
+                            <p className="text-sm text-gray-600">Current: Hero Background</p>
+                            <div className="flex space-x-2">
+                              <Button size="sm" variant="outline">
+                                <Eye className="h-4 w-4 mr-1" />
+                                Preview
+                              </Button>
+                              <Button size="sm" variant="destructive">
+                                Remove
+                              </Button>
+                            </div>
+                          </div>
+                          <div className="w-full h-32 bg-gradient-to-r from-[#0c4864] to-[#3b8ea4] rounded-lg flex items-center justify-center">
+                            <p className="text-white text-sm">Current Hero Background</p>
+                          </div>
+                        </div>
+                        <div className="flex space-x-2">
+                          <Button size="sm" className="bg-[#0c4864]">
+                            <Plus className="h-4 w-4 mr-1" />
+                            Upload New Background
+                          </Button>
+                          <Button size="sm" variant="outline">
+                            Choose from Gallery
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Secondary Images */}
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Feature Images</label>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="border rounded-lg p-3 bg-gray-50">
+                            <div className="w-full h-24 bg-gray-200 rounded mb-2 flex items-center justify-center">
+                              <p className="text-xs text-gray-500">Network Infrastructure</p>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <p className="text-xs font-medium">Network Image</p>
+                              <Button size="xs" variant="outline">Edit</Button>
+                            </div>
+                          </div>
+                          <div className="border rounded-lg p-3 bg-gray-50">
+                            <div className="w-full h-24 bg-gray-200 rounded mb-2 flex items-center justify-center">
+                              <p className="text-xs text-gray-500">Starlink Satellite</p>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <p className="text-xs font-medium">Starlink Image</p>
+                              <Button size="xs" variant="outline">Edit</Button>
+                            </div>
+                          </div>
+                        </div>
+                        <Button size="sm" variant="outline" className="w-full">
+                          <Plus className="h-4 w-4 mr-1" />
+                          Add Feature Image
+                        </Button>
+                      </div>
                     </div>
-                    <div>
-                      <label className="text-sm font-medium">Description</label>
-                      <textarea 
-                        className="w-full mt-1 p-3 border rounded-lg min-h-[100px]"
-                        defaultValue="From network infrastructure to satellite internet, we connect African businesses and communities to the global digital economy."
-                      />
+
+                    {/* Call-to-Action Settings */}
+                    <div className="space-y-4 border-t pt-6">
+                      <h4 className="font-medium text-lg">Call-to-Action Buttons</h4>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-sm font-medium">Primary Button Text</label>
+                          <Input defaultValue="Get Started Today" className="mt-1" />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">Primary Button Link</label>
+                          <Input defaultValue="/contact" className="mt-1" />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">Secondary Button Text</label>
+                          <Input defaultValue="Learn More" className="mt-1" />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">Secondary Button Link</label>
+                          <Input defaultValue="/about" className="mt-1" />
+                        </div>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
