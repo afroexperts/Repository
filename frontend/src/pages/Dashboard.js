@@ -3607,6 +3607,146 @@ const Dashboard = () => {
         </div>
       )}
 
+      {/* Add Order Modal */}
+      {showAddOrderModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Create New Order</h3>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowAddOrderModal(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <form onSubmit={handleAddOrder} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Client *</label>
+                <select
+                  className="w-full p-2 border rounded-lg"
+                  required
+                  value={orderForm.client_id}
+                  onChange={(e) => setOrderForm(prev => ({ ...prev, client_id: e.target.value }))}
+                >
+                  <option value="">Select a client...</option>
+                  {dashboardData.clients.map((client) => (
+                    <option key={client.id} value={client.id}>
+                      {client.name} {client.company_name && `(${client.company_name})`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-1">Order Items</label>
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {orderForm.items.length === 0 ? (
+                    <p className="text-gray-500 text-sm">No items added</p>
+                  ) : (
+                    orderForm.items.map((item, index) => (
+                      <div key={index} className="flex justify-between items-center p-2 border rounded">
+                        <span className="text-sm">{item.product_name} × {item.quantity}</span>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => {
+                            const newItems = orderForm.items.filter((_, i) => i !== index);
+                            setOrderForm(prev => ({ ...prev, items: newItems }));
+                          }}
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    ))
+                  )}
+                </div>
+                
+                <div className="flex space-x-2 mt-2">
+                  <select
+                    className="flex-1 p-2 border rounded"
+                    onChange={(e) => {
+                      const product = dashboardData.products.find(p => p.id === e.target.value);
+                      if (product) {
+                        const newItem = {
+                          product_id: product.id,
+                          product_name: product.name,
+                          quantity: 1,
+                          unit_price: product.price
+                        };
+                        setOrderForm(prev => ({ ...prev, items: [...prev.items, newItem] }));
+                        e.target.value = '';
+                      }
+                    }}
+                  >
+                    <option value="">Add product...</option>
+                    {dashboardData.products.map((product) => (
+                      <option key={product.id} value={product.id}>
+                        {product.name} - RWF {product.price.toLocaleString()}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-1">Payment Method</label>
+                <select
+                  className="w-full p-2 border rounded-lg"
+                  value={orderForm.payment_method}
+                  onChange={(e) => setOrderForm(prev => ({ ...prev, payment_method: e.target.value }))}
+                >
+                  <option value="cash">Cash</option>
+                  <option value="card">Card</option>
+                  <option value="mobile_money">Mobile Money</option>
+                  <option value="bank_transfer">Bank Transfer</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-1">Notes</label>
+                <textarea
+                  className="w-full p-2 border rounded-lg"
+                  value={orderForm.notes}
+                  onChange={(e) => setOrderForm(prev => ({ ...prev, notes: e.target.value }))}
+                  placeholder="Order notes..."
+                  rows="2"
+                />
+              </div>
+              
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowAddOrderModal(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  className="bg-[#0c4864]"
+                  disabled={formLoading || orderForm.items.length === 0}
+                >
+                  {formLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Order
+                    </>
+                  )}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
