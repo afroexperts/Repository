@@ -489,6 +489,14 @@ const Layout = ({ children }) => {
                 <li>CCTV Systems</li>
                 <li>Cloud Solutions</li>
                 <li>Technical Support</li>
+                <li>
+                  <Link 
+                    to="/dashboard" 
+                    className="text-[#66cadb] hover:text-white transition-colors font-medium"
+                  >
+                    🚀 ERP Dashboard
+                  </Link>
+                </li>
               </ul>
             </div>
 
