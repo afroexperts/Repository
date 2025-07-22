@@ -112,6 +112,7 @@ export const AuthProvider = ({ children }) => {
 
 // Protected Route Component
 export const ProtectedRoute = ({ children, requiredRoles = null }) => {
+  const navigate = useNavigate();
   const { user, loading, hasRole } = useAuth();
 
   if (loading) {
