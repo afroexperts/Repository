@@ -496,8 +496,16 @@ const Dashboard = () => {
       
       if (response.status === 200) {
         // Refresh inventory data
-        const inventoryResponse = await axios.get(`${API}/inventory/movements`);
-        setDashboardData(prev => ({ ...prev, inventoryMovements: inventoryResponse.data }));
+        const movementsResponse = await axios.get(`${API}/inventory/movements`);
+        const productsResponse = await axios.get(`${API}/products`);
+        const summaryResponse = await axios.get(`${API}/inventory/summary`);
+        
+        setDashboardData(prev => ({ 
+          ...prev, 
+          inventoryMovements: movementsResponse.data,
+          products: productsResponse.data,
+          inventorySummary: summaryResponse.data
+        }));
         
         // Reset form and close modal
         setInventoryForm({
@@ -515,11 +523,82 @@ const Dashboard = () => {
       console.error('Error recording inventory movement:', error);
       toast({
         title: "Error",
-        description: "Failed to record inventory movement. Please try again.",
+        description: error.response?.data?.detail || "Failed to record inventory movement. Please try again.",
         variant: "destructive",
       });
     } finally {
       setFormLoading(false);
+    }
+  };
+
+  const handleUpdateInventoryMovement = async (movementId, updateData) => {
+    try {
+      const response = await axios.put(`${API}/inventory/movements/${movementId}`, updateData);
+      
+      if (response.status === 200) {
+        // Refresh inventory data
+        const movementsResponse = await axios.get(`${API}/inventory/movements`);
+        setDashboardData(prev => ({ ...prev, inventoryMovements: movementsResponse.data }));
+        
+        toast({
+          title: "Success",
+          description: "Movement updated successfully!",
+        });
+      }
+    } catch (error) {
+      console.error('Error updating movement:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update movement. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteInventoryMovement = async (movementId) => {
+    if (!window.confirm('Are you sure you want to delete this inventory movement? This will reverse the stock changes.')) {
+      return;
+    }
+    
+    try {
+      await axios.delete(`${API}/inventory/movements/${movementId}`);
+      
+      // Refresh inventory data
+      const movementsResponse = await axios.get(`${API}/inventory/movements`);
+      const productsResponse = await axios.get(`${API}/products`);
+      
+      setDashboardData(prev => ({ 
+        ...prev, 
+        inventoryMovements: movementsResponse.data,
+        products: productsResponse.data
+      }));
+      
+      toast({
+        title: "Success",
+        description: "Movement deleted successfully!",
+      });
+    } catch (error) {
+      console.error('Error deleting movement:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete movement. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRestockProduct = (productId) => {
+    const product = dashboardData.products.find(p => p.id === productId);
+    if (product) {
+      setInventoryForm({
+        product_id: productId,
+        movement_type: 'stock_in',
+        quantity: Math.max(product.minimum_stock - product.current_stock, 10),
+        unit_cost: product.cost_price || product.price,
+        notes: `Restocking ${product.name}`,
+        reference_number: `RESTOCK-${Date.now()}`
+      });
+      setShowInventoryModal(true);
     }
   };
 
