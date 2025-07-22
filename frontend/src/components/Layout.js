@@ -573,6 +573,7 @@ const Layout = ({ children }) => {
                 </div>
               </SheetContent>
             </Sheet>
+            </div>
           </div>
         </div>
       </header>
