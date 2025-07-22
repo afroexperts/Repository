@@ -1197,6 +1197,375 @@ const Dashboard = () => {
           </div>
         );
 
+      case "secondhand":
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold">Second-Hand Sales</h2>
+                <p className="text-gray-600">Manage refurbished and used product sales</p>
+              </div>
+              <div className="flex space-x-2">
+                <Select>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Filter by grade" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Grades</SelectItem>
+                    <SelectItem value="grade-a">Grade A</SelectItem>
+                    <SelectItem value="grade-b">Grade B</SelectItem>
+                    <SelectItem value="grade-c">Grade C</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button className="bg-[#0c4864]">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Product
+                </Button>
+              </div>
+            </div>
+
+            {/* Second-hand Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Available Items</p>
+                      <p className="text-2xl font-bold">{dashboardData.products.filter(p => p.category === 'secondhand').length}</p>
+                    </div>
+                    <Recycle className="h-8 w-8 text-green-600" />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Grade A Items</p>
+                      <p className="text-2xl font-bold">12</p>
+                    </div>
+                    <CheckCircle className="h-8 w-8 text-blue-600" />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Total Value</p>
+                      <p className="text-2xl font-bold">RWF {dashboardData.products.filter(p => p.category === 'secondhand').reduce((sum, p) => sum + (p.price * p.current_stock), 0).toLocaleString()}</p>
+                    </div>
+                    <DollarSign className="h-8 w-8 text-purple-600" />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Sold This Month</p>
+                      <p className="text-2xl font-bold">28</p>
+                    </div>
+                    <TrendingUp className="h-8 w-8 text-[#3b8ea4]" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Product Categories */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                <CardHeader>
+                  <CardTitle className="text-lg">Laptops & Computers</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-600 mb-4">Refurbished laptops, desktops, and accessories</p>
+                  <div className="flex justify-between items-center">
+                    <Badge variant="outline">15 Available</Badge>
+                    <Button size="sm">View All</Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                <CardHeader>
+                  <CardTitle className="text-lg">Mobile Devices</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-600 mb-4">Smartphones, tablets, and mobile accessories</p>
+                  <div className="flex justify-between items-center">
+                    <Badge variant="outline">8 Available</Badge>
+                    <Button size="sm">View All</Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                <CardHeader>
+                  <CardTitle className="text-lg">Networking Equipment</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-600 mb-4">Used routers, switches, and network gear</p>
+                  <div className="flex justify-between items-center">
+                    <Badge variant="outline">6 Available</Badge>
+                    <Button size="sm">View All</Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        );
+
+      case "marble":
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold">Marble Dust Production</h2>
+                <p className="text-gray-600">Track marble dust production and sales operations</p>
+              </div>
+              <div className="flex space-x-2">
+                <Button variant="outline">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Production Report
+                </Button>
+                <Button className="bg-[#0c4864]">
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Batch
+                </Button>
+              </div>
+            </div>
+
+            {/* Production Overview */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Current Stock</p>
+                      <p className="text-2xl font-bold">{dashboardData.products.find(p => p.category === 'marble_dust')?.current_stock || 0} tons</p>
+                    </div>
+                    <Mountain className="h-8 w-8 text-gray-600" />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Monthly Production</p>
+                      <p className="text-2xl font-bold">45 tons</p>
+                    </div>
+                    <TrendingUp className="h-8 w-8 text-green-600" />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Sales Revenue</p>
+                      <p className="text-2xl font-bold">RWF 1,125,000</p>
+                    </div>
+                    <DollarSign className="h-8 w-8 text-blue-600" />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Active Orders</p>
+                      <p className="text-2xl font-bold">12</p>
+                    </div>
+                    <FileText className="h-8 w-8 text-[#3b8ea4]" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Production Batches */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Production Batches</CardTitle>
+                <CardDescription>Latest marble dust production and quality records</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {[
+                    { batch: "MD-2025-001", quantity: "15 tons", quality: "Premium", date: "2025-01-22", status: "Completed" },
+                    { batch: "MD-2025-002", quantity: "12 tons", quality: "Standard", date: "2025-01-20", status: "Processing" },
+                    { batch: "MD-2025-003", quantity: "18 tons", quality: "Premium", date: "2025-01-18", status: "Completed" }
+                  ].map((batch, index) => (
+                    <div key={index} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+                      <div className="space-y-1">
+                        <h4 className="font-medium">{batch.batch}</h4>
+                        <p className="text-sm text-gray-600">{batch.quantity} - {batch.quality} Grade</p>
+                        <p className="text-xs text-gray-500">{batch.date}</p>
+                      </div>
+                      <Badge variant={batch.status === 'Completed' ? 'default' : 'secondary'}>
+                        {batch.status}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        );
+
+      case "starlink":
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold">Starlink Resale</h2>
+                <p className="text-gray-600">Manage Starlink products and installation services</p>
+              </div>
+              <div className="flex space-x-2">
+                <Button variant="outline">
+                  <Download className="h-4 w-4 mr-2" />
+                  Installation Report
+                </Button>
+                <Button className="bg-[#0c4864]">
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Installation
+                </Button>
+              </div>
+            </div>
+
+            {/* Starlink Overview */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Kits in Stock</p>
+                      <p className="text-2xl font-bold">{dashboardData.products.filter(p => p.category === 'starlink').reduce((sum, p) => sum + p.current_stock, 0)}</p>
+                    </div>
+                    <Satellite className="h-8 w-8 text-[#0c4864]" />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Installations This Month</p>
+                      <p className="text-2xl font-bold">24</p>
+                    </div>
+                    <TrendingUp className="h-8 w-8 text-green-600" />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Revenue This Month</p>
+                      <p className="text-2xl font-bold">RWF 14,376,000</p>
+                    </div>
+                    <DollarSign className="h-8 w-8 text-blue-600" />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Pending Installations</p>
+                      <p className="text-2xl font-bold">8</p>
+                    </div>
+                    <Calendar className="h-8 w-8 text-orange-600" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Product Types */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Residential Kits</CardTitle>
+                  <CardDescription>Home internet solutions</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">In Stock:</span>
+                      <span className="font-medium">{dashboardData.products.find(p => p.name.includes('Residential'))?.current_stock || 0} kits</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">Price:</span>
+                      <span className="font-medium">RWF 599,000</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">Installed This Month:</span>
+                      <span className="font-medium">18 units</span>
+                    </div>
+                    <Button className="w-full" size="sm">Manage Inventory</Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Business Kits</CardTitle>
+                  <CardDescription>Enterprise-grade solutions</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">In Stock:</span>
+                      <span className="font-medium">{dashboardData.products.find(p => p.name.includes('Business'))?.current_stock || 0} kits</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">Price:</span>
+                      <span className="font-medium">RWF 2,500,000</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">Installed This Month:</span>
+                      <span className="font-medium">6 units</span>
+                    </div>
+                    <Button className="w-full" size="sm">Manage Inventory</Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Installation Schedule */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Upcoming Installations</CardTitle>
+                <CardDescription>Scheduled Starlink installations and services</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {[
+                    { client: "ABC Construction Ltd", kit: "Business Kit", date: "2025-01-24", technician: "John Rwigema", status: "Confirmed" },
+                    { client: "Marie Uwimana", kit: "Residential Kit", date: "2025-01-25", technician: "Paul Nkusi", status: "Confirmed" },
+                    { client: "Rural School Nyagatare", kit: "Business Kit", date: "2025-01-26", technician: "Jean Baptiste", status: "Pending" }
+                  ].map((installation, index) => (
+                    <div key={index} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+                      <div className="space-y-1">
+                        <h4 className="font-medium">{installation.client}</h4>
+                        <p className="text-sm text-gray-600">{installation.kit}</p>
+                        <p className="text-xs text-gray-500">Technician: {installation.technician}</p>
+                      </div>
+                      <div className="text-right space-y-1">
+                        <p className="text-sm font-medium">{installation.date}</p>
+                        <Badge variant={installation.status === 'Confirmed' ? 'default' : 'secondary'}>
+                          {installation.status}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        );
+
       case "settings":
         return (
           <div className="space-y-6">
