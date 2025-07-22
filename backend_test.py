@@ -572,12 +572,17 @@ class BackendTester:
             self.log_test("Order Stock Deduction", False, "No clients available for stock deduction test")
             return
         
-        client_id = clients[0].get("id")
+        client = clients[0]
+        client_name = client.get("name", "Test Client")
+        client_email = client.get("email")
+        client_phone = client.get("phone")
         order_quantity = 3
         
         # Create order
         order_data = {
-            "client_id": client_id,
+            "client_name": client_name,
+            "client_email": client_email,
+            "client_phone": client_phone,
             "items": [{
                 "product_id": product_id,
                 "quantity": order_quantity,
