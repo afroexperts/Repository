@@ -480,6 +480,17 @@ const Layout = ({ children }) => {
               </div>
 
               <Link
+                to="/portfolio"
+                className={`font-medium transition-colors duration-200 ${
+                  isActive("/portfolio")
+                    ? "text-[#0c4864] border-b-2 border-[#3b8ea4]"
+                    : "text-gray-700 hover:text-[#3b8ea4]"
+                }`}
+              >
+                Portfolio
+              </Link>
+
+              <Link
                 to="/contact"
                 className={`font-medium transition-colors duration-200 ${
                   isActive("/contact")
