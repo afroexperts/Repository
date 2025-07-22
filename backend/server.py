@@ -314,9 +314,12 @@ def get_settings(db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail="Failed to fetch settings")
 
 @app.put("/api/settings")
-def update_settings(settings_data: WebsiteSettingsUpdate, user_id: str = "admin", db: Session = Depends(get_db)):
+def update_settings(settings_data: WebsiteSettingsUpdate, db: Session = Depends(get_db)):
     """Update website settings"""
     try:
+        # For now, use a default user_id since authentication is simplified
+        user_id = "357dbcec-a104-443f-8dec-9e8895417ead"  # Admin user ID
+        
         # Check if setting exists
         setting = db.query(WebsiteSetting).filter(WebsiteSetting.section == settings_data.section).first()
         
