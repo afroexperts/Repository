@@ -259,49 +259,170 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Services Overview */}
+      {/* Comprehensive Services Overview */}
       <section className="py-20 bg-[#0c4864] text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-5xl font-bold mb-6">Our IT Services</h2>
-            <p className="text-xl opacity-90 max-w-3xl mx-auto">
-              Comprehensive technology solutions designed to empower African businesses with modern infrastructure and support.
+            <Badge className="mb-4 bg-[#66cadb] text-white px-4 py-2">
+              🚀 Our Services
+            </Badge>
+            <h2 className="text-3xl md:text-5xl font-bold mb-6">Comprehensive Service Portfolio</h2>
+            <p className="text-xl opacity-90 max-w-4xl mx-auto">
+              Dynamic and versatile company operating in Rwanda and Central African Republic, providing comprehensive solutions across technology, media, events, and specialized production.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {mockData.services.map((service) => {
-              const IconComponent = iconComponents[service.icon];
-              return (
-                <Card key={service.id} className="bg-white/10 border-white/20 hover:bg-white/15 transition-all duration-300 text-white backdrop-blur-sm">
-                  <CardHeader className="text-center">
-                    <div className="bg-[#66cadb] bg-opacity-20 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <IconComponent className="h-8 w-8 text-[#66cadb]" />
-                    </div>
-                    <CardTitle className="text-white">{service.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <CardDescription className="text-gray-200 text-center mb-4">
-                      {service.description}
-                    </CardDescription>
-                    <ul className="space-y-2 text-sm">
-                      {service.features.map((feature, index) => (
-                        <li key={index} className="flex items-center text-gray-300">
-                          <CheckCircle className="w-4 h-4 text-[#66cadb] mr-2 flex-shrink-0" />
-                          {feature}
-                        </li>
-                      ))}
-                    </ul>
-                  </CardContent>
-                </Card>
-              );
-            })}
+          {/* Service Categories */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-16">
+            {/* Technology Services */}
+            <div>
+              <div className="text-center mb-6">
+                <div className="bg-[#66cadb] bg-opacity-20 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Network className="h-8 w-8 text-[#66cadb]" />
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-2">Technology Services</h3>
+                <p className="text-gray-300">Professional IT infrastructure and development solutions</p>
+              </div>
+              <div className="space-y-3">
+                {[
+                  "Network Setup & Maintenance",
+                  "CCTV & Access Control", 
+                  "Server Installation",
+                  "Technical Support",
+                  "Software Development",
+                  "Internet Provider"
+                ].map((service, index) => (
+                  <div key={index} className="flex items-center text-gray-200">
+                    <CheckCircle className="w-4 h-4 text-[#66cadb] mr-3 flex-shrink-0" />
+                    {service}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Media & Events */}
+            <div>
+              <div className="text-center mb-6">
+                <div className="bg-[#66cadb] bg-opacity-20 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Users className="h-8 w-8 text-[#66cadb]" />
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-2">Media & Events</h3>
+                <p className="text-gray-300">Creative solutions and professional event management</p>
+              </div>
+              <div className="space-y-3">
+                {[
+                  "Event Management (Hybrid & Virtual)",
+                  "Audio-Visual Services",
+                  "Design & Branding Solutions",
+                  "Interpretation Services & Equipment"
+                ].map((service, index) => (
+                  <div key={index} className="flex items-center text-gray-200">
+                    <CheckCircle className="w-4 h-4 text-[#66cadb] mr-3 flex-shrink-0" />
+                    {service}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Production & Supply */}
+            <div>
+              <div className="text-center mb-6">
+                <div className="bg-[#66cadb] bg-opacity-20 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Mountain className="h-8 w-8 text-[#66cadb]" />
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-2">Production & Supply</h3>
+                <p className="text-gray-300">Specialized manufacturing and supply solutions</p>
+              </div>
+              <div className="space-y-3">
+                {[
+                  "Marble Dust Production (🇷🇼 Rwanda Exclusive)",
+                  "General Supply Services"
+                ].map((service, index) => (
+                  <div key={index} className="flex items-center text-gray-200">
+                    <CheckCircle className="w-4 h-4 text-[#66cadb] mr-3 flex-shrink-0" />
+                    {service}
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
-          <div className="text-center mt-12">
-            <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-[#0c4864] px-8 py-3">
-              View All Services
-            </Button>
+          {/* Featured Afro Solutions */}
+          <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 mb-12 border border-white/10">
+            <div className="text-center mb-8">
+              <Badge className="mb-4 bg-gradient-to-r from-[#66cadb] to-[#3b8ea4] text-white px-4 py-2">
+                🌟 Our Digital Platforms
+              </Badge>
+              <h3 className="text-2xl font-bold text-white mb-2">Afro Solutions Ecosystem</h3>
+              <p className="text-gray-300">Live operational platforms serving businesses across Africa</p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Card className="bg-white/10 border-white/20 hover:bg-white/15 transition-all duration-300 backdrop-blur-sm">
+                <CardHeader className="text-center">
+                  <div className="bg-[#66cadb] bg-opacity-30 w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <MessageSquare className="h-7 w-7 text-white" />
+                  </div>
+                  <CardTitle className="text-white text-lg">Afro Bulk SMS</CardTitle>
+                  <Badge className="bg-green-500 text-white text-xs animate-pulse">Live Platform</Badge>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription className="text-gray-300 text-center text-sm">
+                    Professional bulk SMS messaging platform with API integration and delivery analytics.
+                  </CardDescription>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-white/10 border-white/20 hover:bg-white/15 transition-all duration-300 backdrop-blur-sm">
+                <CardHeader className="text-center">
+                  <div className="bg-[#66cadb] bg-opacity-30 w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <CreditCard className="h-7 w-7 text-white" />
+                  </div>
+                  <CardTitle className="text-white text-lg">Afro Pay</CardTitle>
+                  <Badge className="bg-green-500 text-white text-xs animate-pulse">Live Platform</Badge>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription className="text-gray-300 text-center text-sm">
+                    Secure payment processing with mobile money integration (MTN, Airtel) and multi-currency support.
+                  </CardDescription>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-white/10 border-white/20 hover:bg-white/15 transition-all duration-300 backdrop-blur-sm">
+                <CardHeader className="text-center">
+                  <div className="bg-[#66cadb] bg-opacity-30 w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <Calendar className="h-7 w-7 text-white" />
+                  </div>
+                  <CardTitle className="text-white text-lg">Afro Event</CardTitle>
+                  <Badge className="bg-green-500 text-white text-xs animate-pulse">Live Platform</Badge>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription className="text-gray-300 text-center text-sm">
+                    Complete event management platform with ticketing, registration, and analytics capabilities.
+                  </CardDescription>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          <div className="text-center">
+            <div className="flex flex-wrap justify-center gap-4">
+              <Button 
+                size="lg" 
+                variant="outline" 
+                className="border-white text-white hover:bg-white hover:text-[#0c4864] px-8 py-3"
+              >
+                View All Services
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+              <Button 
+                size="lg"
+                className="bg-[#66cadb] hover:bg-[#3b8ea4] text-white px-8 py-3"
+              >
+                Explore Solutions
+                <ExternalLink className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </section>
