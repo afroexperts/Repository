@@ -1903,17 +1903,26 @@ const Dashboard = () => {
                       <h4 className="font-medium text-lg">Content</h4>
                       <div>
                         <label className="text-sm font-medium">Main Title</label>
-                        <Input defaultValue="Empowering Africa's Digital Future" className="mt-1" />
+                        <Input 
+                          value={settings.hero?.title || ""} 
+                          onChange={(e) => handleInputChange('hero', 'title', e.target.value)}
+                          className="mt-1" 
+                        />
                       </div>
                       <div>
                         <label className="text-sm font-medium">Subtitle</label>
-                        <Input defaultValue="Comprehensive IT Services & Starlink Internet Solutions for Modern Africa" className="mt-1" />
+                        <Input 
+                          value={settings.hero?.subtitle || ""}
+                          onChange={(e) => handleInputChange('hero', 'subtitle', e.target.value)}
+                          className="mt-1" 
+                        />
                       </div>
                       <div>
                         <label className="text-sm font-medium">Description</label>
                         <textarea 
                           className="w-full mt-1 p-3 border rounded-lg min-h-[100px]"
-                          defaultValue="From network infrastructure to satellite internet, we connect African businesses and communities to the global digital economy."
+                          value={settings.hero?.description || ""}
+                          onChange={(e) => handleInputChange('hero', 'description', e.target.value)}
                         />
                       </div>
                     </div>
