@@ -301,6 +301,99 @@ def create_order(order: OrderCreate, db: Session = Depends(get_db)):
         logger.error(f"Create order error: {e}")
         raise HTTPException(status_code=500, detail="Failed to create order")
 
+@app.get("/api/orders/{order_id}")
+def get_order(order_id: str, db: Session = Depends(get_db)):
+    """Get single order with details"""
+    try:
+        order = db.query(Order).filter(Order.id == order_id).first()
+        if not order:
+            raise HTTPException(status_code=404, detail="Order not found")
+        return order
+    except Exception as e:
+        logger.error(f"Get order error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve order")
+
+@app.put("/api/orders/{order_id}")
+def update_order(order_id: str, order_update: dict, db: Session = Depends(get_db)):
+    """Update order details"""
+    try:
+        order = db.query(Order).filter(Order.id == order_id).first()
+        if not order:
+            raise HTTPException(status_code=404, detail="Order not found")
+        
+        # Update allowed fields
+        if 'status' in order_update:
+            order.status = OrderStatus(order_update['status'])
+        if 'payment_method' in order_update:
+            order.payment_method = PaymentMethod(order_update['payment_method'])
+        if 'payment_status' in order_update:
+            order.payment_status = order_update['payment_status']
+        if 'notes' in order_update:
+            order.notes = order_update['notes']
+        
+        order.updated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(order)
+        
+        return order
+    except Exception as e:
+        logger.error(f"Update order error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update order")
+
+@app.delete("/api/orders/{order_id}")
+def delete_order(order_id: str, db: Session = Depends(get_db)):
+    """Delete an order"""
+    try:
+        order = db.query(Order).filter(Order.id == order_id).first()
+        if not order:
+            raise HTTPException(status_code=404, detail="Order not found")
+        
+        # Check if order can be deleted (not delivered)
+        if order.status == OrderStatus.delivered:
+            raise HTTPException(status_code=400, detail="Cannot delete delivered orders")
+        
+        # Delete order items first
+        db.query(OrderItem).filter(OrderItem.order_id == order_id).delete()
+        
+        # Delete the order
+        db.delete(order)
+        db.commit()
+        
+        return {"message": "Order deleted successfully"}
+    except Exception as e:
+        logger.error(f"Delete order error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete order")
+
+@app.get("/api/orders/status/{status}")
+def get_orders_by_status(status: str, db: Session = Depends(get_db)):
+    """Get orders by status"""
+    try:
+        orders = db.query(Order).filter(Order.status == OrderStatus(status)).all()
+        return orders
+    except Exception as e:
+        logger.error(f"Get orders by status error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve orders")
+
+@app.put("/api/orders/{order_id}/status")
+def update_order_status(order_id: str, status_update: dict, db: Session = Depends(get_db)):
+    """Update order status"""
+    try:
+        order = db.query(Order).filter(Order.id == order_id).first()
+        if not order:
+            raise HTTPException(status_code=404, detail="Order not found")
+        
+        new_status = OrderStatus(status_update['status'])
+        order.status = new_status
+        order.updated_at = datetime.utcnow()
+        
+        db.commit()
+        db.refresh(order)
+        
+        return {"message": f"Order status updated to {new_status.value}", "order": order}
+    except Exception as e:
+        logger.error(f"Update order status error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update order status")
+
 # ===============================
 # Settings Management Endpoints
 # ===============================
