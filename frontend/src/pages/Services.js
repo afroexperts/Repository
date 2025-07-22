@@ -11,7 +11,17 @@ import {
   Clock,
   Shield,
   Users,
-  Wrench
+  Wrench,
+  Code,
+  Wifi,
+  Mountain,
+  ShoppingCart,
+  Zap,
+  Video,
+  Palette,
+  Mic,
+  Globe,
+  Building
 } from "lucide-react";
 import { mockData } from "../mock";
 
