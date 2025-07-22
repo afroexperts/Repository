@@ -232,7 +232,7 @@ const Services = () => {
     },
     // Traditional IT Services
     {
-      id: 9,
+      id: 19,
       title: "Network Setup & Maintenance",
       description: "Professional network infrastructure design and implementation with ongoing support.",
       icon: Network,
@@ -246,7 +246,7 @@ const Services = () => {
       image: "https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=400&h=300&fit=crop"
     },
     {
-      id: 10,
+      id: 20,
       title: "CCTV & Access Control",
       description: "Comprehensive security solutions with advanced monitoring and access control systems.",
       icon: Camera,
@@ -260,7 +260,7 @@ const Services = () => {
       image: "https://images.unsplash.com/photo-1557804506-669a67965ba0?w=400&h=300&fit=crop"
     },
     {
-      id: 11,
+      id: 21,
       title: "Server Installation",
       description: "Enterprise-grade server deployment and configuration with professional setup.",
       icon: Server,
@@ -274,7 +274,7 @@ const Services = () => {
       image: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=400&h=300&fit=crop"
     },
     {
-      id: 12,
+      id: 22,
       title: "Technical Support",
       description: "Round-the-clock technical assistance and IT support for all your technology needs.",
       icon: Headphones,
