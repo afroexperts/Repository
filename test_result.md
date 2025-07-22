@@ -364,14 +364,11 @@ metadata:
 
 test_plan:
   current_focus:
-    - "MySQL Database Migration"
-    - "Settings API Testing"
-    - "MySQL Backend Integration"
-    - "Settings Module Enhancement - Form State Management"
-    - "Logo Management System"
+    - "Order Management API"
+    - "Order Management Frontend"
   stuck_tasks: []
   test_all: false
-  test_priority: "completed_migration"
+  test_priority: "order_management_completion"
 
 agent_communication:
     - agent: "main"
