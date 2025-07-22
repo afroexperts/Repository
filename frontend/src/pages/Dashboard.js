@@ -1503,7 +1503,10 @@ const Dashboard = () => {
                   <Download className="h-4 w-4 mr-2" />
                   Export Report
                 </Button>
-                <Button className="bg-[#0c4864]">
+                <Button 
+                  className="bg-[#0c4864]"
+                  onClick={() => setShowFinanceModal(true)}
+                >
                   <Plus className="h-4 w-4 mr-2" />
                   Add Transaction
                 </Button>
