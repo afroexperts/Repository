@@ -352,6 +352,132 @@ const Dashboard = () => {
     }
   };
 
+  const handleViewOrderDetails = async (orderId) => {
+    try {
+      const response = await axios.get(`${API}/orders/${orderId}`);
+      setSelectedOrder(response.data);
+      setShowOrderDetailsModal(true);
+    } catch (error) {
+      console.error('Error fetching order details:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load order details.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUpdateOrderStatus = async (orderId, newStatus) => {
+    try {
+      const response = await axios.put(`${API}/orders/${orderId}/status`, { status: newStatus });
+      
+      if (response.status === 200) {
+        // Refresh orders data
+        const ordersResponse = await axios.get(`${API}/orders`);
+        setDashboardData(prev => ({ ...prev, orders: ordersResponse.data }));
+        
+        toast({
+          title: "Success",
+          description: `Order status updated to ${newStatus}`,
+        });
+      }
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update order status.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteOrder = async (orderId) => {
+    if (!window.confirm('Are you sure you want to delete this order?')) {
+      return;
+    }
+    
+    try {
+      await axios.delete(`${API}/orders/${orderId}`);
+      
+      // Remove order from local state
+      setDashboardData(prev => ({
+        ...prev,
+        orders: prev.orders.filter(o => o.id !== orderId)
+      }));
+      
+      toast({
+        title: "Success",
+        description: "Order deleted successfully!",
+      });
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      toast({
+        title: "Error",
+        description: error.response?.data?.detail || "Failed to delete order. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEditOrder = (order) => {
+    setEditingItem(order);
+    setOrderForm({
+      client_id: order.client_id,
+      items: order.items || [],
+      payment_method: order.payment_method,
+      notes: order.notes || ''
+    });
+    setShowEditOrderModal(true);
+  };
+
+  const handleUpdateOrder = async (e) => {
+    e.preventDefault();
+    setFormLoading(true);
+    
+    try {
+      const updateData = {
+        payment_method: orderForm.payment_method,
+        notes: orderForm.notes
+      };
+      
+      const response = await axios.put(`${API}/orders/${editingItem.id}`, updateData);
+      
+      if (response.status === 200) {
+        // Refresh orders data
+        const ordersResponse = await axios.get(`${API}/orders`);
+        setDashboardData(prev => ({ ...prev, orders: ordersResponse.data }));
+        
+        // Reset form and close modal
+        setOrderForm({
+          client_id: '', items: [], payment_method: 'cash', notes: ''
+        });
+        setEditingItem(null);
+        setShowEditOrderModal(false);
+        
+        toast({
+          title: "Success",
+          description: "Order updated successfully!",
+        });
+      }
+    } catch (error) {
+      console.error('Error updating order:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update order. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const getFilteredOrders = () => {
+    if (orderStatusFilter === 'all') {
+      return dashboardData.orders;
+    }
+    return dashboardData.orders.filter(order => order.status === orderStatusFilter);
+  };
+
   const handleInventoryMovement = async (e) => {
     e.preventDefault();
     setFormLoading(true);
