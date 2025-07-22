@@ -50,6 +50,7 @@ const API = `${BACKEND_URL}/api`;
 
 const Dashboard = () => {
   const { user, logout, hasPermission } = useAuth();
+  const { settings, loading: settingsLoading, saving, saveSettings, updateSettings, uploadImage } = useSettings();
   const { toast } = useToast();
   const [activeModule, setActiveModule] = useState("dashboard");
   const [notifications, setNotifications] = useState(0);
