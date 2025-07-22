@@ -4,6 +4,8 @@ import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
+import { useTheme } from "../contexts/ThemeContext";
+import { useSettings } from "../contexts/SettingsContext";
 import { 
   Menu, 
   Phone, 
@@ -30,7 +32,9 @@ import {
   Recycle,
   Satellite,
   CreditCard,
-  Calendar
+  Calendar,
+  Sun,
+  Moon
 } from "lucide-react";
 import { mockData } from "../mock";
 
