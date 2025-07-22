@@ -9,11 +9,9 @@ import { useToast } from "../hooks/use-toast";
 import { useAuth } from "../contexts/AuthContext";
 import { Eye, EyeOff, Lock, Mail, Loader2, Shield, Users, BarChart3 } from "lucide-react";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
-
 const Login = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     email: "",
     password: ""
