@@ -65,7 +65,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('user_data');
     delete axios.defaults.headers.common['Authorization'];
-    window.location.href = '/login';
+    navigate('/login');
   };
 
   const hasRole = (requiredRoles) => {
