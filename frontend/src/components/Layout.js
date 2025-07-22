@@ -28,7 +28,9 @@ import {
   Mountain,
   Wrench,
   Recycle,
-  Satellite
+  Satellite,
+  CreditCard,
+  Calendar
 } from "lucide-react";
 import { mockData } from "../mock";
 
