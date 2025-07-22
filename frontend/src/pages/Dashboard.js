@@ -1461,7 +1461,10 @@ const Dashboard = () => {
                     <SelectItem value="completed">Completed</SelectItem>
                   </SelectContent>
                 </Select>
-                <Button className="bg-[#0c4864]">
+                <Button 
+                  className="bg-[#0c4864]"
+                  onClick={() => setShowServiceBookingModal(true)}
+                >
                   <Plus className="h-4 w-4 mr-2" />
                   New Booking
                 </Button>
