@@ -25,6 +25,7 @@ function App() {
             <Route path="/services" element={<Layout><Services /></Layout>} />
             <Route path="/solutions" element={<Layout><Solutions /></Layout>} />
             <Route path="/products" element={<Layout><Products /></Layout>} />
+            <Route path="/portfolio" element={<Layout><Portfolio /></Layout>} />
             <Route path="/contact" element={<Layout><Contact /></Layout>} />
             
             {/* Authentication Routes */}
