@@ -3189,20 +3189,20 @@ const Dashboard = () => {
                 <label className="block text-sm font-medium mb-1">Client Type</label>
                 <select
                   className="w-full p-2 border rounded-lg"
-                  value={clientForm.type}
-                  onChange={(e) => setClientForm(prev => ({ ...prev, type: e.target.value }))}
+                  value={clientForm.client_type}
+                  onChange={(e) => setClientForm(prev => ({ ...prev, client_type: e.target.value }))}
                 >
                   <option value="individual">Individual</option>
                   <option value="business">Business</option>
                 </select>
               </div>
-              {clientForm.type === 'business' && (
+              {clientForm.client_type === 'business' && (
                 <>
                   <div>
                     <label className="block text-sm font-medium mb-1">Company Name</label>
                     <Input
-                      value={clientForm.company_name}
-                      onChange={(e) => setClientForm(prev => ({ ...prev, company_name: e.target.value }))}
+                      value={clientForm.company}
+                      onChange={(e) => setClientForm(prev => ({ ...prev, company: e.target.value }))}
                       placeholder="Company name"
                     />
                   </div>
