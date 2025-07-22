@@ -192,10 +192,11 @@ class ClientCreate(BaseModel):
     name: str = Field(..., min_length=2, max_length=100)
     email: Optional[EmailStr] = None
     phone: Optional[str] = Field(None, max_length=20)
-    company: Optional[str] = Field(None, max_length=100)
+    company_name: Optional[str] = Field(None, max_length=100)
     address: Optional[str] = Field(None, max_length=200)
     client_type: str = Field(default="individual")  # individual, business
     credit_limit: float = Field(default=0, ge=0)
+    tax_number: Optional[str] = Field(None, max_length=50)
 
 class Client(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
