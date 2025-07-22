@@ -1222,7 +1222,10 @@ const Dashboard = () => {
                     <SelectItem value="delivered">Delivered</SelectItem>
                   </SelectContent>
                 </Select>
-                <Button className="bg-[#0c4864]">
+                <Button 
+                  className="bg-[#0c4864]"
+                  onClick={() => setShowAddOrderModal(true)}
+                >
                   <Plus className="h-4 w-4 mr-2" />
                   New Order
                 </Button>
