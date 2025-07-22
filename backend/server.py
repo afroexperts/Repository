@@ -84,7 +84,16 @@ def login(user_data: UserLogin, db: Session = Depends(get_db)):
         return LoginResponse(
             success=True,
             message="Login successful",
-            user=user,
+            user={
+                "id": user.id,
+                "full_name": user.full_name,
+                "email": user.email,
+                "role": user.role.value,
+                "status": user.status.value,
+                "phone": user.phone,
+                "department": user.department,
+                "last_login": user.last_login.isoformat() if user.last_login else None
+            },
             token=user.id
         )
         
