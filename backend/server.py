@@ -729,6 +729,8 @@ def create_inventory_movement(movement_data: InventoryMovementCreate, db: Sessio
         
         return db_movement
         
+    except HTTPException:
+        raise  # Re-raise HTTPExceptions to preserve status codes
     except Exception as e:
         logger.error(f"Create inventory movement error: {e}")
         raise HTTPException(status_code=500, detail="Failed to create inventory movement")
