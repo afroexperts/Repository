@@ -684,8 +684,8 @@ def get_inventory_summary(db: Session = Depends(get_db)):
 def create_inventory_movement(movement_data: InventoryMovementCreate, db: Session = Depends(get_db)):
     """Create inventory movement"""
     try:
-        # Default user_id for now
-        user_id = "357dbcec-a104-443f-8dec-9e8895417ead"
+        # Get user ID from token (simplified for demo)
+        user_id = "admin"  # Use a simple user ID that exists
         
         # Check if product exists
         product = db.query(Product).filter(Product.id == movement_data.product_id).first()
