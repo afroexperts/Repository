@@ -280,7 +280,7 @@ class MarbleDustTester:
         # Try to delete the batch (should succeed for non-shipped/sold batches)
         success, data, status_code = self.make_request("DELETE", f"/marble-dust/{batch_id}")
         
-        if success and status_code == 200:
+        if success and status_code == 200 and data.get("success"):
             message = data.get("message", "Batch deleted")
             self.log_test("Delete Marble Dust Batch Validation", True, f"Successfully deleted batch: {message}")
         else:
