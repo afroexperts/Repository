@@ -2748,7 +2748,7 @@ def generate_invoice_from_service(service_booking_id: str, db: Session = Depends
 def create_invoice(invoice_data: InvoiceCreate, db: Session = Depends(get_db)):
     """Create new invoice"""
     try:
-        user_id = "afea850b-dd9c-436b-96a0-e1f8b293e497"  # Demo admin user
+        user_id = "56846977-f345-439c-b019-3330f3d16b7e"  # Demo admin user
         
         # Generate invoice number
         invoice_count = db.query(Invoice).count()
