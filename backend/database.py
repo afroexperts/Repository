@@ -76,6 +76,32 @@ class TransactionType(enum.Enum):
     income = "income"
     expense = "expense"
 
+class InvoiceStatus(enum.Enum):
+    draft = "draft"
+    sent = "sent"
+    paid = "paid"
+    partially_paid = "partially_paid"
+    overdue = "overdue"
+    cancelled = "cancelled"
+
+class InvoiceType(enum.Enum):
+    manual = "manual"
+    pos_sale = "pos_sale"
+    service_booking = "service_booking"
+    rental = "rental"
+    logistics = "logistics"
+
+class PaymentStatus(enum.Enum):
+    pending = "pending"
+    completed = "completed"
+    failed = "failed"
+    refunded = "refunded"
+
+class Currency(enum.Enum):
+    rwf = "RWF"
+    usd = "USD"
+    eur = "EUR"
+
 # SQLAlchemy Models
 class User(Base):
     __tablename__ = "users"
