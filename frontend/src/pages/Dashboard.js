@@ -2121,14 +2121,27 @@ const Dashboard = () => {
                 <p className="text-gray-600">Track income, expenses, and financial performance</p>
               </div>
               <div className="flex space-x-2">
-                <Select>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="This Month" />
+                <Select value={financeTypeFilter} onValueChange={setFinanceTypeFilter}>
+                  <SelectTrigger className="w-[140px]">
+                    <SelectValue placeholder="Filter by type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="this-month">This Month</SelectItem>
-                    <SelectItem value="last-month">Last Month</SelectItem>
-                    <SelectItem value="this-year">This Year</SelectItem>
+                    <SelectItem value="all">All Types</SelectItem>
+                    <SelectItem value="income">Income</SelectItem>
+                    <SelectItem value="expense">Expense</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={financeCategoryFilter} onValueChange={setFinanceCategoryFilter}>
+                  <SelectTrigger className="w-[140px]">
+                    <SelectValue placeholder="Filter category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    {getUniqueCategories().map((category) => (
+                      <SelectItem key={category} value={category}>
+                        {category.charAt(0).toUpperCase() + category.slice(1)}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <Button variant="outline">
@@ -2152,7 +2165,9 @@ const Dashboard = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-600">Total Income</p>
-                      <p className="text-2xl font-bold text-green-600">RWF 2,450,000</p>
+                      <p className="text-2xl font-bold text-green-600">
+                        RWF {dashboardData.financialSummary.total_income?.toLocaleString() || '0'}
+                      </p>
                     </div>
                     <TrendingUp className="h-8 w-8 text-green-600" />
                   </div>
@@ -2164,7 +2179,9 @@ const Dashboard = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-600">Total Expenses</p>
-                      <p className="text-2xl font-bold text-red-600">RWF 890,000</p>
+                      <p className="text-2xl font-bold text-red-600">
+                        RWF {dashboardData.financialSummary.total_expense?.toLocaleString() || '0'}
+                      </p>
                     </div>
                     <TrendingDown className="h-8 w-8 text-red-600" />
                   </div>
@@ -2176,9 +2193,13 @@ const Dashboard = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-600">Net Profit</p>
-                      <p className="text-2xl font-bold text-blue-600">RWF 1,560,000</p>
+                      <p className={`text-2xl font-bold ${
+                        (dashboardData.financialSummary.net_profit || 0) >= 0 ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        RWF {dashboardData.financialSummary.net_profit?.toLocaleString() || '0'}
+                      </p>
                     </div>
-                    <DollarSign className="h-8 w-8 text-blue-600" />
+                    <DollarSign className="h-8 w-8 text-purple-600" />
                   </div>
                 </CardContent>
               </Card>
@@ -2187,63 +2208,129 @@ const Dashboard = () => {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-gray-600">Cash on Hand</p>
-                      <p className="text-2xl font-bold text-purple-600">RWF 750,000</p>
+                      <p className="text-sm text-gray-600">Monthly Income</p>
+                      <p className="text-2xl font-bold text-blue-600">
+                        RWF {dashboardData.financialSummary.monthly_income?.toLocaleString() || '0'}
+                      </p>
                     </div>
-                    <CreditCard className="h-8 w-8 text-purple-600" />
+                    <BarChart3 className="h-8 w-8 text-blue-600" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Transaction Statistics */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Total Transactions</p>
+                      <p className="text-2xl font-bold">{dashboardData.financialSummary.total_transactions || 0}</p>
+                    </div>
+                    <FileText className="h-8 w-8 text-gray-600" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Income Transactions</p>
+                      <p className="text-2xl font-bold text-green-600">{dashboardData.financialSummary.income_count || 0}</p>
+                    </div>
+                    <TrendingUp className="h-8 w-8 text-green-600" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Expense Transactions</p>
+                      <p className="text-2xl font-bold text-red-600">{dashboardData.financialSummary.expense_count || 0}</p>
+                    </div>
+                    <TrendingDown className="h-8 w-8 text-red-600" />
                   </div>
                 </CardContent>
               </Card>
             </div>
 
             {/* Recent Transactions */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-green-600">Recent Income</CardTitle>
-                </CardHeader>
-                <CardContent>
+            <Card>
+              <CardHeader>
+                <CardTitle>
+                  Transactions ({financeTypeFilter === 'all' ? 'All' : financeTypeFilter.charAt(0).toUpperCase() + financeTypeFilter.slice(1)})
+                </CardTitle>
+                <CardDescription>
+                  {financeTypeFilter === 'all' 
+                    ? 'All financial transactions' 
+                    : `${financeTypeFilter.charAt(0).toUpperCase() + financeTypeFilter.slice(1)} transactions`}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {getFilteredTransactions().length > 0 ? (
                   <div className="space-y-4">
-                    {[
-                      { description: "Starlink Installation - ABC Ltd", amount: 2500000, date: "2025-01-22" },
-                      { description: "Network Setup - Tech Solutions", amount: 850000, date: "2025-01-21" },
-                      { description: "POS System Sale", amount: 399000, date: "2025-01-20" }
-                    ].map((transaction, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                        <div>
-                          <p className="font-medium text-sm">{transaction.description}</p>
-                          <p className="text-xs text-gray-500">{transaction.date}</p>
+                    {getFilteredTransactions().map((transaction) => (
+                      <div key={transaction.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+                        <div className="space-y-1">
+                          <div className="flex items-center space-x-2">
+                            <h4 className="font-medium">{transaction.description}</h4>
+                            <Badge 
+                              variant={transaction.transaction_type === 'income' ? 'default' : 'destructive'}
+                            >
+                              {transaction.transaction_type}
+                            </Badge>
+                            <Badge variant="outline">
+                              {transaction.category}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-gray-600">{transaction.transaction_number}</p>
+                          <p className="text-xs text-gray-500">{new Date(transaction.created_at).toLocaleDateString()}</p>
                         </div>
-                        <p className="font-semibold text-green-600">+RWF {transaction.amount.toLocaleString()}</p>
+                        <div className="text-right space-y-2">
+                          <p className={`font-semibold text-lg ${
+                            transaction.transaction_type === 'income' ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                            {transaction.transaction_type === 'income' ? '+' : '-'}RWF {transaction.amount.toLocaleString()}
+                          </p>
+                          <div className="flex space-x-2">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => handleViewTransactionDetails(transaction)}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => handleEditTransaction(transaction)}
+                            >
+                              Edit
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="destructive"
+                              onClick={() => handleDeleteTransaction(transaction.id)}
+                            >
+                              Delete
+                            </Button>
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-red-600">Recent Expenses</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {[
-                      { description: "Office Supplies", amount: 150000, date: "2025-01-22" },
-                      { description: "Equipment Maintenance", amount: 200000, date: "2025-01-21" },
-                      { description: "Transportation", amount: 75000, date: "2025-01-20" }
-                    ].map((transaction, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                        <div>
-                          <p className="font-medium text-sm">{transaction.description}</p>
-                          <p className="text-xs text-gray-500">{transaction.date}</p>
-                        </div>
-                        <p className="font-semibold text-red-600">-RWF {transaction.amount.toLocaleString()}</p>
-                      </div>
-                    ))}
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>No transactions found for the selected filter</p>
                   </div>
-                </CardContent>
-              </Card>
-            </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         );
 
