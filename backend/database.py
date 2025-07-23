@@ -630,6 +630,38 @@ class MarbleDustBatch(Base):
     # Relationships
     created_by_user = relationship("User")
 
+class StarlinkInstallation(Base):
+    __tablename__ = "starlink_installations"
+    
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    customer_name = Column(String(100), nullable=False)
+    customer_phone = Column(String(20), nullable=False)
+    customer_email = Column(String(100), nullable=True)
+    installation_address = Column(String(300), nullable=False)
+    kit_type = Column(String(20), nullable=False)  # Store enum value as string
+    kit_serial_number = Column(String(50), nullable=True)
+    installation_date = Column(DateTime, nullable=False)
+    technician_id = Column(String(36), nullable=True)
+    technician_name = Column(String(100), nullable=False)
+    installation_fee = Column(Float, nullable=False)
+    monthly_fee = Column(Float, nullable=False)
+    equipment_cost = Column(Float, nullable=False)
+    total_cost = Column(Float, nullable=False)
+    installation_status = Column(String(20), nullable=False, default="scheduled")  # Store enum value as string
+    service_status = Column(String(20), nullable=False, default="pending_activation")  # Store enum value as string
+    coordinates = Column(JSON, nullable=False, default=dict)  # Store as JSON object
+    notes = Column(Text, nullable=True)
+    completion_notes = Column(String(500), nullable=True)
+    
+    # Audit fields
+    created_by = Column(String(36), ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    completed_at = Column(DateTime, nullable=True)
+    
+    # Relationships
+    created_by_user = relationship("User")
+
 # Dependency to get database session
 def get_db():
     db = SessionLocal()
