@@ -185,7 +185,8 @@ class Order(Base):
     
     # Relationships
     client = relationship("Client", back_populates="orders")
-    items = relationship("OrderItem", back_populates="order")
+    items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
+    invoices = relationship("Invoice", back_populates="order")
 
 class OrderItem(Base):
     __tablename__ = "order_items"
