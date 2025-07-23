@@ -5342,6 +5342,88 @@ const Dashboard = () => {
                   </div>
                 </>
               )}
+              
+              {/* Website Showcase Section */}
+              <div className="border-t pt-4">
+                <h4 className="text-sm font-medium mb-3 text-gray-700">Website Showcase</h4>
+                
+                <div>
+                  <label className="block text-sm font-medium mb-1">Company Logo</label>
+                  <div className="space-y-2">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = (e) => {
+                            setClientForm(prev => ({ ...prev, logo: e.target.result }));
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="text-sm"
+                    />
+                    {clientForm.logo && (
+                      <div className="flex items-center space-x-2">
+                        <img
+                          src={clientForm.logo}
+                          alt="Preview"
+                          className="h-12 w-12 object-contain border rounded"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setClientForm(prev => ({ ...prev, logo: '' }))}
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium mb-1">Website URL</label>
+                  <Input
+                    type="url"
+                    value={clientForm.website_url}
+                    onChange={(e) => setClientForm(prev => ({ ...prev, website_url: e.target.value }))}
+                    placeholder="https://example.com"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium mb-1">Display Order</label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={clientForm.display_order}
+                    onChange={(e) => setClientForm(prev => ({ ...prev, display_order: parseInt(e.target.value) || 0 }))}
+                    placeholder="0"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Lower numbers appear first</p>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="showcase_on_website"
+                    checked={clientForm.showcase_on_website}
+                    onChange={(e) => setClientForm(prev => ({ ...prev, showcase_on_website: e.target.checked }))}
+                    className="rounded"
+                  />
+                  <label htmlFor="showcase_on_website" className="text-sm font-medium">
+                    Feature on website homepage
+                  </label>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Enable to show this client's logo on the public website
+                </p>
+              </div>
+              
               <div className="flex justify-end space-x-2 pt-4">
                 <Button
                   type="button"
