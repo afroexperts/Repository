@@ -33,7 +33,9 @@ from database import (
     PortfolioItem, PortfolioCategory, PortfolioStatus,
     SecondHandItem, SecondHandCategory, SecondHandCondition,
     MarbleDustBatch, MarbleDustQuality, MarbleDustStatus,
-    StarlinkInstallation, StarlinkKitType, StarlinkInstallationStatus, StarlinkServiceStatus
+    StarlinkInstallation, StarlinkKitType, StarlinkInstallationStatus, StarlinkServiceStatus,
+    Permission, Language, RolePermission, UserPermission, Translation, UserPreference,
+    RecurringInvoice, RecurringInvoiceItem, RecurringInvoiceFrequency
 )
 
 # Import Pydantic models for validation (keeping the existing ones)
