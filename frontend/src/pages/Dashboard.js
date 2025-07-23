@@ -4422,7 +4422,7 @@ const Dashboard = () => {
                 <X className="h-4 w-4" />
               </Button>
             </div>
-            <form onSubmit={handleAddFinanceTransaction} className="space-y-4">
+            <form onSubmit={handleFinanceTransaction} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Transaction Type *</label>
                 <select
