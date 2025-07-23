@@ -3278,12 +3278,11 @@ def get_portfolio_by_status(status: str, db: Session = Depends(get_db)):
     """Get portfolio items by status"""
     try:
         # Validate status
-        try:
-            status_enum = PortfolioStatus(status)
-        except ValueError:
+        valid_statuses = [status.value for status in PortfolioStatus]
+        if status not in valid_statuses:
             raise HTTPException(status_code=400, detail="Invalid portfolio status")
         
-        items = db.query(PortfolioItem).filter(PortfolioItem.status == status_enum).order_by(PortfolioItem.created_at.desc()).all()
+        items = db.query(PortfolioItem).filter(PortfolioItem.status == status).order_by(PortfolioItem.created_at.desc()).all()
         
         # Format response
         formatted_items = []
