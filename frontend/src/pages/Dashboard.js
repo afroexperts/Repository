@@ -430,6 +430,30 @@ const Dashboard = () => {
     }
   };
 
+  const toggleClientShowcase = async (clientId) => {
+    try {
+      const response = await axios.post(`${API}/clients/${clientId}/toggle-showcase`);
+      
+      if (response.data.success) {
+        // Refresh clients data to show updated showcase status
+        const clientsResponse = await axios.get(`${API}/clients`);
+        setDashboardData(prev => ({ ...prev, clients: clientsResponse.data }));
+        
+        toast({
+          title: "Success",
+          description: response.data.message,
+        });
+      }
+    } catch (error) {
+      console.error('Error toggling client showcase:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update client showcase status. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleAddOrder = async (e) => {
     e.preventDefault();
     setFormLoading(true);
