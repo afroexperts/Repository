@@ -334,18 +334,23 @@ class MarbleDustTester:
         for quality in quality_grades:
             success, data, status_code = self.make_request("GET", f"/marble-dust/quality/{quality}")
             
-            if success and status_code == 200 and isinstance(data, list):
-                count = len(data)
-                if count > 0:
-                    # Verify all batches have the correct quality grade
-                    correct_quality = all(batch.get("quality_grade") == quality for batch in data)
-                    if correct_quality:
-                        successful_grades.append(f"{quality}({count})")
+            if success and status_code == 200:
+                if "batches" in data and isinstance(data["batches"], list):
+                    batches = data["batches"]
+                    count = len(batches)
+                    if count > 0:
+                        # Verify all batches have the correct quality grade
+                        correct_quality = all(batch.get("quality_grade") == quality for batch in batches)
+                        if correct_quality:
+                            successful_grades.append(f"{quality}({count})")
+                        else:
+                            self.log_test("Filter Batches by Quality", False, f"Retrieved batches contain wrong quality grades for {quality}")
+                            return
                     else:
-                        self.log_test("Filter Batches by Quality", False, f"Retrieved batches contain wrong quality grades for {quality}")
-                        return
+                        successful_grades.append(f"{quality}(0)")
                 else:
-                    successful_grades.append(f"{quality}(0)")
+                    self.log_test("Filter Batches by Quality", False, f"Invalid response format for {quality}")
+                    return
         
         if len(successful_grades) == len(quality_grades):
             self.log_test("Filter Batches by Quality", True, f"Successfully filtered batches by quality: {successful_grades}")
