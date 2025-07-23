@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr, Field, validator
-from typing import List, Optional
-from datetime import datetime
+from typing import List, Optional, Dict
+from datetime import datetime, date
 from enum import Enum
 import uuid
 import hashlib
