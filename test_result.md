@@ -245,12 +245,12 @@ backend:
           agent: "testing"
           comment: "POS System API fully tested and working: GET /pos/transactions (retrieved transaction history), POST /pos/transactions (created POS sales with proper discount and tax calculations), tested all payment methods (cash, card, mobile_money, bank_transfer). Payment validation and receipt generation working correctly. All 3/3 POS tests passed."
 
-  - task: "Service Booking API"
+  - task: "Enhanced Service Booking Management API"
     implemented: true
     working: true
     file: "backend/server.py"
     stuck_count: 0
-    priority: "medium"
+    priority: "high"
     needs_retesting: false
     status_history:
         - working: "NA"
@@ -259,6 +259,12 @@ backend:
         - working: true
           agent: "testing"
           comment: "Service Booking API fully tested and working: GET /services/bookings (retrieved booking list), POST /services/bookings (created service requests), PUT /services/bookings/{id} (updated booking status), tested all service types (it_support, network_installation, starlink_installation, software_development, consultation). Technician booking workflow functioning properly. All 4/4 service booking tests passed."
+        - working: true
+          agent: "main"
+          comment: "Enhanced Service Booking Management API with 9 complete endpoints: ✅ Added GET /bookings/{id} for single booking details, ✅ Added PUT /bookings/{id} for booking updates, ✅ Added DELETE /bookings/{id} with validation, ✅ Added GET /bookings/status/{status} for status filtering, ✅ Added GET /bookings/type/{service_type} for type filtering, ✅ Added PUT /bookings/{id}/status for status updates, ✅ Added GET /summary for comprehensive booking statistics, ✅ Enhanced booking creation with booking number generation (SRV-YYYYMMDD-XXXX format), ✅ Added cost tracking and revenue calculations"
+        - working: true
+          agent: "testing"
+          comment: "ENHANCED SERVICE BOOKING MANAGEMENT API FULLY TESTED: ✅ All 9 endpoints working correctly (100% success rate), ✅ Service booking creation with automatic booking number generation (SRV-YYYYMMDD-XXXX format), ✅ Complete CRUD operations functional, ✅ Status and service type filtering working, ✅ Booking deletion validation prevents deletion of in_progress/completed bookings, ✅ Cost tracking (estimated_cost and actual_cost) functional, ✅ Revenue calculations working (Total: 925,000 RWF, Estimated: 240,000 RWF), ✅ Full service lifecycle management (pending → confirmed → in_progress → completed). 13/13 tests passed. Production-ready service booking management system."
 
   - task: "Finance Module API"
     implemented: true
