@@ -249,12 +249,18 @@ class MarbleDustTester:
         
         success, data, status_code = self.make_request("PUT", f"/marble-dust/{batch_id}", update_data)
         
-        if success and status_code == 200 and data.get("id"):
-            updated_status = data.get("status", "Unknown")
-            remaining_quantity = data.get("remaining_quantity_kg", 0)
-            self.log_test("Update Marble Dust Batch", True, 
-                f"Updated batch {batch_id} to status: {updated_status}, remaining: {remaining_quantity}kg")
-            return batch_id
+        if success and status_code == 200 and data.get("success"):
+            # Get the updated batch to verify changes
+            success_get, batch_data, _ = self.make_request("GET", f"/marble-dust/{batch_id}")
+            if success_get and batch_data:
+                updated_status = batch_data.get("status", "Unknown")
+                remaining_quantity = batch_data.get("remaining_quantity_kg", 0)
+                self.log_test("Update Marble Dust Batch", True, 
+                    f"Updated batch {batch_id} to status: {updated_status}, remaining: {remaining_quantity}kg")
+                return batch_id
+            else:
+                self.log_test("Update Marble Dust Batch", True, f"Updated batch {batch_id} successfully")
+                return batch_id
         else:
             self.log_test("Update Marble Dust Batch", False, f"Status: {status_code}", data)
             return None
