@@ -3313,6 +3313,197 @@ class BackendTester:
         
         print("=" * 80)
 
+    # FOCUSED INVOICE MODULE TESTING FOR CURRENT IMPLEMENTATION STATE
+    def test_invoice_crud_missing_endpoints(self):
+        """Test the missing CRUD endpoints that should return 405 Method Not Allowed"""
+        if not self.token:
+            self.log_test("Test Missing Invoice CRUD Endpoints", False, "No token available - login failed")
+            return
+            
+        missing_endpoints = [
+            ("POST", "/invoices", "Create Invoice"),
+            ("PUT", "/invoices/test-id", "Update Invoice"), 
+            ("DELETE", "/invoices/test-id", "Delete Invoice"),
+            ("POST", "/invoices/test-id/payments", "Add Invoice Payment")
+        ]
+        
+        missing_count = 0
+        working_count = 0
+        
+        for method, endpoint, description in missing_endpoints:
+            test_data = {"test": "data"} if method in ["POST", "PUT"] else None
+            success, data, status_code = self.make_request(method, endpoint, test_data)
+            
+            if status_code == 405:
+                missing_count += 1
+                self.log_test(f"{description} (Expected Missing)", True, f"405 Method Not Allowed - Endpoint not implemented")
+            elif success and status_code < 400:
+                working_count += 1
+                self.log_test(f"{description} (Unexpected Working)", True, f"Endpoint is actually implemented and working")
+            else:
+                self.log_test(f"{description} (Other Error)", False, f"Status: {status_code} - {data}")
+        
+        # Summary of missing vs working endpoints
+        total_endpoints = len(missing_endpoints)
+        if missing_count == total_endpoints:
+            self.log_test("Invoice CRUD Implementation Status", False, f"All {total_endpoints} core CRUD endpoints are missing (405 errors)")
+        elif working_count == total_endpoints:
+            self.log_test("Invoice CRUD Implementation Status", True, f"All {total_endpoints} core CRUD endpoints are implemented and working")
+        else:
+            self.log_test("Invoice CRUD Implementation Status", False, f"Mixed implementation: {working_count} working, {missing_count} missing out of {total_endpoints}")
+
+    def test_existing_invoice_endpoints(self):
+        """Test the invoice endpoints that should be working based on backend code analysis"""
+        if not self.token:
+            self.log_test("Test Existing Invoice Endpoints", False, "No token available - login failed")
+            return
+            
+        existing_endpoints = [
+            ("GET", "/invoices", "List Invoices"),
+            ("GET", "/invoices/summary", "Invoice Summary"),
+            ("GET", "/invoices/overdue", "Overdue Invoices"),
+            ("GET", "/invoices/test-id", "Get Single Invoice"),
+            ("GET", "/invoices/test-id/payments", "Get Invoice Payments"),
+            ("GET", "/invoices/test-id/logs", "Get Invoice Logs"),
+            ("POST", "/invoices/generate-from-order/test-id", "Generate from Order"),
+            ("POST", "/invoices/generate-from-service/test-id", "Generate from Service")
+        ]
+        
+        working_count = 0
+        failing_count = 0
+        
+        for method, endpoint, description in existing_endpoints:
+            success, data, status_code = self.make_request(method, endpoint)
+            
+            if success and status_code == 200:
+                working_count += 1
+                if isinstance(data, list):
+                    self.log_test(description, True, f"Retrieved {len(data)} items")
+                elif isinstance(data, dict):
+                    self.log_test(description, True, f"Retrieved data with {len(data)} fields")
+                else:
+                    self.log_test(description, True, "Endpoint responding correctly")
+            elif status_code == 404 and "test-id" in endpoint:
+                # Expected for test IDs
+                working_count += 1
+                self.log_test(description, True, f"404 Not Found (expected for test ID)")
+            elif status_code == 405:
+                failing_count += 1
+                self.log_test(description, False, f"405 Method Not Allowed - Endpoint not implemented")
+            else:
+                failing_count += 1
+                self.log_test(description, False, f"Status: {status_code} - {data}")
+        
+        # Summary of existing endpoint status
+        total_endpoints = len(existing_endpoints)
+        success_rate = (working_count / total_endpoints) * 100
+        self.log_test("Existing Invoice Endpoints Status", working_count == total_endpoints, 
+                     f"{working_count}/{total_endpoints} endpoints working ({success_rate:.1f}% success rate)")
+
+    def run_focused_invoice_testing(self):
+        """Run focused testing on invoice module to identify current implementation state"""
+        print("\n" + "="*70)
+        print("🎯 FOCUSED INVOICE MODULE TESTING - CURRENT IMPLEMENTATION STATE")
+        print("="*70)
+        print("Testing to identify which endpoints are missing vs. working...")
+        print()
+        
+        # Test authentication first
+        self.test_authentication_login()
+        
+        if not self.token:
+            print("❌ Cannot proceed with invoice testing - authentication failed")
+            return
+        
+        # Test the endpoints that should be missing (returning 405)
+        print("\n📋 Testing Core CRUD Endpoints (Expected to be Missing):")
+        print("-" * 50)
+        self.test_invoice_crud_missing_endpoints()
+        
+        # Test the endpoints that should be working
+        print("\n📋 Testing Existing Endpoints (Should be Working):")
+        print("-" * 50)
+        self.test_existing_invoice_endpoints()
+        
+        # Print focused summary
+        self.print_focused_invoice_summary()
+
+    def print_focused_invoice_summary(self):
+        """Print focused summary for invoice testing"""
+        print("\n" + "="*70)
+        print("🎯 INVOICE MODULE TESTING SUMMARY")
+        print("="*70)
+        
+        # Filter invoice-related tests
+        invoice_tests = [r for r in self.test_results if "invoice" in r["test"].lower() or "Invoice" in r["test"]]
+        
+        if not invoice_tests:
+            print("❌ No invoice tests were executed")
+            return
+        
+        total_tests = len(invoice_tests)
+        passed_tests = sum(1 for result in invoice_tests if result["success"])
+        failed_tests = total_tests - passed_tests
+        
+        print(f"📊 Invoice Tests: {total_tests} total, {passed_tests} passed, {failed_tests} failed")
+        print(f"📈 Success Rate: {(passed_tests/total_tests)*100:.1f}%")
+        print()
+        
+        # Categorize results
+        missing_endpoints = []
+        working_endpoints = []
+        error_endpoints = []
+        
+        for result in invoice_tests:
+            if "405 Method Not Allowed" in result["details"]:
+                missing_endpoints.append(result["test"])
+            elif result["success"]:
+                working_endpoints.append(result["test"])
+            else:
+                error_endpoints.append(result["test"])
+        
+        print("🚨 MISSING ENDPOINTS (405 Method Not Allowed):")
+        if missing_endpoints:
+            for endpoint in missing_endpoints:
+                print(f"   ❌ {endpoint}")
+        else:
+            print("   ✅ No missing endpoints detected")
+        print()
+        
+        print("✅ WORKING ENDPOINTS:")
+        if working_endpoints:
+            for endpoint in working_endpoints:
+                print(f"   ✅ {endpoint}")
+        else:
+            print("   ❌ No working endpoints detected")
+        print()
+        
+        if error_endpoints:
+            print("⚠️  ENDPOINTS WITH OTHER ERRORS:")
+            for endpoint in error_endpoints:
+                print(f"   ⚠️  {endpoint}")
+            print()
+        
+        # Key findings
+        print("🔍 KEY FINDINGS:")
+        print("-" * 30)
+        
+        if len(missing_endpoints) >= 4:
+            print("🚨 CRITICAL: Core CRUD operations are missing from backend implementation")
+            print("   - POST /api/invoices (create invoice)")
+            print("   - PUT /api/invoices/{id} (update invoice)")  
+            print("   - DELETE /api/invoices/{id} (delete invoice)")
+            print("   - POST /api/invoices/{id}/payments (add payment)")
+        
+        if len(working_endpoints) > 0:
+            print(f"✅ {len(working_endpoints)} invoice endpoints are working correctly")
+        
+        working_percentage = (len(working_endpoints) / 13) * 100  # 13 total expected endpoints
+        print(f"📊 Overall Invoice Module Completion: {working_percentage:.1f}%")
+        
+        print("="*70)
+
 if __name__ == "__main__":
     tester = BackendTester()
-    tester.run_all_tests()
+    # Focus on invoice testing as requested
+    tester.run_focused_invoice_testing()
