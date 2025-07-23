@@ -2666,7 +2666,7 @@ def generate_invoice_from_order(order_id: str, db: Session = Depends(get_db)):
 def generate_invoice_from_service(service_booking_id: str, db: Session = Depends(get_db)):
     """Generate invoice from service booking"""
     try:
-        user_id = "afea850b-dd9c-436b-96a0-e1f8b293e497"
+        user_id = "56846977-f345-439c-b019-3330f3d16b7e"
         
         # Get service booking
         service_booking = db.query(ServiceBooking).filter(ServiceBooking.id == service_booking_id).first()
