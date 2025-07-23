@@ -140,7 +140,7 @@ const Dashboard = () => {
   
   const [financeForm, setFinanceForm] = useState({
     transaction_type: 'income',
-    category: '',
+    category: 'sales',
     description: '',
     amount: '',
     reference_id: ''
