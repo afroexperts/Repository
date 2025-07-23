@@ -305,6 +305,181 @@ class ContactSubmission(Base):
     status = Column(Enum(ContactStatus), default=ContactStatus.new)
     created_at = Column(DateTime, default=datetime.utcnow)
 
+# Invoice Models
+class Invoice(Base):
+    __tablename__ = "invoices"
+    
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    invoice_number = Column(String(20), unique=True, nullable=False)
+    invoice_type = Column(Enum(InvoiceType), nullable=False, default=InvoiceType.manual)
+    client_id = Column(String(36), ForeignKey("clients.id"), nullable=True)
+    client_name = Column(String(255), nullable=False)
+    client_email = Column(String(255), nullable=True)
+    client_phone = Column(String(20), nullable=True)
+    client_address = Column(Text, nullable=True)
+    
+    issue_date = Column(DateTime, nullable=False, default=datetime.utcnow)
+    due_date = Column(DateTime, nullable=False)
+    
+    subtotal = Column(Float, nullable=False, default=0.0)
+    tax_rate = Column(Float, nullable=False, default=0.18)  # 18% VAT
+    tax_amount = Column(Float, nullable=False, default=0.0)
+    discount_amount = Column(Float, nullable=False, default=0.0)
+    total_amount = Column(Float, nullable=False, default=0.0)
+    
+    currency = Column(Enum(Currency), nullable=False, default=Currency.rwf)
+    status = Column(Enum(InvoiceStatus), nullable=False, default=InvoiceStatus.draft)
+    
+    notes = Column(Text, nullable=True)
+    terms = Column(Text, nullable=True)
+    
+    # Related record IDs for auto-generated invoices
+    order_id = Column(String(36), ForeignKey("orders.id"), nullable=True)
+    service_booking_id = Column(String(36), ForeignKey("service_bookings.id"), nullable=True)
+    
+    # Recurring invoice settings
+    is_recurring = Column(Boolean, default=False)
+    recurring_frequency = Column(String(20), nullable=True)  # weekly, monthly, quarterly, yearly
+    next_invoice_date = Column(DateTime, nullable=True)
+    
+    # Payment tracking
+    paid_amount = Column(Float, nullable=False, default=0.0)
+    balance_due = Column(Float, nullable=False, default=0.0)
+    
+    # Audit trail
+    created_by = Column(String(36), ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Email/SMS tracking
+    email_sent = Column(Boolean, default=False)
+    email_sent_at = Column(DateTime, nullable=True)
+    sms_sent = Column(Boolean, default=False)
+    sms_sent_at = Column(DateTime, nullable=True)
+    reminder_count = Column(Integer, default=0)
+    last_reminder_sent = Column(DateTime, nullable=True)
+    
+    # Relationships
+    client = relationship("Client", back_populates="invoices")
+    order = relationship("Order", back_populates="invoices")
+    service_booking = relationship("ServiceBooking", back_populates="invoices")
+    created_by_user = relationship("User")
+    items = relationship("InvoiceItem", back_populates="invoice", cascade="all, delete-orphan")
+    payments = relationship("InvoicePayment", back_populates="invoice", cascade="all, delete-orphan")
+    logs = relationship("InvoiceLog", back_populates="invoice", cascade="all, delete-orphan")
+
+class InvoiceItem(Base):
+    __tablename__ = "invoice_items"
+    
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    invoice_id = Column(String(36), ForeignKey("invoices.id"), nullable=False)
+    
+    item_type = Column(String(20), nullable=False)  # product, service, discount
+    product_id = Column(String(36), ForeignKey("products.id"), nullable=True)
+    
+    description = Column(String(500), nullable=False)
+    quantity = Column(Float, nullable=False, default=1.0)
+    unit_price = Column(Float, nullable=False, default=0.0)
+    line_total = Column(Float, nullable=False, default=0.0)
+    
+    # For weight-based items like marble dust
+    weight = Column(Float, nullable=True)
+    weight_unit = Column(String(10), nullable=True)  # kg, ton
+    
+    # For time-based services
+    hours = Column(Float, nullable=True)
+    hourly_rate = Column(Float, nullable=True)
+    
+    # Discount details
+    discount_percentage = Column(Float, nullable=True)
+    discount_amount = Column(Float, nullable=True)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    invoice = relationship("Invoice", back_populates="items")
+    product = relationship("Product")
+
+class InvoicePayment(Base):
+    __tablename__ = "invoice_payments"
+    
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    invoice_id = Column(String(36), ForeignKey("invoices.id"), nullable=False)
+    
+    payment_method = Column(Enum(PaymentMethod), nullable=False)
+    amount = Column(Float, nullable=False)
+    payment_date = Column(DateTime, nullable=False, default=datetime.utcnow)
+    
+    payment_status = Column(Enum(PaymentStatus), nullable=False, default=PaymentStatus.pending)
+    
+    # Payment details
+    reference_number = Column(String(100), nullable=True)
+    transaction_id = Column(String(100), nullable=True)
+    
+    # AfroPayi integration
+    afropay_transaction_id = Column(String(100), nullable=True)
+    afropay_status = Column(String(20), nullable=True)
+    
+    notes = Column(Text, nullable=True)
+    
+    # Audit trail
+    created_by = Column(String(36), ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    invoice = relationship("Invoice", back_populates="payments")
+    created_by_user = relationship("User")
+
+class InvoiceLog(Base):
+    __tablename__ = "invoice_logs"
+    
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    invoice_id = Column(String(36), ForeignKey("invoices.id"), nullable=False)
+    
+    action = Column(String(50), nullable=False)  # created, updated, sent, paid, cancelled
+    description = Column(String(500), nullable=True)
+    
+    # User who performed the action
+    performed_by = Column(String(36), ForeignKey("users.id"), nullable=False)
+    performed_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Additional data (JSON format)
+    metadata = Column(JSON, nullable=True)
+    
+    # Relationships
+    invoice = relationship("Invoice", back_populates="logs")
+    performed_by_user = relationship("User")
+
+class InvoiceTemplate(Base):
+    __tablename__ = "invoice_templates"
+    
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    name = Column(String(100), nullable=False)
+    
+    # Company branding
+    logo_url = Column(String(500), nullable=True)
+    company_name = Column(String(200), nullable=False)
+    company_address = Column(Text, nullable=True)
+    company_phone = Column(String(20), nullable=True)
+    company_email = Column(String(255), nullable=True)
+    
+    # Template styling
+    primary_color = Column(String(7), nullable=False, default="#0c4864")
+    secondary_color = Column(String(7), nullable=False, default="#ffffff")
+    font_family = Column(String(50), nullable=False, default="Helvetica")
+    
+    # Footer and terms
+    footer_text = Column(Text, nullable=True)
+    default_terms = Column(Text, nullable=True)
+    
+    # Settings
+    is_default = Column(Boolean, default=False)
+    is_active = Column(Boolean, default=True)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
 # Dependency to get database session
 def get_db():
     db = SessionLocal()
