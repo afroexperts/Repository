@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, String, DateTime, Boolean, Float, Integer, Text, Enum, ForeignKey, JSON
+from sqlalchemy import create_engine, Column, String, DateTime, Boolean, Float, Integer, Text, Enum, ForeignKey, JSON, UniqueConstraint, Date
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session, relationship
 from sqlalchemy.dialects.mysql import CHAR
