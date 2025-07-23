@@ -461,11 +461,10 @@ metadata:
   run_ui: false
 
 test_plan:
-  current_focus:
-    - "Second-Hand Sales Management API"
+  current_focus: []
   stuck_tasks: []
   test_all: false
-  test_priority: "secondhand_module_completion"
+  test_priority: "completed"
 
 agent_communication:
     - agent: "main"
