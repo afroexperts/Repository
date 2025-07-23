@@ -247,9 +247,9 @@ backend:
 
   - task: "Comprehensive Invoicing Module API"
     implemented: true
-    working: true
+    working: false
     file: "backend/server.py"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
     needs_retesting: false
     status_history:
@@ -259,6 +259,9 @@ backend:
         - working: true
           agent: "testing"
           comment: "COMPREHENSIVE INVOICING MODULE API FULLY TESTED: ✅ All 13 endpoints working correctly (100% success rate), ✅ Invoice auto-numbering system verified (INV-YYYY-XXXX format), ✅ Financial calculations accurate (subtotal, tax, discount, total), ✅ Payment tracking and balance updates functional, ✅ Audit logging complete with user tracking, ✅ Integration with orders and service bookings working, ✅ Overdue detection and status updates verified, ✅ Multiple item types supported (product, service, discount), ✅ Comprehensive validation and error handling confirmed. 23/23 invoicing tests passed. Production-ready comprehensive invoicing system."
+        - working: false
+          agent: "testing"
+          comment: "🚨 CRITICAL ISSUE DISCOVERED: Invoice Module CRUD operations are INCOMPLETE. ✅ Previously failing endpoints now WORKING: GET /api/invoices/summary (routing fixed), GET /api/invoices/overdue (routing fixed), GET /api/invoices/{id}/logs (field mapping fixed), POST /api/invoices/generate-from-service/{id} (field mapping fixed). ✅ 8/13 endpoints working correctly (61.5% success rate). ❌ MISSING CRITICAL ENDPOINTS: POST /api/invoices (create invoice), PUT /api/invoices/{id} (update invoice), DELETE /api/invoices/{id} (delete invoice), POST /api/invoices/{id}/payments (add payment). These core CRUD operations return 405 Method Not Allowed, indicating endpoints are not implemented in backend/server.py. Invoice module is NOT production-ready without these essential operations."
     implemented: true
     working: true
     file: "backend/server.py"
