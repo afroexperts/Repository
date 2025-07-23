@@ -701,7 +701,7 @@ def create_inventory_movement(movement_data: InventoryMovementCreate, db: Sessio
     """Create inventory movement"""
     try:
         # Get user ID from token (simplified for demo)
-        user_id = "1502c12e-6750-11f0-adbc-46c85275ff51"  # Use the actual admin user ID
+        user_id = "afea850b-dd9c-436b-96a0-e1f8b293e497"  # Use the actual admin user ID
         
         # Check if product exists
         product = db.query(Product).filter(Product.id == movement_data.product_id).first()
