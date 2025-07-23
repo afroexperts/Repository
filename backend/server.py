@@ -3080,6 +3080,281 @@ def get_invoices_by_client(client_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Failed to retrieve client invoices: {str(e)}")
 
 # ===============================
+# Portfolio Management Endpoints
+# ===============================
+
+@app.get("/api/portfolio")
+def get_portfolio_items(db: Session = Depends(get_db)):
+    """Get all portfolio items with enhanced details"""
+    try:
+        portfolio_items = db.query(PortfolioItem).order_by(PortfolioItem.created_at.desc()).all()
+        
+        # Format response
+        formatted_items = []
+        for item in portfolio_items:
+            formatted_item = {
+                "id": item.id,
+                "title": item.title,
+                "category": item.category.value,
+                "description": item.description,
+                "image": item.image,
+                "technologies": item.technologies,
+                "client": item.client,
+                "date": item.date,
+                "status": item.status.value,
+                "link": item.link,
+                "results": item.results,
+                "created_by": item.created_by,
+                "created_at": item.created_at.isoformat() if item.created_at else None,
+                "updated_at": item.updated_at.isoformat() if item.updated_at else None
+            }
+            formatted_items.append(formatted_item)
+        
+        return formatted_items
+    except Exception as e:
+        logger.error(f"Get portfolio items error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve portfolio items")
+
+@app.post("/api/portfolio")
+def create_portfolio_item(item_data: PortfolioItemCreate, db: Session = Depends(get_db)):
+    """Create new portfolio item"""
+    try:
+        user_id = "56846977-f345-439c-b019-3330f3d16b7e"  # Demo admin user
+        
+        # Create portfolio item
+        db_item = PortfolioItem(
+            title=item_data.title,
+            category=item_data.category,
+            description=item_data.description,
+            image=item_data.image,
+            technologies=item_data.technologies,
+            client=item_data.client,
+            date=item_data.date,
+            status=item_data.status,
+            link=item_data.link,
+            results=item_data.results,
+            created_by=user_id
+        )
+        
+        db.add(db_item)
+        db.commit()
+        db.refresh(db_item)
+        
+        return {
+            "success": True,
+            "message": "Portfolio item created successfully",
+            "id": db_item.id
+        }
+        
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Create portfolio item error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create portfolio item: {str(e)}")
+
+@app.get("/api/portfolio/{item_id}")
+def get_portfolio_item(item_id: str, db: Session = Depends(get_db)):
+    """Get single portfolio item with full details"""
+    try:
+        item = db.query(PortfolioItem).filter(PortfolioItem.id == item_id).first()
+        if not item:
+            raise HTTPException(status_code=404, detail="Portfolio item not found")
+        
+        # Format response
+        formatted_item = {
+            "id": item.id,
+            "title": item.title,
+            "category": item.category.value,
+            "description": item.description,
+            "image": item.image,
+            "technologies": item.technologies,
+            "client": item.client,
+            "date": item.date,
+            "status": item.status.value,
+            "link": item.link,
+            "results": item.results,
+            "created_by": item.created_by,
+            "created_by_name": item.created_by_user.full_name if item.created_by_user else "Unknown",
+            "created_at": item.created_at.isoformat() if item.created_at else None,
+            "updated_at": item.updated_at.isoformat() if item.updated_at else None
+        }
+        
+        return formatted_item
+    except Exception as e:
+        logger.error(f"Get portfolio item error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve portfolio item")
+
+@app.put("/api/portfolio/{item_id}")
+def update_portfolio_item(item_id: str, item_update: PortfolioItemUpdate, db: Session = Depends(get_db)):
+    """Update existing portfolio item"""
+    try:
+        # Get existing item
+        db_item = db.query(PortfolioItem).filter(PortfolioItem.id == item_id).first()
+        if not db_item:
+            raise HTTPException(status_code=404, detail="Portfolio item not found")
+        
+        # Update fields
+        update_data = item_update.dict(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(db_item, field, value)
+        
+        db_item.updated_at = datetime.utcnow()
+        
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": "Portfolio item updated successfully",
+            "id": db_item.id
+        }
+        
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Update portfolio item error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to update portfolio item: {str(e)}")
+
+@app.delete("/api/portfolio/{item_id}")
+def delete_portfolio_item(item_id: str, db: Session = Depends(get_db)):
+    """Delete portfolio item"""
+    try:
+        # Get existing item
+        db_item = db.query(PortfolioItem).filter(PortfolioItem.id == item_id).first()
+        if not db_item:
+            raise HTTPException(status_code=404, detail="Portfolio item not found")
+        
+        # Delete item
+        db.delete(db_item)
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": "Portfolio item deleted successfully"
+        }
+        
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Delete portfolio item error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete portfolio item: {str(e)}")
+
+@app.get("/api/portfolio/category/{category}")
+def get_portfolio_by_category(category: str, db: Session = Depends(get_db)):
+    """Get portfolio items by category"""
+    try:
+        # Validate category
+        try:
+            category_enum = PortfolioCategory(category)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid portfolio category")
+        
+        items = db.query(PortfolioItem).filter(PortfolioItem.category == category_enum).order_by(PortfolioItem.created_at.desc()).all()
+        
+        # Format response
+        formatted_items = []
+        for item in items:
+            formatted_item = {
+                "id": item.id,
+                "title": item.title,
+                "category": item.category.value,
+                "description": item.description,
+                "image": item.image,
+                "client": item.client,
+                "date": item.date,
+                "status": item.status.value,
+                "link": item.link,
+                "created_at": item.created_at.isoformat() if item.created_at else None
+            }
+            formatted_items.append(formatted_item)
+        
+        return {
+            "category": category,
+            "total_items": len(items),
+            "items": formatted_items
+        }
+        
+    except Exception as e:
+        logger.error(f"Get portfolio by category error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve portfolio items by category: {str(e)}")
+
+@app.get("/api/portfolio/status/{status}")
+def get_portfolio_by_status(status: str, db: Session = Depends(get_db)):
+    """Get portfolio items by status"""
+    try:
+        # Validate status
+        try:
+            status_enum = PortfolioStatus(status)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid portfolio status")
+        
+        items = db.query(PortfolioItem).filter(PortfolioItem.status == status_enum).order_by(PortfolioItem.created_at.desc()).all()
+        
+        # Format response
+        formatted_items = []
+        for item in items:
+            formatted_item = {
+                "id": item.id,
+                "title": item.title,
+                "category": item.category.value,
+                "description": item.description,
+                "client": item.client,
+                "date": item.date,
+                "status": item.status.value,
+                "created_at": item.created_at.isoformat() if item.created_at else None
+            }
+            formatted_items.append(formatted_item)
+        
+        return {
+            "status": status,
+            "total_items": len(items),
+            "items": formatted_items
+        }
+        
+    except Exception as e:
+        logger.error(f"Get portfolio by status error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve portfolio items by status: {str(e)}")
+
+@app.get("/api/portfolio/summary")
+def get_portfolio_summary(db: Session = Depends(get_db)):
+    """Get portfolio statistics and summary"""
+    try:
+        # Total items
+        total_items = db.query(PortfolioItem).count()
+        
+        # Items by category
+        category_counts = {}
+        for category in PortfolioCategory:
+            count = db.query(PortfolioItem).filter(PortfolioItem.category == category).count()
+            category_counts[category.value] = count
+        
+        # Items by status
+        status_counts = {}
+        for status in PortfolioStatus:
+            count = db.query(PortfolioItem).filter(PortfolioItem.status == status).count()
+            status_counts[status.value] = count
+        
+        # Recent items
+        recent_items = db.query(PortfolioItem).order_by(PortfolioItem.created_at.desc()).limit(5).all()
+        
+        # Technologies usage (get most used technologies)
+        technology_usage = {}
+        all_items = db.query(PortfolioItem).all()
+        for item in all_items:
+            for tech in item.technologies:
+                technology_usage[tech] = technology_usage.get(tech, 0) + 1
+        
+        # Sort technologies by usage
+        top_technologies = sorted(technology_usage.items(), key=lambda x: x[1], reverse=True)[:10]
+        
+        return {
+            "total_items": total_items,
+            "category_counts": category_counts,
+            "status_counts": status_counts,
+            "recent_items": len(recent_items),
+            "top_technologies": dict(top_technologies)
+        }
+    except Exception as e:
+        logger.error(f"Get portfolio summary error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve portfolio summary: {str(e)}")
+
+# ===============================
 # Legacy Endpoints (for compatibility)
 # ===============================
 
