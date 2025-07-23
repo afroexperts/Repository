@@ -22,6 +22,11 @@ import logging
 import uvicorn
 import uuid
 from contextlib import asynccontextmanager
+import jwt
+
+# JWT Configuration
+SECRET_KEY = "your-secret-key-here"  # In production, use environment variable
+ALGORITHM = "HS256"
 
 from database import (
     get_db, create_tables, User, Product, Order, OrderItem, Client,
