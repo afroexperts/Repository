@@ -409,7 +409,8 @@ const Dashboard = () => {
         // Reset form and close modal
         setClientForm({
           name: '', email: '', phone: '', address: '',
-          client_type: 'individual', company_name: '', tax_number: ''
+          client_type: 'individual', company_name: '', tax_number: '',
+          logo: '', website_url: '', showcase_on_website: false, display_order: 0
         });
         setShowAddClientModal(false);
         
