@@ -1602,7 +1602,7 @@ class BackendTester:
             # Verify cost tracking
             success, booking_data, _ = self.make_request("GET", f"/services/bookings/{booking_id}")
             if success:
-                cost_estimate = booking_data.get("cost_estimate", 0)
+                cost_estimate = booking_data.get("estimated_cost", 0)
                 actual_cost = booking_data.get("actual_cost", 0)
                 
                 if cost_estimate == 200000.0 and actual_cost == 185000.0:
