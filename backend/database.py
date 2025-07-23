@@ -129,6 +129,19 @@ class SecondHandCategory(enum.Enum):
     office_equipment = "office_equipment"
     other = "other"
 
+class MarbleDustQuality(enum.Enum):
+    premium = "premium"
+    standard = "standard"
+    industrial = "industrial"
+    mixed = "mixed"
+
+class MarbleDustStatus(enum.Enum):
+    in_production = "in_production"
+    quality_check = "quality_check"
+    ready = "ready"
+    shipped = "shipped"
+    sold = "sold"
+
 class Currency(enum.Enum):
     rwf = "RWF"
     usd = "USD"
