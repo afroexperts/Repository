@@ -866,7 +866,6 @@ def get_financial_transactions(db: Session = Depends(get_db)):
                 "amount": transaction.amount,
                 "reference_id": transaction.reference_id,
                 "created_at": transaction.created_at.isoformat() if transaction.created_at else None,
-                "updated_at": transaction.updated_at.isoformat() if transaction.updated_at else None,
                 "created_by": transaction.created_by
             }
             formatted_transactions.append(formatted_transaction)
