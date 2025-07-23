@@ -978,8 +978,8 @@ class BackendTester:
             "movement_type": "stock_out",
             "quantity": excessive_quantity,
             "unit_cost": 25000.0,
-            "reference_number": "TEST-VALIDATION-001",
-            "notes": "Test stock validation for insufficient stock"
+            "reference": "TEST-VALIDATION-001",
+            "reason": "Test stock validation for insufficient stock"
         }
         
         success, data, status_code = self.make_request("POST", "/inventory/movements", movement_data)
