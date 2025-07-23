@@ -46,8 +46,8 @@ from database import (
 # Import Pydantic models for validation (keeping the existing ones)
 from models import (
     UserCreate, UserLogin, LoginResponse, DashboardStatsResponse,
-    ProductCreate, OrderCreate, ClientCreate, InventoryMovementCreate,
-    ServiceBookingCreate, FinancialTransactionCreate, ContactSubmissionCreate,
+    ProductCreate, OrderCreate, ClientCreate, ClientUpdate, Client as ClientResponse, ClientShowcase,
+    InventoryMovementCreate, ServiceBookingCreate, FinancialTransactionCreate, ContactSubmissionCreate,
     WebsiteSettingsUpdate, InvoiceCreate, InvoiceUpdate, InvoiceItemCreate,
     InvoicePaymentCreate, InvoicePaymentUpdate, InvoiceTemplateCreate,
     PortfolioItemCreate, PortfolioItemUpdate, PortfolioItem as PortfolioItemResponse,
