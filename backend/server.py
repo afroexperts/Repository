@@ -3540,6 +3540,8 @@ def delete_secondhand_item(item_id: str, db: Session = Depends(get_db)):
             "message": "Second-hand item deleted successfully"
         }
         
+    except HTTPException:
+        raise  # Re-raise HTTPExceptions to preserve status codes
     except Exception as e:
         db.rollback()
         logger.error(f"Delete second-hand item error: {e}")
