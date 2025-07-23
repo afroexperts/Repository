@@ -655,6 +655,103 @@ const Home = () => {
         </div>
       </section>
 
+      {/* Our Clients Section */}
+      {clientShowcase.length > 0 && (
+        <section className="py-20 bg-gray-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-5xl font-bold mb-6 text-[#0c4864]">Our Trusted Clients</h2>
+              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+                Proud to serve amazing businesses and organizations across Africa
+              </p>
+            </div>
+
+            {/* Grid layout for 3 rows */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-8 items-center">
+              {clientShowcase.map((client, index) => (
+                <div
+                  key={client.id}
+                  className="group relative"
+                  style={{
+                    animationDelay: `${index * 0.1}s`
+                  }}
+                >
+                  {client.website_url ? (
+                    <a
+                      href={client.website_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block p-6 bg-white rounded-lg shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 border border-gray-200"
+                    >
+                      <div className="flex flex-col items-center space-y-3">
+                        {client.logo ? (
+                          <img
+                            src={client.logo}
+                            alt={client.company_name || client.name}
+                            className="h-12 w-auto max-w-full object-contain grayscale group-hover:grayscale-0 transition-all duration-300"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              e.target.nextSibling.style.display = 'flex';
+                            }}
+                          />
+                        ) : null}
+                        <div 
+                          className="h-12 w-full bg-gradient-to-r from-[#3b8ea4] to-[#66cadb] rounded-lg flex items-center justify-center text-white font-semibold text-sm text-center hidden"
+                        >
+                          {client.company_name || client.name}
+                        </div>
+                        <div className="text-center">
+                          <p className="text-sm font-medium text-gray-800 group-hover:text-[#0c4864] transition-colors">
+                            {client.company_name || client.name}
+                          </p>
+                          <div className="flex items-center justify-center mt-1 text-gray-400 group-hover:text-[#3b8ea4] transition-colors">
+                            <ExternalLink className="h-3 w-3 mr-1" />
+                            <span className="text-xs">Visit Website</span>
+                          </div>
+                        </div>
+                      </div>
+                    </a>
+                  ) : (
+                    <div className="p-6 bg-white rounded-lg shadow-sm border border-gray-200">
+                      <div className="flex flex-col items-center space-y-3">
+                        {client.logo ? (
+                          <img
+                            src={client.logo}
+                            alt={client.company_name || client.name}
+                            className="h-12 w-auto max-w-full object-contain"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              e.target.nextSibling.style.display = 'flex';
+                            }}
+                          />
+                        ) : null}
+                        <div 
+                          className="h-12 w-full bg-gradient-to-r from-[#3b8ea4] to-[#66cadb] rounded-lg flex items-center justify-center text-white font-semibold text-sm text-center hidden"
+                        >
+                          {client.company_name || client.name}
+                        </div>
+                        <div className="text-center">
+                          <p className="text-sm font-medium text-gray-800">
+                            {client.company_name || client.name}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Trust indicators */}
+            <div className="text-center mt-12">
+              <p className="text-gray-600 font-medium">
+                Trusted by {clientShowcase.length}+ leading organizations across Africa
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* CTA Section */}
       <section className="py-20 bg-gradient-to-r from-[#3b8ea4] to-[#66cadb] text-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
