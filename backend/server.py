@@ -3319,13 +3319,13 @@ def get_portfolio_summary(db: Session = Depends(get_db)):
         # Items by category
         category_counts = {}
         for category in PortfolioCategory:
-            count = db.query(PortfolioItem).filter(PortfolioItem.category == category).count()
+            count = db.query(PortfolioItem).filter(PortfolioItem.category == category.value).count()
             category_counts[category.value] = count
         
         # Items by status
         status_counts = {}
         for status in PortfolioStatus:
-            count = db.query(PortfolioItem).filter(PortfolioItem.status == status).count()
+            count = db.query(PortfolioItem).filter(PortfolioItem.status == status.value).count()
             status_counts[status.value] = count
         
         # Recent items
