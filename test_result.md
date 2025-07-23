@@ -245,7 +245,20 @@ backend:
           agent: "testing"
           comment: "POS System API fully tested and working: GET /pos/transactions (retrieved transaction history), POST /pos/transactions (created POS sales with proper discount and tax calculations), tested all payment methods (cash, card, mobile_money, bank_transfer). Payment validation and receipt generation working correctly. All 3/3 POS tests passed."
 
-  - task: "Reports Module API"
+  - task: "Comprehensive Invoicing Module API"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: "Comprehensive Invoicing Module implemented with 13 API endpoints: ✅ Complete invoice CRUD operations, ✅ Auto-numbering system (INV-YYYY-XXXX), ✅ Financial calculations (subtotal, tax, discount, total), ✅ Payment tracking and status management, ✅ Audit logging system, ✅ Integration with orders and service bookings, ✅ Overdue detection and management, ✅ Multiple item types support (product, service, discount), ✅ Comprehensive validation and error handling"
+        - working: true
+          agent: "testing"
+          comment: "COMPREHENSIVE INVOICING MODULE API FULLY TESTED: ✅ All 13 endpoints working correctly (100% success rate), ✅ Invoice auto-numbering system verified (INV-YYYY-XXXX format), ✅ Financial calculations accurate (subtotal, tax, discount, total), ✅ Payment tracking and balance updates functional, ✅ Audit logging complete with user tracking, ✅ Integration with orders and service bookings working, ✅ Overdue detection and status updates verified, ✅ Multiple item types supported (product, service, discount), ✅ Comprehensive validation and error handling confirmed. 23/23 invoicing tests passed. Production-ready comprehensive invoicing system."
     implemented: true
     working: true
     file: "backend/server.py"
