@@ -1021,7 +1021,7 @@ class StarlinkInstallationCreate(BaseModel):
 class StarlinkInstallationUpdate(BaseModel):
     customer_name: Optional[str] = Field(None, min_length=1, max_length=100)
     customer_phone: Optional[str] = Field(None, min_length=10, max_length=20)
-    customer_email: Optional[str] = Field(None, regex=r'^[\w\.-]+@[\w\.-]+\.\w+$')
+    customer_email: Optional[str] = Field(None, pattern=r'^[\w\.-]+@[\w\.-]+\.\w+$')
     installation_address: Optional[str] = Field(None, min_length=10, max_length=300)
     kit_type: Optional[StarlinkKitType] = None
     kit_serial_number: Optional[str] = Field(None, max_length=50)
