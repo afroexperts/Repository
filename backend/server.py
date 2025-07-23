@@ -2912,7 +2912,7 @@ def get_invoices_summary(db: Session = Depends(get_db)):
         }
     except Exception as e:
         logger.error(f"Get invoices summary error: {e}")
-        raise HTTPException(status_code=500, detail="Failed to retrieve invoices summary")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve invoices summary: {str(e)}")
 
 @app.post("/api/invoices/generate-from-order/{order_id}")
 def generate_invoice_from_order(order_id: str, db: Session = Depends(get_db)):
