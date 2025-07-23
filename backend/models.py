@@ -980,3 +980,87 @@ class PortfolioItem(BaseModel):
 
     class Config:
         use_enum_values = True
+
+# Starlink Resale Models
+class StarlinkKitType(str, Enum):
+    standard = "standard"
+    priority = "priority" 
+    mobility = "mobility"
+    maritime = "maritime"
+    aviation = "aviation"
+
+class StarlinkInstallationStatus(str, Enum):
+    scheduled = "scheduled"
+    in_progress = "in_progress"
+    completed = "completed"
+    cancelled = "cancelled"
+    rescheduled = "rescheduled"
+
+class StarlinkServiceStatus(str, Enum):
+    active = "active"
+    suspended = "suspended"
+    terminated = "terminated"
+    pending_activation = "pending_activation"
+
+class StarlinkInstallationCreate(BaseModel):
+    customer_name: str = Field(..., min_length=1, max_length=100)
+    customer_phone: str = Field(..., min_length=10, max_length=20)
+    customer_email: Optional[str] = Field(None, regex=r'^[\w\.-]+@[\w\.-]+\.\w+$')
+    installation_address: str = Field(..., min_length=10, max_length=300)
+    kit_type: StarlinkKitType
+    kit_serial_number: Optional[str] = Field(None, max_length=50)
+    installation_date: datetime
+    technician_id: Optional[str] = Field(None, max_length=36)
+    technician_name: str = Field(..., min_length=1, max_length=100)
+    installation_fee: float = Field(..., gt=0)
+    monthly_fee: float = Field(..., gt=0)
+    equipment_cost: float = Field(..., gt=0)
+    coordinates: Optional[dict] = Field(default_factory=dict)  # {lat, lng}
+    notes: Optional[str] = Field(None, max_length=1000)
+
+class StarlinkInstallationUpdate(BaseModel):
+    customer_name: Optional[str] = Field(None, min_length=1, max_length=100)
+    customer_phone: Optional[str] = Field(None, min_length=10, max_length=20)
+    customer_email: Optional[str] = Field(None, regex=r'^[\w\.-]+@[\w\.-]+\.\w+$')
+    installation_address: Optional[str] = Field(None, min_length=10, max_length=300)
+    kit_type: Optional[StarlinkKitType] = None
+    kit_serial_number: Optional[str] = Field(None, max_length=50)
+    installation_date: Optional[datetime] = None
+    technician_id: Optional[str] = Field(None, max_length=36)
+    technician_name: Optional[str] = Field(None, min_length=1, max_length=100)
+    installation_fee: Optional[float] = Field(None, gt=0)
+    monthly_fee: Optional[float] = Field(None, gt=0)
+    equipment_cost: Optional[float] = Field(None, gt=0)
+    installation_status: Optional[StarlinkInstallationStatus] = None
+    service_status: Optional[StarlinkServiceStatus] = None
+    coordinates: Optional[dict] = None
+    notes: Optional[str] = Field(None, max_length=1000)
+    completion_notes: Optional[str] = Field(None, max_length=500)
+
+class StarlinkInstallation(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    customer_name: str
+    customer_phone: str
+    customer_email: Optional[str] = None
+    installation_address: str
+    kit_type: StarlinkKitType
+    kit_serial_number: Optional[str] = None
+    installation_date: datetime
+    technician_id: Optional[str] = None
+    technician_name: str
+    installation_fee: float
+    monthly_fee: float
+    equipment_cost: float
+    total_cost: float
+    installation_status: StarlinkInstallationStatus = StarlinkInstallationStatus.scheduled
+    service_status: StarlinkServiceStatus = StarlinkServiceStatus.pending_activation
+    coordinates: Optional[dict] = Field(default_factory=dict)
+    notes: Optional[str] = None
+    completion_notes: Optional[str] = None
+    created_by: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+
+    class Config:
+        use_enum_values = True
