@@ -1005,6 +1005,10 @@ def login(user_data: UserLogin, db: Session = Depends(get_db)):
         user.last_login = datetime.utcnow()
         db.commit()
         
+        # Generate JWT token
+        token_data = {"sub": user.id, "email": user.email, "role": user.role.value}
+        token = jwt.encode(token_data, SECRET_KEY, algorithm=ALGORITHM)
+        
         # Create Pydantic User model for response
         user_data = {
             "id": user.id,
@@ -1024,7 +1028,7 @@ def login(user_data: UserLogin, db: Session = Depends(get_db)):
             success=True,
             message="Login successful",
             user=user_data,
-            token=user.id
+            token=token
         )
         
     except HTTPException:
