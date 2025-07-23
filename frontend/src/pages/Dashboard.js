@@ -1053,6 +1053,336 @@ const Dashboard = () => {
     return categories.filter(cat => cat);
   };
 
+  // Invoice Management Functions
+  const handleCreateInvoice = async (e) => {
+    e.preventDefault();
+    setFormLoading(true);
+    
+    try {
+      const response = await axios.post(`${API}/invoices`, invoiceForm);
+      
+      if (response.status === 200) {
+        // Refresh invoices data
+        const invoicesResponse = await axios.get(`${API}/invoices`);
+        const summaryResponse = await axios.get(`${API}/invoices/summary`);
+        
+        setDashboardData(prev => ({ 
+          ...prev, 
+          invoices: invoicesResponse.data,
+          invoicesSummary: summaryResponse.data
+        }));
+        
+        // Reset form and close modal
+        setInvoiceForm({
+          invoice_type: 'manual', client_name: '', client_email: '', client_phone: '',
+          client_address: '', due_date: '', currency: 'RWF', tax_rate: 0.18,
+          discount_amount: 0, notes: '', terms: '', items: []
+        });
+        setShowInvoiceModal(false);
+        
+        toast({
+          title: "Success",
+          description: "Invoice created successfully!",
+        });
+      }
+    } catch (error) {
+      console.error('Error creating invoice:', error);
+      toast({
+        title: "Error",
+        description: error.response?.data?.detail || "Failed to create invoice. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const handleViewInvoiceDetails = async (invoiceId) => {
+    try {
+      const response = await axios.get(`${API}/invoices/${invoiceId}`);
+      setSelectedInvoice(response.data);
+      setShowInvoiceDetailsModal(true);
+    } catch (error) {
+      console.error('Error fetching invoice details:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load invoice details.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEditInvoice = (invoice) => {
+    setSelectedInvoice(invoice);
+    setInvoiceForm({
+      invoice_type: invoice.invoice_type,
+      client_name: invoice.client_name,
+      client_email: invoice.client_email || '',
+      client_phone: invoice.client_phone || '',
+      client_address: invoice.client_address || '',
+      due_date: invoice.due_date ? invoice.due_date.split('T')[0] : '',
+      currency: invoice.currency,
+      tax_rate: invoice.tax_rate,
+      discount_amount: invoice.discount_amount,
+      notes: invoice.notes || '',
+      terms: invoice.terms || '',
+      items: invoice.items || []
+    });
+    setShowEditInvoiceModal(true);
+  };
+
+  const handleUpdateInvoice = async (e) => {
+    e.preventDefault();
+    setFormLoading(true);
+    
+    try {
+      const response = await axios.put(`${API}/invoices/${selectedInvoice.id}`, invoiceForm);
+      
+      if (response.status === 200) {
+        // Refresh invoices data
+        const invoicesResponse = await axios.get(`${API}/invoices`);
+        const summaryResponse = await axios.get(`${API}/invoices/summary`);
+        
+        setDashboardData(prev => ({ 
+          ...prev, 
+          invoices: invoicesResponse.data,
+          invoicesSummary: summaryResponse.data
+        }));
+        
+        // Reset form and close modal
+        setInvoiceForm({
+          invoice_type: 'manual', client_name: '', client_email: '', client_phone: '',
+          client_address: '', due_date: '', currency: 'RWF', tax_rate: 0.18,
+          discount_amount: 0, notes: '', terms: '', items: []
+        });
+        setSelectedInvoice(null);
+        setShowEditInvoiceModal(false);
+        
+        toast({
+          title: "Success",
+          description: "Invoice updated successfully!",
+        });
+      }
+    } catch (error) {
+      console.error('Error updating invoice:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update invoice. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const handleDeleteInvoice = async (invoiceId) => {
+    if (!window.confirm('Are you sure you want to delete this invoice?')) {
+      return;
+    }
+    
+    try {
+      await axios.delete(`${API}/invoices/${invoiceId}`);
+      
+      // Refresh invoices data
+      const invoicesResponse = await axios.get(`${API}/invoices`);
+      const summaryResponse = await axios.get(`${API}/invoices/summary`);
+      
+      setDashboardData(prev => ({ 
+        ...prev, 
+        invoices: invoicesResponse.data,
+        invoicesSummary: summaryResponse.data
+      }));
+      
+      toast({
+        title: "Success",
+        description: "Invoice deleted successfully!",
+      });
+    } catch (error) {
+      console.error('Error deleting invoice:', error);
+      toast({
+        title: "Error",
+        description: error.response?.data?.detail || "Failed to delete invoice. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleAddPayment = async (e) => {
+    e.preventDefault();
+    setFormLoading(true);
+    
+    try {
+      const response = await axios.post(`${API}/invoices/${selectedInvoice.id}/payments`, paymentForm);
+      
+      if (response.status === 200) {
+        // Refresh invoices data
+        const invoicesResponse = await axios.get(`${API}/invoices`);
+        const summaryResponse = await axios.get(`${API}/invoices/summary`);
+        
+        setDashboardData(prev => ({ 
+          ...prev, 
+          invoices: invoicesResponse.data,
+          invoicesSummary: summaryResponse.data
+        }));
+        
+        // Reset payment form and close modal
+        setPaymentForm({
+          payment_method: 'cash', amount: '', payment_date: '',
+          reference_number: '', notes: ''
+        });
+        setShowInvoicePaymentModal(false);
+        
+        toast({
+          title: "Success",
+          description: "Payment added successfully!",
+        });
+      }
+    } catch (error) {
+      console.error('Error adding payment:', error);
+      toast({
+        title: "Error",
+        description: error.response?.data?.detail || "Failed to add payment. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const handleGenerateFromOrder = async (orderId) => {
+    try {
+      const response = await axios.post(`${API}/invoices/generate-from-order/${orderId}`);
+      
+      if (response.status === 200) {
+        // Refresh invoices data
+        const invoicesResponse = await axios.get(`${API}/invoices`);
+        const summaryResponse = await axios.get(`${API}/invoices/summary`);
+        
+        setDashboardData(prev => ({ 
+          ...prev, 
+          invoices: invoicesResponse.data,
+          invoicesSummary: summaryResponse.data
+        }));
+        
+        toast({
+          title: "Success",
+          description: "Invoice generated from order successfully!",
+        });
+      }
+    } catch (error) {
+      console.error('Error generating invoice from order:', error);
+      toast({
+        title: "Error",
+        description: error.response?.data?.detail || "Failed to generate invoice from order. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleGenerateFromService = async (serviceBookingId) => {
+    try {
+      const response = await axios.post(`${API}/invoices/generate-from-service/${serviceBookingId}`);
+      
+      if (response.status === 200) {
+        // Refresh invoices data
+        const invoicesResponse = await axios.get(`${API}/invoices`);
+        const summaryResponse = await axios.get(`${API}/invoices/summary`);
+        
+        setDashboardData(prev => ({ 
+          ...prev, 
+          invoices: invoicesResponse.data,
+          invoicesSummary: summaryResponse.data
+        }));
+        
+        toast({
+          title: "Success",
+          description: "Invoice generated from service booking successfully!",
+        });
+      }
+    } catch (error) {
+      console.error('Error generating invoice from service:', error);
+      toast({
+        title: "Error",
+        description: error.response?.data?.detail || "Failed to generate invoice from service. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getFilteredInvoices = () => {
+    let filtered = dashboardData.invoices;
+    
+    if (invoiceStatusFilter !== 'all') {
+      filtered = filtered.filter(invoice => invoice.status === invoiceStatusFilter);
+    }
+    
+    if (invoiceTypeFilter !== 'all') {
+      filtered = filtered.filter(invoice => invoice.invoice_type === invoiceTypeFilter);
+    }
+    
+    return filtered;
+  };
+
+  const getInvoiceStatusColor = (status) => {
+    switch (status) {
+      case 'draft':
+        return 'bg-gray-100 text-gray-700';
+      case 'sent':
+        return 'bg-blue-100 text-blue-700';
+      case 'paid':
+        return 'bg-green-100 text-green-700';
+      case 'partially_paid':
+        return 'bg-yellow-100 text-yellow-700';
+      case 'overdue':
+        return 'bg-red-100 text-red-700';
+      case 'cancelled':
+        return 'bg-gray-100 text-gray-700';
+      default:
+        return 'bg-gray-100 text-gray-700';
+    }
+  };
+
+  const getInvoiceTypeDisplayName = (type) => {
+    const types = {
+      'manual': 'Manual',
+      'pos_sale': 'POS Sale',
+      'service_booking': 'Service Booking',
+      'rental': 'Rental',
+      'logistics': 'Logistics'
+    };
+    return types[type] || type;
+  };
+
+  const addInvoiceItem = () => {
+    const newItem = {
+      item_type: 'product',
+      description: '',
+      quantity: 1,
+      unit_price: 0,
+      product_id: null
+    };
+    setInvoiceForm(prev => ({
+      ...prev,
+      items: [...prev.items, newItem]
+    }));
+  };
+
+  const removeInvoiceItem = (index) => {
+    setInvoiceForm(prev => ({
+      ...prev,
+      items: prev.items.filter((_, i) => i !== index)
+    }));
+  };
+
+  const updateInvoiceItem = (index, field, value) => {
+    setInvoiceForm(prev => ({
+      ...prev,
+      items: prev.items.map((item, i) => 
+        i === index ? { ...item, [field]: value } : item
+      )
+    }));
+  };
+
   const handleGenerateReport = async (reportType, format) => {
     try {
       const response = await axios.get(`${API}/reports/${reportType}/${format}`, {
