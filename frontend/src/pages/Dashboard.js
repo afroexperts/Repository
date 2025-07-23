@@ -193,7 +193,9 @@ const Dashboard = () => {
     financialAnalytics: {},
     serviceBookings: [],
     servicesSummary: {},
-    availableReports: []
+    availableReports: [],
+    invoices: [],
+    invoicesSummary: {}
   });
 
   // Fetch dashboard data on component mount
