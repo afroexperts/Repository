@@ -73,6 +73,12 @@ const Home = () => {
         if (testimonialsResponse.data?.testimonials) {
           setTestimonials(testimonialsResponse.data.testimonials);
         }
+
+        // Fetch client showcase
+        const clientsResponse = await axios.get(`${API}/clients/showcase`);
+        if (clientsResponse.data) {
+          setClientShowcase(clientsResponse.data);
+        }
       } catch (error) {
         console.log("Using mock data due to API error:", error.message);
         // Continue using mock data if API fails
