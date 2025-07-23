@@ -2312,6 +2312,134 @@ def get_invoices(db: Session = Depends(get_db)):
         logger.error(f"Get invoices error: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve invoices")
 
+@app.get("/api/invoices/summary")
+def get_invoices_summary(db: Session = Depends(get_db)):
+    """Get invoice summary statistics"""
+    try:
+        # Total invoices
+        total_invoices = db.query(Invoice).count()
+        
+        # Invoices by status
+        status_counts = {}
+        for status in InvoiceStatus:
+            count = db.query(Invoice).filter(Invoice.status == status).count()
+            status_counts[status.value] = count
+        
+        # Financial summary
+        total_invoiced = db.query(func.sum(Invoice.total_amount)).scalar() or 0
+        total_paid = db.query(func.sum(Invoice.paid_amount)).scalar() or 0
+        total_outstanding = total_invoiced - total_paid
+        
+        # Overdue invoices
+        current_date = datetime.utcnow()
+        overdue_count = db.query(Invoice).filter(
+            Invoice.due_date < current_date,
+            Invoice.status.in_([InvoiceStatus.sent, InvoiceStatus.partially_paid, InvoiceStatus.overdue])
+        ).count()
+        
+        overdue_amount = db.query(func.sum(Invoice.balance_due)).filter(
+            Invoice.due_date < current_date,
+            Invoice.status.in_([InvoiceStatus.sent, InvoiceStatus.partially_paid, InvoiceStatus.overdue])
+        ).scalar() or 0
+        
+        # Monthly statistics
+        current_month_start = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        monthly_invoices = db.query(Invoice).filter(Invoice.created_at >= current_month_start).count()
+        monthly_amount = db.query(func.sum(Invoice.total_amount)).filter(Invoice.created_at >= current_month_start).scalar() or 0
+        
+        # Recent invoices
+        recent_invoices = db.query(Invoice).order_by(Invoice.created_at.desc()).limit(5).all()
+        
+        return {
+            "total_invoices": total_invoices,
+            "status_counts": status_counts,
+            "total_invoiced": float(total_invoiced),
+            "total_paid": float(total_paid),
+            "total_outstanding": float(total_outstanding),
+            "overdue_count": overdue_count,
+            "overdue_amount": float(overdue_amount),
+            "monthly_invoices": monthly_invoices,
+            "monthly_amount": float(monthly_amount),
+            "recent_invoices": len(recent_invoices)
+        }
+    except Exception as e:
+        logger.error(f"Get invoices summary error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve invoices summary: {str(e)}")
+
+@app.get("/api/invoices/overdue")
+def get_overdue_invoices(db: Session = Depends(get_db)):
+    """Get overdue invoices"""
+    try:
+        # Update overdue status for invoices past due date
+        current_date = datetime.utcnow()
+        overdue_invoices = db.query(Invoice).filter(
+            Invoice.due_date < current_date,
+            Invoice.status.in_([InvoiceStatus.sent, InvoiceStatus.partially_paid])
+        ).all()
+        
+        # Update status to overdue
+        for invoice in overdue_invoices:
+            if invoice.status != InvoiceStatus.overdue:
+                invoice.status = InvoiceStatus.overdue
+                invoice.updated_at = datetime.utcnow()
+        
+        db.commit()
+        
+        # Get all overdue invoices
+        overdue_invoices = db.query(Invoice).filter(Invoice.status == InvoiceStatus.overdue).order_by(Invoice.due_date.asc()).all()
+        
+        # Format response
+        formatted_invoices = []
+        for invoice in overdue_invoices:
+            days_overdue = (current_date - invoice.due_date).days
+            formatted_invoice = {
+                "id": invoice.id,
+                "invoice_number": invoice.invoice_number,
+                "client_name": invoice.client_name,
+                "client_email": invoice.client_email,
+                "client_phone": invoice.client_phone,
+                "total_amount": invoice.total_amount,
+                "balance_due": invoice.balance_due,
+                "currency": invoice.currency.value,
+                "due_date": invoice.due_date.isoformat() if invoice.due_date else None,
+                "days_overdue": days_overdue,
+                "reminder_count": invoice.reminder_count,
+                "last_reminder_sent": invoice.last_reminder_sent.isoformat() if invoice.last_reminder_sent else None
+            }
+            formatted_invoices.append(formatted_invoice)
+        
+        return formatted_invoices
+    except Exception as e:
+        logger.error(f"Get overdue invoices error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve overdue invoices: {str(e)}")
+
+@app.get("/api/invoices/status/{status}")
+def get_invoices_by_status(status: str, db: Session = Depends(get_db)):
+    """Get invoices by status"""
+    try:
+        invoices = db.query(Invoice).filter(Invoice.status == InvoiceStatus(status)).order_by(Invoice.created_at.desc()).all()
+        
+        # Format response
+        formatted_invoices = []
+        for invoice in invoices:
+            formatted_invoice = {
+                "id": invoice.id,
+                "invoice_number": invoice.invoice_number,
+                "client_name": invoice.client_name,
+                "total_amount": invoice.total_amount,
+                "currency": invoice.currency.value,
+                "status": invoice.status.value,
+                "due_date": invoice.due_date.isoformat() if invoice.due_date else None,
+                "created_at": invoice.created_at.isoformat() if invoice.created_at else None,
+                "balance_due": invoice.balance_due
+            }
+            formatted_invoices.append(formatted_invoice)
+        
+        return formatted_invoices
+    except Exception as e:
+        logger.error(f"Get invoices by status error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve invoices by status")
+
 @app.get("/api/invoices/{invoice_id}")
 def get_invoice(invoice_id: str, db: Session = Depends(get_db)):
     """Get single invoice with full details"""
@@ -2396,408 +2524,6 @@ def get_invoice(invoice_id: str, db: Session = Depends(get_db)):
         logger.error(f"Get invoice error: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve invoice")
 
-@app.post("/api/invoices")
-def create_invoice(invoice_data: InvoiceCreate, db: Session = Depends(get_db)):
-    """Create new invoice"""
-    try:
-        # Get user ID from token (simplified for demo)
-        user_id = "afea850b-dd9c-436b-96a0-e1f8b293e497"
-        
-        # Generate invoice number
-        invoice_count = db.query(Invoice).count()
-        invoice_number = f"INV-{datetime.utcnow().strftime('%Y')}-{invoice_count + 1:04d}"
-        
-        # Calculate line totals and invoice totals
-        subtotal = 0.0
-        invoice_items = []
-        
-        for item_data in invoice_data.items:
-            # Calculate line total
-            if item_data.item_type == "product":
-                line_total = item_data.quantity * item_data.unit_price
-            elif item_data.item_type == "service":
-                if item_data.hours and item_data.hourly_rate:
-                    line_total = item_data.hours * item_data.hourly_rate
-                else:
-                    line_total = item_data.quantity * item_data.unit_price
-            elif item_data.item_type == "discount":
-                line_total = -(item_data.discount_amount or 0.0)
-            else:
-                line_total = item_data.quantity * item_data.unit_price
-            
-            # Apply discount if applicable
-            if item_data.discount_percentage:
-                discount_amount = line_total * (item_data.discount_percentage / 100)
-                line_total -= discount_amount
-            
-            subtotal += line_total
-            invoice_items.append({
-                "item_data": item_data,
-                "line_total": line_total
-            })
-        
-        # Apply invoice-level discount
-        subtotal -= invoice_data.discount_amount
-        
-        # Calculate tax
-        tax_amount = subtotal * invoice_data.tax_rate if subtotal > 0 else 0.0
-        
-        # Calculate total
-        total_amount = subtotal + tax_amount
-        
-        # Create invoice
-        db_invoice = Invoice(
-            invoice_number=invoice_number,
-            invoice_type=invoice_data.invoice_type,
-            client_id=invoice_data.client_id,
-            client_name=invoice_data.client_name,
-            client_email=invoice_data.client_email,
-            client_phone=invoice_data.client_phone,
-            client_address=invoice_data.client_address,
-            issue_date=datetime.utcnow(),
-            due_date=invoice_data.due_date,
-            subtotal=subtotal,
-            tax_rate=invoice_data.tax_rate,
-            tax_amount=tax_amount,
-            discount_amount=invoice_data.discount_amount,
-            total_amount=total_amount,
-            currency=invoice_data.currency,
-            status=InvoiceStatus.draft,
-            notes=invoice_data.notes,
-            terms=invoice_data.terms,
-            order_id=invoice_data.order_id,
-            service_booking_id=invoice_data.service_booking_id,
-            is_recurring=invoice_data.is_recurring,
-            recurring_frequency=invoice_data.recurring_frequency,
-            balance_due=total_amount,
-            created_by=user_id
-        )
-        
-        # Set next invoice date for recurring invoices
-        if invoice_data.is_recurring and invoice_data.recurring_frequency:
-            if invoice_data.recurring_frequency == "weekly":
-                db_invoice.next_invoice_date = datetime.utcnow() + timedelta(weeks=1)
-            elif invoice_data.recurring_frequency == "monthly":
-                db_invoice.next_invoice_date = datetime.utcnow() + timedelta(days=30)
-            elif invoice_data.recurring_frequency == "quarterly":
-                db_invoice.next_invoice_date = datetime.utcnow() + timedelta(days=90)
-            elif invoice_data.recurring_frequency == "yearly":
-                db_invoice.next_invoice_date = datetime.utcnow() + timedelta(days=365)
-        
-        db.add(db_invoice)
-        db.flush()  # Get the ID
-        
-        # Create invoice items
-        for item_info in invoice_items:
-            item_data = item_info["item_data"]
-            line_total = item_info["line_total"]
-            
-            db_item = InvoiceItem(
-                invoice_id=db_invoice.id,
-                item_type=item_data.item_type,
-                product_id=item_data.product_id,
-                description=item_data.description,
-                quantity=item_data.quantity,
-                unit_price=item_data.unit_price,
-                line_total=line_total,
-                weight=item_data.weight,
-                weight_unit=item_data.weight_unit,
-                hours=item_data.hours,
-                hourly_rate=item_data.hourly_rate,
-                discount_percentage=item_data.discount_percentage,
-                discount_amount=item_data.discount_amount
-            )
-            db.add(db_item)
-        
-        # Create audit log
-        log_entry = InvoiceLog(
-            invoice_id=db_invoice.id,
-            action="created",
-            description=f"Invoice {invoice_number} created",
-            performed_by=user_id
-        )
-        db.add(log_entry)
-        
-        db.commit()
-        db.refresh(db_invoice)
-        
-        return db_invoice
-        
-    except Exception as e:
-        logger.error(f"Create invoice error: {e}")
-        raise HTTPException(status_code=500, detail="Failed to create invoice")
-
-@app.put("/api/invoices/{invoice_id}")
-def update_invoice(invoice_id: str, invoice_update: InvoiceUpdate, db: Session = Depends(get_db)):
-    """Update invoice details"""
-    try:
-        user_id = "afea850b-dd9c-436b-96a0-e1f8b293e497"
-        
-        invoice = db.query(Invoice).filter(Invoice.id == invoice_id).first()
-        if not invoice:
-            raise HTTPException(status_code=404, detail="Invoice not found")
-        
-        # Check if invoice can be updated
-        if invoice.status in [InvoiceStatus.paid, InvoiceStatus.cancelled]:
-            raise HTTPException(status_code=400, detail="Cannot update paid or cancelled invoices")
-        
-        # Track changes for audit log
-        changes = []
-        
-        # Update allowed fields
-        if invoice_update.client_name is not None:
-            changes.append(f"Client name: {invoice.client_name} → {invoice_update.client_name}")
-            invoice.client_name = invoice_update.client_name
-        if invoice_update.client_email is not None:
-            changes.append(f"Client email: {invoice.client_email} → {invoice_update.client_email}")
-            invoice.client_email = invoice_update.client_email
-        if invoice_update.client_phone is not None:
-            changes.append(f"Client phone: {invoice.client_phone} → {invoice_update.client_phone}")
-            invoice.client_phone = invoice_update.client_phone
-        if invoice_update.client_address is not None:
-            changes.append(f"Client address updated")
-            invoice.client_address = invoice_update.client_address
-        if invoice_update.due_date is not None:
-            changes.append(f"Due date: {invoice.due_date} → {invoice_update.due_date}")
-            invoice.due_date = invoice_update.due_date
-        if invoice_update.currency is not None:
-            changes.append(f"Currency: {invoice.currency} → {invoice_update.currency}")
-            invoice.currency = invoice_update.currency
-        if invoice_update.tax_rate is not None:
-            changes.append(f"Tax rate: {invoice.tax_rate} → {invoice_update.tax_rate}")
-            invoice.tax_rate = invoice_update.tax_rate
-            # Recalculate tax amount
-            invoice.tax_amount = invoice.subtotal * invoice_update.tax_rate
-            invoice.total_amount = invoice.subtotal + invoice.tax_amount - invoice.discount_amount
-            invoice.balance_due = invoice.total_amount - invoice.paid_amount
-        if invoice_update.discount_amount is not None:
-            changes.append(f"Discount: {invoice.discount_amount} → {invoice_update.discount_amount}")
-            invoice.discount_amount = invoice_update.discount_amount
-            # Recalculate total
-            invoice.total_amount = invoice.subtotal + invoice.tax_amount - invoice_update.discount_amount
-            invoice.balance_due = invoice.total_amount - invoice.paid_amount
-        if invoice_update.notes is not None:
-            changes.append("Notes updated")
-            invoice.notes = invoice_update.notes
-        if invoice_update.terms is not None:
-            changes.append("Terms updated")
-            invoice.terms = invoice_update.terms
-        if invoice_update.status is not None:
-            changes.append(f"Status: {invoice.status} → {invoice_update.status}")
-            invoice.status = invoice_update.status
-        if invoice_update.is_recurring is not None:
-            changes.append(f"Recurring: {invoice.is_recurring} → {invoice_update.is_recurring}")
-            invoice.is_recurring = invoice_update.is_recurring
-        if invoice_update.recurring_frequency is not None:
-            changes.append(f"Recurring frequency: {invoice.recurring_frequency} → {invoice_update.recurring_frequency}")
-            invoice.recurring_frequency = invoice_update.recurring_frequency
-        
-        invoice.updated_at = datetime.utcnow()
-        
-        # Create audit log
-        if changes:
-            log_entry = InvoiceLog(
-                invoice_id=invoice.id,
-                action="updated",
-                description=f"Invoice updated: {', '.join(changes)}",
-                performed_by=user_id
-            )
-            db.add(log_entry)
-        
-        db.commit()
-        db.refresh(invoice)
-        
-        return invoice
-    except Exception as e:
-        logger.error(f"Update invoice error: {e}")
-        raise HTTPException(status_code=500, detail="Failed to update invoice")
-
-@app.delete("/api/invoices/{invoice_id}")
-def delete_invoice(invoice_id: str, db: Session = Depends(get_db)):
-    """Delete invoice"""
-    try:
-        user_id = "afea850b-dd9c-436b-96a0-e1f8b293e497"
-        
-        invoice = db.query(Invoice).filter(Invoice.id == invoice_id).first()
-        if not invoice:
-            raise HTTPException(status_code=404, detail="Invoice not found")
-        
-        # Check if invoice can be deleted
-        if invoice.status in [InvoiceStatus.paid, InvoiceStatus.partially_paid]:
-            raise HTTPException(status_code=400, detail="Cannot delete paid or partially paid invoices")
-        
-        # Create audit log before deletion
-        log_entry = InvoiceLog(
-            invoice_id=invoice.id,
-            action="deleted",
-            description=f"Invoice {invoice.invoice_number} deleted",
-            performed_by=user_id
-        )
-        db.add(log_entry)
-        db.commit()
-        
-        # Delete invoice (cascade will handle items, payments, logs)
-        db.delete(invoice)
-        db.commit()
-        
-        return {"message": "Invoice deleted successfully"}
-    except Exception as e:
-        logger.error(f"Delete invoice error: {e}")
-        raise HTTPException(status_code=500, detail="Failed to delete invoice")
-
-@app.get("/api/invoices/status/{status}")
-def get_invoices_by_status(status: str, db: Session = Depends(get_db)):
-    """Get invoices by status"""
-    try:
-        invoices = db.query(Invoice).filter(Invoice.status == InvoiceStatus(status)).order_by(Invoice.created_at.desc()).all()
-        
-        # Format response
-        formatted_invoices = []
-        for invoice in invoices:
-            formatted_invoice = {
-                "id": invoice.id,
-                "invoice_number": invoice.invoice_number,
-                "client_name": invoice.client_name,
-                "total_amount": invoice.total_amount,
-                "currency": invoice.currency.value,
-                "status": invoice.status.value,
-                "due_date": invoice.due_date.isoformat() if invoice.due_date else None,
-                "created_at": invoice.created_at.isoformat() if invoice.created_at else None,
-                "balance_due": invoice.balance_due
-            }
-            formatted_invoices.append(formatted_invoice)
-        
-        return formatted_invoices
-    except Exception as e:
-        logger.error(f"Get invoices by status error: {e}")
-        raise HTTPException(status_code=500, detail="Failed to retrieve invoices by status")
-
-@app.get("/api/invoices/overdue")
-def get_overdue_invoices(db: Session = Depends(get_db)):
-    """Get overdue invoices"""
-    try:
-        # Update overdue status for invoices past due date
-        current_date = datetime.utcnow()
-        overdue_invoices = db.query(Invoice).filter(
-            Invoice.due_date < current_date,
-            Invoice.status.in_([InvoiceStatus.sent, InvoiceStatus.partially_paid])
-        ).all()
-        
-        # Update status to overdue
-        for invoice in overdue_invoices:
-            if invoice.status != InvoiceStatus.overdue:
-                invoice.status = InvoiceStatus.overdue
-                invoice.updated_at = datetime.utcnow()
-        
-        db.commit()
-        
-        # Get all overdue invoices
-        overdue_invoices = db.query(Invoice).filter(Invoice.status == InvoiceStatus.overdue).order_by(Invoice.due_date.asc()).all()
-        
-        # Format response
-        formatted_invoices = []
-        for invoice in overdue_invoices:
-            days_overdue = (current_date - invoice.due_date).days
-            formatted_invoice = {
-                "id": invoice.id,
-                "invoice_number": invoice.invoice_number,
-                "client_name": invoice.client_name,
-                "client_email": invoice.client_email,
-                "client_phone": invoice.client_phone,
-                "total_amount": invoice.total_amount,
-                "balance_due": invoice.balance_due,
-                "currency": invoice.currency.value,
-                "due_date": invoice.due_date.isoformat() if invoice.due_date else None,
-                "days_overdue": days_overdue,
-                "reminder_count": invoice.reminder_count,
-                "last_reminder_sent": invoice.last_reminder_sent.isoformat() if invoice.last_reminder_sent else None
-            }
-            formatted_invoices.append(formatted_invoice)
-        
-        return formatted_invoices
-    except Exception as e:
-        logger.error(f"Get overdue invoices error: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve overdue invoices: {str(e)}")
-
-@app.post("/api/invoices/{invoice_id}/payments")
-def add_invoice_payment(invoice_id: str, payment_data: InvoicePaymentCreate, db: Session = Depends(get_db)):
-    """Add payment to invoice"""
-    try:
-        user_id = "afea850b-dd9c-436b-96a0-e1f8b293e497"
-        
-        invoice = db.query(Invoice).filter(Invoice.id == invoice_id).first()
-        if not invoice:
-            raise HTTPException(status_code=404, detail="Invoice not found")
-        
-        # Validate payment amount
-        if payment_data.amount <= 0:
-            raise HTTPException(status_code=400, detail="Payment amount must be greater than zero")
-        
-        if payment_data.amount > invoice.balance_due:
-            raise HTTPException(status_code=400, detail="Payment amount cannot exceed balance due")
-        
-        # Create payment record
-        db_payment = InvoicePayment(
-            invoice_id=invoice_id,
-            payment_method=payment_data.payment_method,
-            amount=payment_data.amount,
-            payment_date=payment_data.payment_date or datetime.utcnow(),
-            payment_status=PaymentStatus.completed,
-            reference_number=payment_data.reference_number,
-            transaction_id=payment_data.transaction_id,
-            notes=payment_data.notes,
-            created_by=user_id
-        )
-        
-        db.add(db_payment)
-        
-        # Update invoice payment tracking
-        invoice.paid_amount += payment_data.amount
-        invoice.balance_due = invoice.total_amount - invoice.paid_amount
-        
-        # Update invoice status based on payment
-        if invoice.balance_due <= 0:
-            invoice.status = InvoiceStatus.paid
-        elif invoice.paid_amount > 0:
-            invoice.status = InvoiceStatus.partially_paid
-        
-        invoice.updated_at = datetime.utcnow()
-        
-        # Create audit log
-        log_entry = InvoiceLog(
-            invoice_id=invoice.id,
-            action="payment_added",
-            description=f"Payment of {payment_data.amount} {invoice.currency.value} added via {payment_data.payment_method.value}",
-            performed_by=user_id,
-            log_metadata={
-                "payment_amount": payment_data.amount,
-                "payment_method": payment_data.payment_method.value,
-                "reference_number": payment_data.reference_number
-            }
-        )
-        db.add(log_entry)
-        
-        # Create financial transaction
-        financial_transaction = FinancialTransaction(
-            transaction_number=f"PAY-{datetime.utcnow().strftime('%Y%m%d')}-{db.query(FinancialTransaction).count() + 1:04d}",
-            transaction_type=TransactionType.income,
-            category="invoice_payment",
-            description=f"Payment for invoice {invoice.invoice_number}",
-            amount=payment_data.amount,
-            reference_id=invoice_id,
-            created_by=user_id
-        )
-        db.add(financial_transaction)
-        
-        db.commit()
-        db.refresh(db_payment)
-        
-        return db_payment
-        
-    except Exception as e:
-        logger.error(f"Add invoice payment error: {e}")
-        raise HTTPException(status_code=500, detail="Failed to add payment to invoice")
-
 @app.get("/api/invoices/{invoice_id}/payments")
 def get_invoice_payments(invoice_id: str, db: Session = Depends(get_db)):
     """Get payments for an invoice"""
@@ -2859,60 +2585,6 @@ def get_invoice_logs(invoice_id: str, db: Session = Depends(get_db)):
     except Exception as e:
         logger.error(f"Get invoice logs error: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve invoice logs")
-
-@app.get("/api/invoices/summary")
-def get_invoices_summary(db: Session = Depends(get_db)):
-    """Get invoice summary statistics"""
-    try:
-        # Total invoices
-        total_invoices = db.query(Invoice).count()
-        
-        # Invoices by status
-        status_counts = {}
-        for status in InvoiceStatus:
-            count = db.query(Invoice).filter(Invoice.status == status).count()
-            status_counts[status.value] = count
-        
-        # Financial summary
-        total_invoiced = db.query(func.sum(Invoice.total_amount)).scalar() or 0
-        total_paid = db.query(func.sum(Invoice.paid_amount)).scalar() or 0
-        total_outstanding = total_invoiced - total_paid
-        
-        # Overdue invoices
-        current_date = datetime.utcnow()
-        overdue_count = db.query(Invoice).filter(
-            Invoice.due_date < current_date,
-            Invoice.status.in_([InvoiceStatus.sent, InvoiceStatus.partially_paid, InvoiceStatus.overdue])
-        ).count()
-        
-        overdue_amount = db.query(func.sum(Invoice.balance_due)).filter(
-            Invoice.due_date < current_date,
-            Invoice.status.in_([InvoiceStatus.sent, InvoiceStatus.partially_paid, InvoiceStatus.overdue])
-        ).scalar() or 0
-        
-        # Monthly statistics
-        current_month_start = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        monthly_invoices = db.query(Invoice).filter(Invoice.created_at >= current_month_start).count()
-        monthly_amount = db.query(func.sum(Invoice.total_amount)).filter(Invoice.created_at >= current_month_start).scalar() or 0
-        
-        # Recent invoices
-        recent_invoices = db.query(Invoice).order_by(Invoice.created_at.desc()).limit(5).all()
-        
-        return {
-            "total_invoices": total_invoices,
-            "status_counts": status_counts,
-            "total_invoiced": float(total_invoiced),
-            "total_paid": float(total_paid),
-            "total_outstanding": float(total_outstanding),
-            "overdue_count": overdue_count,
-            "overdue_amount": float(overdue_amount),
-            "monthly_invoices": monthly_invoices,
-            "monthly_amount": float(monthly_amount),
-            "recent_invoices": len(recent_invoices)
-        }
-    except Exception as e:
-        logger.error(f"Get invoices summary error: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve invoices summary: {str(e)}")
 
 @app.post("/api/invoices/generate-from-order/{order_id}")
 def generate_invoice_from_order(order_id: str, db: Session = Depends(get_db)):
