@@ -1262,8 +1262,9 @@ class BackendTester:
         
         success, data, status_code = self.make_request("PUT", f"/services/bookings/{booking_id}", update_data)
         
-        if success and status_code == 200 and data.get("success"):
-            self.log_test("Update Service Booking", True, f"Updated service booking {booking_id}")
+        if success and status_code == 200 and data.get("id"):
+            updated_status = data.get("status", "Unknown")
+            self.log_test("Update Service Booking", True, f"Updated service booking {booking_id} to status: {updated_status}")
         else:
             self.log_test("Update Service Booking", False, f"Status: {status_code}", data)
 
