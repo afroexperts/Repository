@@ -740,19 +740,23 @@ def create_inventory_movement(movement_data: InventoryMovementCreate, db: Sessio
 # ===============================
 
 @app.post("/api/finance/transactions")
-def create_financial_transaction(transaction_data: dict, db: Session = Depends(get_db)):
-    """Create financial transaction"""
+def create_financial_transaction(transaction_data: FinancialTransactionCreate, db: Session = Depends(get_db)):
+    """Create financial transaction with enhanced validation"""
     try:
-        # Default user_id for now
-        user_id = "357dbcec-a104-443f-8dec-9e8895417ead"
+        # Get user ID from token (simplified for demo)
+        user_id = "1502c12e-6750-11f0-adbc-46c85275ff51"
+        
+        # Generate transaction number
+        transaction_count = db.query(FinancialTransaction).count()
+        transaction_number = f"TXN-{datetime.utcnow().strftime('%Y%m%d')}-{transaction_count + 1:04d}"
         
         db_transaction = FinancialTransaction(
-            transaction_number=f"TXN-{str(uuid.uuid4())[:8]}",
-            transaction_type=TransactionType(transaction_data['transaction_type']),
-            category=transaction_data.get('category', 'general'),
-            description=transaction_data['description'],
-            amount=float(transaction_data['amount']),
-            reference_id=transaction_data.get('reference_id'),
+            transaction_number=transaction_number,
+            transaction_type=TransactionType(transaction_data.transaction_type),
+            category=transaction_data.category,
+            description=transaction_data.description,
+            amount=transaction_data.amount,
+            reference_id=transaction_data.reference_id,
             created_by=user_id
         )
         
