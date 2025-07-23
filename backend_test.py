@@ -1470,10 +1470,11 @@ class BackendTester:
         # First create a transaction to delete
         transaction_data = {
             "transaction_type": "expense",
-            "category": "test_category",
+            "category": "other",
             "amount": 25000.0,
             "description": "Test transaction for deletion",
-            "reference_id": "DELETE-TEST-001"
+            "reference": "DELETE-TEST-001",
+            "payment_method": "cash"
         }
         
         success, created_data, status_code = self.make_request("POST", "/finance/transactions", transaction_data)
