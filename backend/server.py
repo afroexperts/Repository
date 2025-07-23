@@ -2741,6 +2741,343 @@ def generate_invoice_from_service(service_booking_id: str, db: Session = Depends
         raise HTTPException(status_code=500, detail="Failed to generate invoice from service booking")
 
 # ===============================
+# Missing Invoice CRUD Endpoints
+# ===============================
+
+@app.post("/api/invoices")
+def create_invoice(invoice_data: InvoiceCreate, db: Session = Depends(get_db)):
+    """Create new invoice"""
+    try:
+        user_id = "afea850b-dd9c-436b-96a0-e1f8b293e497"  # Demo admin user
+        
+        # Generate invoice number
+        invoice_count = db.query(Invoice).count()
+        invoice_number = f"INV-{datetime.utcnow().strftime('%Y')}-{invoice_count + 1:04d}"
+        
+        # Calculate totals
+        subtotal = sum(item.quantity * item.unit_price for item in invoice_data.items)
+        tax_amount = subtotal * invoice_data.tax_rate
+        total_amount = subtotal + tax_amount - invoice_data.discount_amount
+        
+        # Handle client creation/update
+        client_id = invoice_data.client_id
+        if not client_id and invoice_data.client_name:
+            # Check if client exists by name/email/phone
+            existing_client = None
+            if invoice_data.client_email:
+                existing_client = db.query(Client).filter(Client.email == invoice_data.client_email).first()
+            if not existing_client and invoice_data.client_phone:
+                existing_client = db.query(Client).filter(Client.phone == invoice_data.client_phone).first()
+            
+            if existing_client:
+                client_id = existing_client.id
+            else:
+                # Create new client
+                new_client = Client(
+                    name=invoice_data.client_name,
+                    email=invoice_data.client_email,
+                    phone=invoice_data.client_phone,
+                    address=invoice_data.client_address
+                )
+                db.add(new_client)
+                db.flush()
+                client_id = new_client.id
+        
+        # Create invoice
+        db_invoice = Invoice(
+            invoice_number=invoice_number,
+            invoice_type=invoice_data.invoice_type,
+            client_id=client_id,
+            client_name=invoice_data.client_name,
+            client_email=invoice_data.client_email,
+            client_phone=invoice_data.client_phone,
+            client_address=invoice_data.client_address,
+            issue_date=datetime.utcnow(),
+            due_date=invoice_data.due_date,
+            subtotal=subtotal,
+            tax_rate=invoice_data.tax_rate,
+            tax_amount=tax_amount,
+            discount_amount=invoice_data.discount_amount,
+            total_amount=total_amount,
+            currency=invoice_data.currency,
+            status=InvoiceStatus.draft,
+            notes=invoice_data.notes,
+            terms=invoice_data.terms,
+            order_id=invoice_data.order_id,
+            service_booking_id=invoice_data.service_booking_id,
+            is_recurring=invoice_data.is_recurring,
+            recurring_frequency=invoice_data.recurring_frequency,
+            balance_due=total_amount,
+            created_by=user_id
+        )
+        
+        db.add(db_invoice)
+        db.flush()
+        
+        # Create invoice items
+        for item_data in invoice_data.items:
+            line_total = item_data.quantity * item_data.unit_price
+            if item_data.discount_amount:
+                line_total -= item_data.discount_amount
+            elif item_data.discount_percentage:
+                line_total -= (line_total * item_data.discount_percentage / 100)
+            
+            db_item = InvoiceItem(
+                invoice_id=db_invoice.id,
+                item_type=item_data.item_type,
+                product_id=item_data.product_id,
+                description=item_data.description,
+                quantity=item_data.quantity,
+                unit_price=item_data.unit_price,
+                line_total=line_total,
+                weight=item_data.weight,
+                weight_unit=item_data.weight_unit,
+                hours=item_data.hours,
+                hourly_rate=item_data.hourly_rate,
+                discount_percentage=item_data.discount_percentage,
+                discount_amount=item_data.discount_amount
+            )
+            db.add(db_item)
+        
+        # Create audit log
+        log_entry = InvoiceLog(
+            invoice_id=db_invoice.id,
+            action="created",
+            description=f"Invoice {invoice_number} created manually",
+            performed_by=user_id,
+            log_metadata={"invoice_type": invoice_data.invoice_type.value}
+        )
+        db.add(log_entry)
+        
+        db.commit()
+        db.refresh(db_invoice)
+        
+        return {
+            "success": True,
+            "message": "Invoice created successfully",
+            "id": db_invoice.id,
+            "invoice_number": db_invoice.invoice_number
+        }
+        
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Create invoice error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create invoice: {str(e)}")
+
+@app.put("/api/invoices/{invoice_id}")
+def update_invoice(invoice_id: str, invoice_update: InvoiceUpdate, db: Session = Depends(get_db)):
+    """Update existing invoice"""
+    try:
+        user_id = "afea850b-dd9c-436b-96a0-e1f8b293e497"  # Demo admin user
+        
+        # Get existing invoice
+        db_invoice = db.query(Invoice).filter(Invoice.id == invoice_id).first()
+        if not db_invoice:
+            raise HTTPException(status_code=404, detail="Invoice not found")
+        
+        # Check if invoice can be updated (not paid or cancelled)
+        if db_invoice.status in [InvoiceStatus.paid, InvoiceStatus.cancelled]:
+            raise HTTPException(status_code=400, detail="Cannot update paid or cancelled invoice")
+        
+        # Update fields
+        update_data = invoice_update.dict(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(db_invoice, field, value)
+        
+        db_invoice.updated_at = datetime.utcnow()
+        
+        # Recalculate balance if status changed
+        if invoice_update.status and invoice_update.status != db_invoice.status:
+            if invoice_update.status == InvoiceStatus.paid:
+                db_invoice.paid_amount = db_invoice.total_amount
+                db_invoice.balance_due = 0.0
+            elif invoice_update.status in [InvoiceStatus.draft, InvoiceStatus.sent]:
+                db_invoice.balance_due = db_invoice.total_amount - db_invoice.paid_amount
+        
+        # Create audit log
+        log_entry = InvoiceLog(
+            invoice_id=db_invoice.id,
+            action="updated",
+            description=f"Invoice {db_invoice.invoice_number} updated",
+            performed_by=user_id,
+            log_metadata={"updated_fields": list(update_data.keys())}
+        )
+        db.add(log_entry)
+        
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": "Invoice updated successfully",
+            "id": db_invoice.id
+        }
+        
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Update invoice error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to update invoice: {str(e)}")
+
+@app.delete("/api/invoices/{invoice_id}")
+def delete_invoice(invoice_id: str, db: Session = Depends(get_db)):
+    """Delete invoice"""
+    try:
+        user_id = "afea850b-dd9c-436b-96a0-e1f8b293e497"  # Demo admin user
+        
+        # Get existing invoice
+        db_invoice = db.query(Invoice).filter(Invoice.id == invoice_id).first()
+        if not db_invoice:
+            raise HTTPException(status_code=404, detail="Invoice not found")
+        
+        # Check if invoice can be deleted (only draft invoices)
+        if db_invoice.status != InvoiceStatus.draft:
+            raise HTTPException(status_code=400, detail="Can only delete draft invoices")
+        
+        # Create audit log before deletion
+        log_entry = InvoiceLog(
+            invoice_id=db_invoice.id,
+            action="deleted",
+            description=f"Invoice {db_invoice.invoice_number} deleted",
+            performed_by=user_id,
+            log_metadata={"invoice_number": db_invoice.invoice_number}
+        )
+        db.add(log_entry)
+        db.commit()
+        
+        # Delete invoice (cascade will handle items, payments, logs)
+        db.delete(db_invoice)
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": "Invoice deleted successfully"
+        }
+        
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Delete invoice error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete invoice: {str(e)}")
+
+@app.post("/api/invoices/{invoice_id}/payments")
+def add_invoice_payment(invoice_id: str, payment_data: InvoicePaymentCreate, db: Session = Depends(get_db)):
+    """Add payment to invoice"""
+    try:
+        user_id = "afea850b-dd9c-436b-96a0-e1f8b293e497"  # Demo admin user
+        
+        # Get existing invoice
+        db_invoice = db.query(Invoice).filter(Invoice.id == invoice_id).first()
+        if not db_invoice:
+            raise HTTPException(status_code=404, detail="Invoice not found")
+        
+        # Check if invoice can receive payments
+        if db_invoice.status in [InvoiceStatus.cancelled, InvoiceStatus.paid]:
+            raise HTTPException(status_code=400, detail="Cannot add payment to cancelled or fully paid invoice")
+        
+        # Validate payment amount
+        if payment_data.amount <= 0:
+            raise HTTPException(status_code=400, detail="Payment amount must be greater than 0")
+        
+        if payment_data.amount > db_invoice.balance_due:
+            raise HTTPException(status_code=400, detail="Payment amount cannot exceed balance due")
+        
+        # Create payment record
+        db_payment = InvoicePayment(
+            invoice_id=invoice_id,
+            payment_method=payment_data.payment_method,
+            amount=payment_data.amount,
+            payment_date=payment_data.payment_date or datetime.utcnow(),
+            payment_status=PaymentStatus.completed,
+            reference_number=payment_data.reference_number,
+            transaction_id=payment_data.transaction_id,
+            notes=payment_data.notes,
+            created_by=user_id
+        )
+        
+        db.add(db_payment)
+        
+        # Update invoice payment status
+        db_invoice.paid_amount += payment_data.amount
+        db_invoice.balance_due = db_invoice.total_amount - db_invoice.paid_amount
+        db_invoice.updated_at = datetime.utcnow()
+        
+        # Update invoice status based on payment
+        if db_invoice.balance_due <= 0:
+            db_invoice.status = InvoiceStatus.paid
+            db_invoice.balance_due = 0.0  # Ensure it's exactly 0
+        else:
+            db_invoice.status = InvoiceStatus.partially_paid
+        
+        # Create audit log
+        log_entry = InvoiceLog(
+            invoice_id=invoice_id,
+            action="payment_added",
+            description=f"Payment of {payment_data.amount} {db_invoice.currency.value} added to invoice {db_invoice.invoice_number}",
+            performed_by=user_id,
+            log_metadata={
+                "payment_amount": payment_data.amount,
+                "payment_method": payment_data.payment_method.value,
+                "new_balance": float(db_invoice.balance_due)
+            }
+        )
+        db.add(log_entry)
+        
+        db.commit()
+        db.refresh(db_payment)
+        
+        return {
+            "success": True,
+            "message": "Payment added successfully",
+            "payment_id": db_payment.id,
+            "new_balance": db_invoice.balance_due,
+            "invoice_status": db_invoice.status.value
+        }
+        
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Add invoice payment error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to add payment: {str(e)}")
+
+@app.get("/api/invoices/client/{client_id}")
+def get_invoices_by_client(client_id: str, db: Session = Depends(get_db)):
+    """Get all invoices for a specific client"""
+    try:
+        # Verify client exists
+        client = db.query(Client).filter(Client.id == client_id).first()
+        if not client:
+            raise HTTPException(status_code=404, detail="Client not found")
+        
+        # Get invoices for client
+        invoices = db.query(Invoice).filter(Invoice.client_id == client_id).order_by(Invoice.created_at.desc()).all()
+        
+        # Format response
+        formatted_invoices = []
+        for invoice in invoices:
+            formatted_invoice = {
+                "id": invoice.id,
+                "invoice_number": invoice.invoice_number,
+                "invoice_type": invoice.invoice_type.value,
+                "issue_date": invoice.issue_date.isoformat() if invoice.issue_date else None,
+                "due_date": invoice.due_date.isoformat() if invoice.due_date else None,
+                "total_amount": invoice.total_amount,
+                "paid_amount": invoice.paid_amount,
+                "balance_due": invoice.balance_due,
+                "currency": invoice.currency.value,
+                "status": invoice.status.value,
+                "created_at": invoice.created_at.isoformat() if invoice.created_at else None
+            }
+            formatted_invoices.append(formatted_invoice)
+        
+        return {
+            "client_name": client.name,
+            "client_email": client.email,
+            "total_invoices": len(invoices),
+            "invoices": formatted_invoices
+        }
+        
+    except Exception as e:
+        logger.error(f"Get invoices by client error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve client invoices: {str(e)}")
+
+# ===============================
 # Legacy Endpoints (for compatibility)
 # ===============================
 
