@@ -753,8 +753,8 @@ class BackendTester:
             "movement_type": "stock_in",
             "quantity": 10,
             "unit_cost": 50000.0,
-            "reference_number": "TEST-STOCK-IN-001",
-            "notes": "Test stock in movement for API validation"
+            "reference": "TEST-STOCK-IN-001",
+            "reason": "Test stock in movement for API validation"
         }
         
         success, data, status_code = self.make_request("POST", "/inventory/movements", movement_data)
