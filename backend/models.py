@@ -1064,3 +1064,164 @@ class StarlinkInstallation(BaseModel):
 
     class Config:
         use_enum_values = True
+
+# RBAC Models
+class PermissionCheck(BaseModel):
+    permission: str
+    granted: bool
+
+class RolePermissionsUpdate(BaseModel):
+    role: str
+    permissions: Dict[str, bool]  # permission -> granted mapping
+
+class UserPermissionCreate(BaseModel):
+    user_id: str
+    permission: str
+    granted: bool = True
+    expires_at: Optional[datetime] = None
+
+class UserPermissionUpdate(BaseModel):
+    granted: Optional[bool] = None
+    expires_at: Optional[datetime] = None
+
+# Multi-language Models
+class TranslationCreate(BaseModel):
+    key: str = Field(..., min_length=1, max_length=200)
+    language: str = Field(..., min_length=2, max_length=5)
+    value: str = Field(..., min_length=1)
+    category: Optional[str] = Field(None, max_length=50)
+
+class TranslationUpdate(BaseModel):
+    value: Optional[str] = Field(None, min_length=1)
+    category: Optional[str] = Field(None, max_length=50)
+
+class Translation(BaseModel):
+    id: str
+    key: str
+    language: str
+    value: str
+    category: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+class UserPreferenceUpdate(BaseModel):
+    language: Optional[str] = Field(None, min_length=2, max_length=5)
+    timezone: Optional[str] = Field(None, max_length=50)
+    date_format: Optional[str] = Field(None, max_length=20)
+    currency: Optional[str] = Field(None, max_length=5)
+    theme: Optional[str] = Field(None, max_length=20)
+    notifications_enabled: Optional[bool] = None
+
+class UserPreference(BaseModel):
+    id: str
+    user_id: str
+    language: str
+    timezone: str
+    date_format: str
+    currency: str
+    theme: str
+    notifications_enabled: bool
+    created_at: datetime
+    updated_at: datetime
+
+# Recurring Invoice Models
+class RecurringInvoiceFrequency(str, Enum):
+    weekly = "weekly"
+    monthly = "monthly"
+    quarterly = "quarterly"
+    semi_annually = "semi_annually"
+    annually = "annually"
+
+class RecurringInvoiceItemCreate(BaseModel):
+    item_type: str = Field(default="service", max_length=20)
+    product_id: Optional[str] = Field(None, max_length=36)
+    description: str = Field(..., min_length=1, max_length=500)
+    quantity: float = Field(default=1.0, gt=0)
+    unit_price: float = Field(..., gt=0)
+    discount_percentage: Optional[float] = Field(None, ge=0, le=100)
+    discount_amount: Optional[float] = Field(None, ge=0)
+
+class RecurringInvoiceCreate(BaseModel):
+    template_name: str = Field(..., min_length=1, max_length=200)
+    client_id: str = Field(..., max_length=36)
+    frequency: RecurringInvoiceFrequency
+    start_date: date
+    end_date: Optional[date] = None
+    
+    # Invoice template data
+    invoice_type: str = Field(default="manual", max_length=50)
+    tax_rate: float = Field(default=0.18, ge=0, le=1)
+    discount_amount: float = Field(default=0.0, ge=0)
+    currency: str = Field(default="RWF", max_length=5)
+    notes: Optional[str] = None
+    terms: Optional[str] = None
+    
+    # Automation settings
+    auto_send: bool = Field(default=False)
+    send_reminder: bool = Field(default=True)
+    reminder_days: int = Field(default=7, ge=0, le=30)
+    
+    # Items
+    items: List[RecurringInvoiceItemCreate] = Field(..., min_items=1)
+
+class RecurringInvoiceUpdate(BaseModel):
+    template_name: Optional[str] = Field(None, min_length=1, max_length=200)
+    frequency: Optional[RecurringInvoiceFrequency] = None
+    end_date: Optional[date] = None
+    tax_rate: Optional[float] = Field(None, ge=0, le=1)
+    discount_amount: Optional[float] = Field(None, ge=0)
+    notes: Optional[str] = None
+    terms: Optional[str] = None
+    is_active: Optional[bool] = None
+    auto_send: Optional[bool] = None
+    send_reminder: Optional[bool] = None
+    reminder_days: Optional[int] = Field(None, ge=0, le=30)
+
+class RecurringInvoiceItem(BaseModel):
+    id: str
+    item_type: str
+    product_id: Optional[str] = None
+    description: str
+    quantity: float
+    unit_price: float
+    line_total: float
+    discount_percentage: Optional[float] = None
+    discount_amount: Optional[float] = None
+
+class RecurringInvoice(BaseModel):
+    id: str
+    template_name: str
+    client_id: str
+    frequency: RecurringInvoiceFrequency
+    start_date: date
+    end_date: Optional[date] = None
+    next_invoice_date: date
+    last_generated_date: Optional[date] = None
+    
+    # Invoice template data
+    invoice_type: str
+    subtotal: float
+    tax_rate: float
+    tax_amount: float
+    discount_amount: float
+    total_amount: float
+    currency: str
+    notes: Optional[str] = None
+    terms: Optional[str] = None
+    
+    # Status and automation
+    is_active: bool
+    auto_send: bool
+    send_reminder: bool
+    reminder_days: int
+    
+    # Audit fields
+    created_by: str
+    created_at: datetime
+    updated_at: datetime
+    
+    # Relationships
+    items: List[RecurringInvoiceItem] = []
+
+    class Config:
+        use_enum_values = True
