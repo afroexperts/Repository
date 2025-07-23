@@ -119,6 +119,77 @@ class User(BaseModel):
     class Config:
         use_enum_values = True
 
+# Marble Dust Production Models
+class MarbleDustQuality(str, Enum):
+    premium = "premium"
+    standard = "standard"
+    industrial = "industrial"
+    mixed = "mixed"
+
+class MarbleDustStatus(str, Enum):
+    in_production = "in_production"
+    quality_check = "quality_check"
+    ready = "ready"
+    shipped = "shipped"
+    sold = "sold"
+
+class MarbleDustBatchCreate(BaseModel):
+    batch_number: str = Field(..., min_length=1, max_length=50)
+    production_date: datetime
+    quantity_kg: float = Field(..., gt=0)
+    quality_grade: MarbleDustQuality
+    source_material: str = Field(..., min_length=1, max_length=200)
+    production_location: str = Field(..., min_length=1, max_length=200)
+    moisture_content: Optional[float] = Field(None, ge=0, le=100)
+    particle_size_mm: Optional[float] = Field(None, gt=0)
+    color_classification: Optional[str] = Field(None, max_length=100)
+    cost_per_kg: float = Field(..., gt=0)
+    selling_price_per_kg: float = Field(..., gt=0)
+    notes: Optional[str] = Field(None, max_length=1000)
+
+class MarbleDustBatchUpdate(BaseModel):
+    batch_number: Optional[str] = Field(None, min_length=1, max_length=50)
+    production_date: Optional[datetime] = None
+    quantity_kg: Optional[float] = Field(None, gt=0)
+    quality_grade: Optional[MarbleDustQuality] = None
+    source_material: Optional[str] = Field(None, min_length=1, max_length=200)
+    production_location: Optional[str] = Field(None, min_length=1, max_length=200)
+    moisture_content: Optional[float] = Field(None, ge=0, le=100)
+    particle_size_mm: Optional[float] = Field(None, gt=0)
+    color_classification: Optional[str] = Field(None, max_length=100)
+    cost_per_kg: Optional[float] = Field(None, gt=0)
+    selling_price_per_kg: Optional[float] = Field(None, gt=0)
+    status: Optional[MarbleDustStatus] = None
+    notes: Optional[str] = Field(None, max_length=1000)
+    quality_test_results: Optional[dict] = None
+
+class MarbleDustBatch(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    batch_number: str
+    production_date: datetime
+    quantity_kg: float
+    remaining_quantity_kg: float
+    quality_grade: MarbleDustQuality
+    source_material: str
+    production_location: str
+    moisture_content: Optional[float] = None
+    particle_size_mm: Optional[float] = None
+    color_classification: Optional[str] = None
+    cost_per_kg: float
+    selling_price_per_kg: float
+    total_cost: float
+    total_revenue: float = 0.0
+    status: MarbleDustStatus = MarbleDustStatus.in_production
+    notes: Optional[str] = None
+    quality_test_results: Optional[dict] = Field(default_factory=dict)
+    created_by: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: Optional[datetime] = None
+    shipped_at: Optional[datetime] = None
+
+    class Config:
+        use_enum_values = True
+
 # Second-Hand Sales Models
 class SecondHandCondition(str, Enum):
     excellent = "excellent"
