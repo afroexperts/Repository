@@ -2515,7 +2515,7 @@ class BackendTester:
             "client_phone": "+250788123456",
             "client_address": "KG 15 Ave, Kigali, Rwanda",
             "due_date": due_date,
-            "currency": "rwf",
+            "currency": "RWF",
             "tax_rate": 0.18,
             "discount_amount": 5000.0,
             "notes": "Test invoice with multiple item types",
