@@ -4052,6 +4052,364 @@ def get_marble_dust_by_status(status: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Failed to retrieve marble dust batches by status: {str(e)}")
 
 # ===============================
+# Starlink Resale Management Endpoints
+# ===============================
+
+@app.get("/api/starlink")
+def get_starlink_installations(db: Session = Depends(get_db)):
+    """Get all Starlink installations with enhanced details"""
+    try:
+        installations = db.query(StarlinkInstallation).order_by(StarlinkInstallation.created_at.desc()).all()
+        
+        # Format response
+        formatted_installations = []
+        for installation in installations:
+            formatted_installation = {
+                "id": installation.id,
+                "customer_name": installation.customer_name,
+                "customer_phone": installation.customer_phone,
+                "customer_email": installation.customer_email,
+                "installation_address": installation.installation_address,
+                "kit_type": installation.kit_type,
+                "kit_serial_number": installation.kit_serial_number,
+                "installation_date": installation.installation_date.isoformat() if installation.installation_date else None,
+                "technician_id": installation.technician_id,
+                "technician_name": installation.technician_name,
+                "installation_fee": installation.installation_fee,
+                "monthly_fee": installation.monthly_fee,
+                "equipment_cost": installation.equipment_cost,
+                "total_cost": installation.total_cost,
+                "installation_status": installation.installation_status,
+                "service_status": installation.service_status,
+                "coordinates": installation.coordinates,
+                "notes": installation.notes,
+                "completion_notes": installation.completion_notes,
+                "created_by": installation.created_by,
+                "created_at": installation.created_at.isoformat() if installation.created_at else None,
+                "updated_at": installation.updated_at.isoformat() if installation.updated_at else None,
+                "completed_at": installation.completed_at.isoformat() if installation.completed_at else None
+            }
+            formatted_installations.append(formatted_installation)
+        
+        return formatted_installations
+    except Exception as e:
+        logger.error(f"Get Starlink installations error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve Starlink installations")
+
+@app.post("/api/starlink")
+def create_starlink_installation(installation_data: StarlinkInstallationCreate, db: Session = Depends(get_db)):
+    """Create new Starlink installation appointment"""
+    try:
+        user_id = "56846977-f345-439c-b019-3330f3d16b7e"  # Demo admin user
+        
+        # Calculate total cost
+        total_cost = installation_data.installation_fee + installation_data.equipment_cost
+        
+        # Create Starlink installation
+        db_installation = StarlinkInstallation(
+            customer_name=installation_data.customer_name,
+            customer_phone=installation_data.customer_phone,
+            customer_email=installation_data.customer_email,
+            installation_address=installation_data.installation_address,
+            kit_type=installation_data.kit_type.value if hasattr(installation_data.kit_type, 'value') else installation_data.kit_type,
+            kit_serial_number=installation_data.kit_serial_number,
+            installation_date=installation_data.installation_date,
+            technician_id=installation_data.technician_id,
+            technician_name=installation_data.technician_name,
+            installation_fee=installation_data.installation_fee,
+            monthly_fee=installation_data.monthly_fee,
+            equipment_cost=installation_data.equipment_cost,
+            total_cost=total_cost,
+            installation_status="scheduled",
+            service_status="pending_activation",
+            coordinates=installation_data.coordinates,
+            notes=installation_data.notes,
+            completion_notes=None,
+            created_by=user_id
+        )
+        
+        db.add(db_installation)
+        db.commit()
+        db.refresh(db_installation)
+        
+        return {
+            "success": True,
+            "message": "Starlink installation scheduled successfully",
+            "id": db_installation.id,
+            "installation_date": db_installation.installation_date.isoformat()
+        }
+        
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Create Starlink installation error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create Starlink installation: {str(e)}")
+
+@app.get("/api/starlink/{installation_id}")
+def get_starlink_installation(installation_id: str, db: Session = Depends(get_db)):
+    """Get single Starlink installation with full details"""
+    try:
+        installation = db.query(StarlinkInstallation).filter(StarlinkInstallation.id == installation_id).first()
+        if not installation:
+            raise HTTPException(status_code=404, detail="Starlink installation not found")
+        
+        # Format response
+        formatted_installation = {
+            "id": installation.id,
+            "customer_name": installation.customer_name,
+            "customer_phone": installation.customer_phone,
+            "customer_email": installation.customer_email,
+            "installation_address": installation.installation_address,
+            "kit_type": installation.kit_type,
+            "kit_serial_number": installation.kit_serial_number,
+            "installation_date": installation.installation_date.isoformat() if installation.installation_date else None,
+            "technician_id": installation.technician_id,
+            "technician_name": installation.technician_name,
+            "installation_fee": installation.installation_fee,
+            "monthly_fee": installation.monthly_fee,
+            "equipment_cost": installation.equipment_cost,
+            "total_cost": installation.total_cost,
+            "installation_status": installation.installation_status,
+            "service_status": installation.service_status,
+            "coordinates": installation.coordinates,
+            "notes": installation.notes,
+            "completion_notes": installation.completion_notes,
+            "created_by": installation.created_by,
+            "created_by_name": installation.created_by_user.full_name if installation.created_by_user else "Unknown",
+            "created_at": installation.created_at.isoformat() if installation.created_at else None,
+            "updated_at": installation.updated_at.isoformat() if installation.updated_at else None,
+            "completed_at": installation.completed_at.isoformat() if installation.completed_at else None,
+            "is_active": installation.service_status == "active",
+            "days_until_installation": (installation.installation_date - datetime.utcnow()).days if installation.installation_date > datetime.utcnow() else 0
+        }
+        
+        return formatted_installation
+    except Exception as e:
+        logger.error(f"Get Starlink installation error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve Starlink installation")
+
+@app.put("/api/starlink/{installation_id}")
+def update_starlink_installation(installation_id: str, installation_update: StarlinkInstallationUpdate, db: Session = Depends(get_db)):
+    """Update existing Starlink installation"""
+    try:
+        # Get existing installation
+        db_installation = db.query(StarlinkInstallation).filter(StarlinkInstallation.id == installation_id).first()
+        if not db_installation:
+            raise HTTPException(status_code=404, detail="Starlink installation not found")
+        
+        # Update fields
+        update_data = installation_update.dict(exclude_unset=True)
+        for field, value in update_data.items():
+            if field == 'kit_type' and hasattr(value, 'value'):
+                setattr(db_installation, field, value.value)
+            elif field == 'installation_status' and hasattr(value, 'value'):
+                setattr(db_installation, field, value.value)
+                if value.value == 'completed':
+                    db_installation.completed_at = datetime.utcnow()
+            elif field == 'service_status' and hasattr(value, 'value'):
+                setattr(db_installation, field, value.value)
+            elif field in ['installation_fee', 'equipment_cost'] and value is not None:
+                setattr(db_installation, field, value)
+                # Recalculate total cost if fees change
+                db_installation.total_cost = db_installation.installation_fee + db_installation.equipment_cost
+            else:
+                setattr(db_installation, field, value)
+        
+        db_installation.updated_at = datetime.utcnow()
+        
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": "Starlink installation updated successfully",
+            "id": db_installation.id
+        }
+        
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Update Starlink installation error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to update Starlink installation: {str(e)}")
+
+@app.delete("/api/starlink/{installation_id}")
+def delete_starlink_installation(installation_id: str, db: Session = Depends(get_db)):
+    """Delete Starlink installation"""
+    try:
+        # Get existing installation
+        db_installation = db.query(StarlinkInstallation).filter(StarlinkInstallation.id == installation_id).first()
+        if not db_installation:
+            raise HTTPException(status_code=404, detail="Starlink installation not found")
+        
+        # Check if installation can be deleted (only scheduled or cancelled installations)
+        if db_installation.installation_status in ["completed"] or db_installation.service_status == "active":
+            raise HTTPException(status_code=400, detail="Cannot delete completed installations or active services")
+        
+        # Delete installation
+        db.delete(db_installation)
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": "Starlink installation deleted successfully"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Delete Starlink installation error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete Starlink installation: {str(e)}")
+
+@app.get("/api/starlink/kit-type/{kit_type}")
+def get_starlink_by_kit_type(kit_type: str, db: Session = Depends(get_db)):
+    """Get Starlink installations by kit type"""
+    try:
+        # Validate kit type
+        valid_kit_types = [kt.value for kt in StarlinkKitType]
+        if kit_type not in valid_kit_types:
+            raise HTTPException(status_code=400, detail="Invalid kit type")
+        
+        installations = db.query(StarlinkInstallation).filter(StarlinkInstallation.kit_type == kit_type).order_by(StarlinkInstallation.created_at.desc()).all()
+        
+        # Format response
+        formatted_installations = []
+        for installation in installations:
+            formatted_installation = {
+                "id": installation.id,
+                "customer_name": installation.customer_name,
+                "customer_phone": installation.customer_phone,
+                "installation_address": installation.installation_address,
+                "kit_type": installation.kit_type,
+                "installation_date": installation.installation_date.isoformat() if installation.installation_date else None,
+                "technician_name": installation.technician_name,
+                "installation_status": installation.installation_status,
+                "service_status": installation.service_status,
+                "total_cost": installation.total_cost,
+                "created_at": installation.created_at.isoformat() if installation.created_at else None
+            }
+            formatted_installations.append(formatted_installation)
+        
+        return {
+            "kit_type": kit_type,
+            "total_installations": len(installations),
+            "installations": formatted_installations
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Get Starlink by kit type error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve Starlink installations by kit type: {str(e)}")
+
+@app.get("/api/starlink/status/{status}")
+def get_starlink_by_status(status: str, db: Session = Depends(get_db)):
+    """Get Starlink installations by installation status"""
+    try:
+        # Validate status
+        valid_statuses = [s.value for s in StarlinkInstallationStatus]
+        if status not in valid_statuses:
+            raise HTTPException(status_code=400, detail="Invalid installation status")
+        
+        installations = db.query(StarlinkInstallation).filter(StarlinkInstallation.installation_status == status).order_by(StarlinkInstallation.created_at.desc()).all()
+        
+        # Format response
+        formatted_installations = []
+        for installation in installations:
+            formatted_installation = {
+                "id": installation.id,
+                "customer_name": installation.customer_name,
+                "installation_address": installation.installation_address,
+                "kit_type": installation.kit_type,
+                "installation_date": installation.installation_date.isoformat() if installation.installation_date else None,
+                "technician_name": installation.technician_name,
+                "installation_status": installation.installation_status,
+                "service_status": installation.service_status,
+                "created_at": installation.created_at.isoformat() if installation.created_at else None
+            }
+            formatted_installations.append(formatted_installation)
+        
+        return {
+            "status": status,
+            "total_installations": len(installations),
+            "installations": formatted_installations
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Get Starlink by status error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve Starlink installations by status: {str(e)}")
+
+@app.get("/api/starlink/summary")
+def get_starlink_summary(db: Session = Depends(get_db)):
+    """Get Starlink installation statistics and summary"""
+    try:
+        # Total installations
+        total_installations = db.query(StarlinkInstallation).count()
+        
+        # Installations by kit type
+        kit_type_counts = {}
+        for kit_type in StarlinkKitType:
+            count = db.query(StarlinkInstallation).filter(StarlinkInstallation.kit_type == kit_type.value).count()
+            kit_type_counts[kit_type.value] = count
+        
+        # Installations by installation status
+        installation_status_counts = {}
+        for status in StarlinkInstallationStatus:
+            count = db.query(StarlinkInstallation).filter(StarlinkInstallation.installation_status == status.value).count()
+            installation_status_counts[status.value] = count
+        
+        # Installations by service status
+        service_status_counts = {}
+        for status in StarlinkServiceStatus:
+            count = db.query(StarlinkInstallation).filter(StarlinkInstallation.service_status == status.value).count()
+            service_status_counts[status.value] = count
+        
+        # Financial statistics
+        from sqlalchemy import func
+        financial_stats = db.query(
+            func.sum(StarlinkInstallation.installation_fee).label('total_installation_fees'),
+            func.sum(StarlinkInstallation.equipment_cost).label('total_equipment_cost'),
+            func.sum(StarlinkInstallation.total_cost).label('total_revenue'),
+            func.avg(StarlinkInstallation.monthly_fee).label('avg_monthly_fee'),
+            func.avg(StarlinkInstallation.total_cost).label('avg_installation_cost')
+        ).first()
+        
+        # Active services (monthly revenue potential)
+        active_services = db.query(StarlinkInstallation).filter(StarlinkInstallation.service_status == "active").count()
+        monthly_revenue_potential = db.query(func.sum(StarlinkInstallation.monthly_fee)).filter(
+            StarlinkInstallation.service_status == "active"
+        ).scalar() or 0
+        
+        # Recent installations
+        recent_installations = db.query(StarlinkInstallation).order_by(StarlinkInstallation.created_at.desc()).limit(5).all()
+        
+        # Upcoming installations (scheduled for future)
+        upcoming_installations = db.query(StarlinkInstallation).filter(
+            StarlinkInstallation.installation_date > datetime.utcnow(),
+            StarlinkInstallation.installation_status == "scheduled"
+        ).count()
+        
+        return {
+            "total_installations": total_installations,
+            "kit_type_counts": kit_type_counts,
+            "installation_status_counts": installation_status_counts,
+            "service_status_counts": service_status_counts,
+            "financial_statistics": {
+                "total_installation_fees": float(financial_stats.total_installation_fees) if financial_stats.total_installation_fees else 0,
+                "total_equipment_cost": float(financial_stats.total_equipment_cost) if financial_stats.total_equipment_cost else 0,
+                "total_revenue": float(financial_stats.total_revenue) if financial_stats.total_revenue else 0,
+                "avg_monthly_fee": float(financial_stats.avg_monthly_fee) if financial_stats.avg_monthly_fee else 0,
+                "avg_installation_cost": float(financial_stats.avg_installation_cost) if financial_stats.avg_installation_cost else 0,
+                "monthly_revenue_potential": float(monthly_revenue_potential)
+            },
+            "active_services": active_services,
+            "recent_installations": len(recent_installations),
+            "upcoming_installations": upcoming_installations
+        }
+    except Exception as e:
+        logger.error(f"Get Starlink summary error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve Starlink summary: {str(e)}")
+
+# ===============================
 # Legacy Endpoints (for compatibility)
 # ===============================
 
