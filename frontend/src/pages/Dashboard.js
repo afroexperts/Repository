@@ -67,6 +67,11 @@ const Dashboard = () => {
   const [showPosModal, setShowPosModal] = useState(false);
   const [showInventoryModal, setShowInventoryModal] = useState(false);
   const [showServiceBookingModal, setShowServiceBookingModal] = useState(false);
+  const [showEditServiceBookingModal, setShowEditServiceBookingModal] = useState(false);
+  const [showServiceBookingDetailsModal, setShowServiceBookingDetailsModal] = useState(false);
+  const [selectedServiceBooking, setSelectedServiceBooking] = useState(null);
+  const [serviceStatusFilter, setServiceStatusFilter] = useState('all');
+  const [serviceTypeFilter, setServiceTypeFilter] = useState('all');
   const [showFinanceModal, setShowFinanceModal] = useState(false);
   const [showEditFinanceModal, setShowEditFinanceModal] = useState(false);
   const [showFinanceDetailsModal, setShowFinanceDetailsModal] = useState(false);
