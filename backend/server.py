@@ -3124,13 +3124,13 @@ def create_portfolio_item(item_data: PortfolioItemCreate, db: Session = Depends(
         # Create portfolio item
         db_item = PortfolioItem(
             title=item_data.title,
-            category=item_data.category,
+            category=item_data.category.value if hasattr(item_data.category, 'value') else item_data.category,
             description=item_data.description,
             image=item_data.image,
             technologies=item_data.technologies,
             client=item_data.client,
             date=item_data.date,
-            status=item_data.status,
+            status=item_data.status.value if hasattr(item_data.status, 'value') else item_data.status,
             link=item_data.link,
             results=item_data.results,
             created_by=user_id
