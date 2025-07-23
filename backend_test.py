@@ -2426,6 +2426,841 @@ class BackendTester:
         # Print summary
         self.print_summary()
 
+    # ===============================
+    # COMPREHENSIVE INVOICING MODULE API TESTS
+    # ===============================
+    
+    def test_invoices_get(self):
+        """Test GET /api/invoices - Get all invoices with enhanced details"""
+        if not self.token:
+            self.log_test("Get Invoices", False, "No token available - login failed")
+            return
+            
+        success, data, status_code = self.make_request("GET", "/invoices")
+        
+        if success and status_code == 200 and isinstance(data, list):
+            count = len(data)
+            if count > 0:
+                # Check if invoices have enhanced details
+                first_invoice = data[0]
+                has_enhanced_details = all(key in first_invoice for key in [
+                    "invoice_number", "invoice_type", "client_name", "total_amount", 
+                    "status", "currency", "items_count", "payments_count"
+                ])
+                
+                if has_enhanced_details:
+                    statuses = list(set(invoice.get("status", "Unknown") for invoice in data))
+                    types = list(set(invoice.get("invoice_type", "Unknown") for invoice in data))
+                    self.log_test("Get Invoices", True, f"Retrieved {count} invoices with enhanced details, statuses: {statuses}, types: {types}")
+                else:
+                    self.log_test("Get Invoices", False, f"Retrieved {count} invoices but missing enhanced details")
+            else:
+                self.log_test("Get Invoices", True, "No invoices found")
+        else:
+            self.log_test("Get Invoices", False, f"Status: {status_code}", data)
+
+    def test_invoice_create(self):
+        """Test POST /api/invoices - Create new invoice with auto-numbering and calculations"""
+        if not self.token:
+            self.log_test("Create Invoice", False, "No token available - login failed")
+            return
+            
+        # Get products for invoice items
+        success, products, _ = self.make_request("GET", "/products?limit=2")
+        if not success or not products or len(products) == 0:
+            self.log_test("Create Invoice", False, "No products available for invoice creation")
+            return
+            
+        # Create invoice with multiple item types
+        from datetime import datetime, timedelta
+        due_date = (datetime.utcnow() + timedelta(days=30)).isoformat()
+        
+        items = []
+        # Product item
+        items.append({
+            "item_type": "product",
+            "product_id": products[0].get("id"),
+            "description": f"Product: {products[0].get('name', 'Unknown')}",
+            "quantity": 2.0,
+            "unit_price": products[0].get("price", 50000.0)
+        })
+        
+        # Service item
+        items.append({
+            "item_type": "service",
+            "description": "IT Support Services",
+            "quantity": 1.0,
+            "hours": 4.0,
+            "hourly_rate": 25000.0
+        })
+        
+        # Discount item
+        items.append({
+            "item_type": "discount",
+            "description": "Early Payment Discount",
+            "quantity": 1.0,
+            "discount_amount": 10000.0
+        })
+        
+        invoice_data = {
+            "invoice_type": "manual",
+            "client_name": "Kigali Tech Solutions Ltd",
+            "client_email": "billing@kigalitech.rw",
+            "client_phone": "+250788123456",
+            "client_address": "KG 15 Ave, Kigali, Rwanda",
+            "due_date": due_date,
+            "currency": "rwf",
+            "tax_rate": 0.18,
+            "discount_amount": 5000.0,
+            "notes": "Test invoice with multiple item types",
+            "terms": "Payment due within 30 days",
+            "is_recurring": False,
+            "items": items
+        }
+        
+        success, data, status_code = self.make_request("POST", "/invoices", invoice_data)
+        
+        if success and status_code == 200 and data.get("id"):
+            invoice_id = data.get("id")
+            invoice_number = data.get("invoice_number")
+            total_amount = data.get("total_amount", 0)
+            
+            # Verify invoice number format (INV-YYYY-XXXX)
+            import re
+            pattern = r"INV-\d{4}-\d{4}"
+            if re.match(pattern, invoice_number):
+                self.log_test("Create Invoice", True, f"Created invoice {invoice_number} with ID: {invoice_id}, Total: RWF {total_amount:,.2f}")
+                return invoice_id
+            else:
+                self.log_test("Create Invoice", False, f"Invalid invoice number format: {invoice_number}")
+                return None
+        else:
+            self.log_test("Create Invoice", False, f"Status: {status_code}", data)
+            return None
+
+    def test_invoice_get_single(self):
+        """Test GET /api/invoices/{invoice_id} - Get single invoice with items and payments"""
+        if not self.token:
+            self.log_test("Get Single Invoice", False, "No token available - login failed")
+            return
+            
+        # First get existing invoices to test with
+        success, invoices, _ = self.make_request("GET", "/invoices")
+        if not success or not invoices or len(invoices) == 0:
+            self.log_test("Get Single Invoice", False, "No invoices available for single invoice test")
+            return
+            
+        invoice_id = invoices[0].get("id")
+        
+        success, data, status_code = self.make_request("GET", f"/invoices/{invoice_id}")
+        
+        if success and status_code == 200 and data.get("id"):
+            invoice_number = data.get("invoice_number", "Unknown")
+            status_value = data.get("status", "Unknown")
+            items = data.get("items", [])
+            payments = data.get("payments", [])
+            
+            # Verify full details are included
+            has_full_details = all(key in data for key in [
+                "invoice_number", "client_name", "total_amount", "items", "payments",
+                "subtotal", "tax_amount", "balance_due"
+            ])
+            
+            if has_full_details:
+                self.log_test("Get Single Invoice", True, f"Retrieved invoice {invoice_number} with full details: status={status_value}, items={len(items)}, payments={len(payments)}")
+            else:
+                self.log_test("Get Single Invoice", False, "Retrieved invoice but missing full details")
+        else:
+            self.log_test("Get Single Invoice", False, f"Status: {status_code}", data)
+
+    def test_invoice_update(self):
+        """Test PUT /api/invoices/{invoice_id} - Update invoice details with validation"""
+        if not self.token:
+            self.log_test("Update Invoice", False, "No token available - login failed")
+            return
+            
+        # First get existing invoices to test with
+        success, invoices, _ = self.make_request("GET", "/invoices")
+        if not success or not invoices or len(invoices) == 0:
+            self.log_test("Update Invoice", False, "No invoices available for update test")
+            return
+            
+        # Find a draft invoice to update
+        draft_invoice = None
+        for invoice in invoices:
+            if invoice.get("status") == "draft":
+                draft_invoice = invoice
+                break
+        
+        if not draft_invoice:
+            self.log_test("Update Invoice", False, "No draft invoices available for update test")
+            return
+            
+        invoice_id = draft_invoice.get("id")
+        
+        from datetime import datetime, timedelta
+        new_due_date = (datetime.utcnow() + timedelta(days=45)).isoformat()
+        
+        update_data = {
+            "client_name": "Updated Client Name Ltd",
+            "client_email": "updated@client.rw",
+            "client_phone": "+250788999888",
+            "due_date": new_due_date,
+            "tax_rate": 0.16,
+            "discount_amount": 15000.0,
+            "notes": "Updated invoice notes via API test",
+            "terms": "Updated payment terms - 45 days"
+        }
+        
+        success, data, status_code = self.make_request("PUT", f"/invoices/{invoice_id}", update_data)
+        
+        if success and status_code == 200 and data.get("id"):
+            updated_client = data.get("client_name", "Unknown")
+            updated_tax_rate = data.get("tax_rate", 0)
+            self.log_test("Update Invoice", True, f"Updated invoice {invoice_id}: client={updated_client}, tax_rate={updated_tax_rate}")
+        else:
+            self.log_test("Update Invoice", False, f"Status: {status_code}", data)
+
+    def test_invoice_delete_validation(self):
+        """Test DELETE /api/invoices/{invoice_id} - Delete invoice with proper validation"""
+        if not self.token:
+            self.log_test("Delete Invoice Validation", False, "No token available - login failed")
+            return
+            
+        # First create a test invoice to delete
+        invoice_id = self.test_invoice_create()
+        if not invoice_id:
+            self.log_test("Delete Invoice Validation", False, "Could not create test invoice for deletion")
+            return
+        
+        # Try to delete the invoice (should succeed for draft invoices)
+        success, data, status_code = self.make_request("DELETE", f"/invoices/{invoice_id}")
+        
+        if success and status_code == 200:
+            message = data.get("message", "Invoice deleted")
+            self.log_test("Delete Invoice Validation", True, f"Successfully deleted invoice: {message}")
+        else:
+            self.log_test("Delete Invoice Validation", False, f"Status: {status_code}", data)
+
+    def test_invoice_delete_paid_validation(self):
+        """Test DELETE validation - Should fail for paid invoices"""
+        if not self.token:
+            self.log_test("Delete Paid Invoice Validation", False, "No token available - login failed")
+            return
+            
+        # Get existing invoices and find a paid one
+        success, invoices, _ = self.make_request("GET", "/invoices")
+        if not success or not invoices:
+            self.log_test("Delete Paid Invoice Validation", False, "No invoices available for paid deletion test")
+            return
+        
+        # Find a paid or partially paid invoice
+        paid_invoice = None
+        for invoice in invoices:
+            if invoice.get("status") in ["paid", "partially_paid"]:
+                paid_invoice = invoice
+                break
+        
+        if not paid_invoice:
+            self.log_test("Delete Paid Invoice Validation", False, "No paid invoices available for deletion validation test")
+            return
+        
+        invoice_id = paid_invoice.get("id")
+        
+        # Try to delete the paid invoice (should fail)
+        success, data, status_code = self.make_request("DELETE", f"/invoices/{invoice_id}")
+        
+        if not success and status_code == 400:
+            error_detail = data.get("detail", "Unknown error")
+            if "Cannot delete paid" in error_detail:
+                self.log_test("Delete Paid Invoice Validation", True, "Correctly prevented deletion of paid invoice")
+            else:
+                self.log_test("Delete Paid Invoice Validation", False, f"Wrong error message: {error_detail}")
+        else:
+            self.log_test("Delete Paid Invoice Validation", False, f"Should have failed but got status: {status_code}")
+
+    def test_invoices_by_status(self):
+        """Test GET /api/invoices/status/{status} - Filter invoices by status"""
+        if not self.token:
+            self.log_test("Get Invoices by Status", False, "No token available - login failed")
+            return
+            
+        # Test different statuses
+        statuses_to_test = ["draft", "sent", "paid", "overdue"]
+        successful_statuses = []
+        
+        for status in statuses_to_test:
+            success, data, status_code = self.make_request("GET", f"/invoices/status/{status}")
+            
+            if success and status_code == 200 and isinstance(data, list):
+                count = len(data)
+                # Verify all invoices have the correct status
+                if count > 0:
+                    correct_status = all(invoice.get("status") == status for invoice in data)
+                    if correct_status:
+                        successful_statuses.append(f"{status}({count})")
+                    else:
+                        self.log_test("Get Invoices by Status", False, f"Retrieved invoices contain wrong status for {status}")
+                        return
+                else:
+                    successful_statuses.append(f"{status}(0)")
+        
+        if len(successful_statuses) > 0:
+            self.log_test("Get Invoices by Status", True, f"Retrieved invoices by status: {successful_statuses}")
+        else:
+            self.log_test("Get Invoices by Status", False, "Failed to retrieve invoices by any status")
+
+    def test_invoices_overdue(self):
+        """Test GET /api/invoices/overdue - Get overdue invoices and update status"""
+        if not self.token:
+            self.log_test("Get Overdue Invoices", False, "No token available - login failed")
+            return
+            
+        success, data, status_code = self.make_request("GET", "/invoices/overdue")
+        
+        if success and status_code == 200 and isinstance(data, list):
+            count = len(data)
+            if count > 0:
+                # Verify overdue invoice details
+                first_overdue = data[0]
+                has_overdue_details = all(key in first_overdue for key in [
+                    "invoice_number", "client_name", "total_amount", "balance_due",
+                    "due_date", "days_overdue", "reminder_count"
+                ])
+                
+                if has_overdue_details:
+                    days_overdue = [invoice.get("days_overdue", 0) for invoice in data]
+                    max_overdue = max(days_overdue) if days_overdue else 0
+                    self.log_test("Get Overdue Invoices", True, f"Retrieved {count} overdue invoices, max overdue: {max_overdue} days")
+                else:
+                    self.log_test("Get Overdue Invoices", False, "Retrieved overdue invoices but missing required details")
+            else:
+                self.log_test("Get Overdue Invoices", True, "No overdue invoices found")
+        else:
+            self.log_test("Get Overdue Invoices", False, f"Status: {status_code}", data)
+
+    def test_invoice_add_payment(self):
+        """Test POST /api/invoices/{invoice_id}/payments - Add payment to invoice"""
+        if not self.token:
+            self.log_test("Add Invoice Payment", False, "No token available - login failed")
+            return
+            
+        # Get existing invoices and find one with balance due
+        success, invoices, _ = self.make_request("GET", "/invoices")
+        if not success or not invoices:
+            self.log_test("Add Invoice Payment", False, "No invoices available for payment test")
+            return
+        
+        # Find an invoice with balance due
+        invoice_with_balance = None
+        for invoice in invoices:
+            balance_due = invoice.get("balance_due", 0)
+            if balance_due > 0 and invoice.get("status") != "cancelled":
+                invoice_with_balance = invoice
+                break
+        
+        if not invoice_with_balance:
+            self.log_test("Add Invoice Payment", False, "No invoices with balance due available for payment test")
+            return
+        
+        invoice_id = invoice_with_balance.get("id")
+        balance_due = invoice_with_balance.get("balance_due", 0)
+        payment_amount = min(balance_due, 50000.0)  # Pay partial or full amount
+        
+        payment_data = {
+            "payment_method": "mobile_money",
+            "amount": payment_amount,
+            "reference_number": "MTN-123456789",
+            "transaction_id": "TXN-TEST-001",
+            "notes": "Test payment via API"
+        }
+        
+        success, data, status_code = self.make_request("POST", f"/invoices/{invoice_id}/payments", payment_data)
+        
+        if success and status_code == 200 and data.get("id"):
+            payment_id = data.get("id")
+            payment_method = data.get("payment_method", "Unknown")
+            amount = data.get("amount", 0)
+            self.log_test("Add Invoice Payment", True, f"Added payment {payment_id}: {payment_method}, amount: RWF {amount:,.2f}")
+            return payment_id
+        else:
+            self.log_test("Add Invoice Payment", False, f"Status: {status_code}", data)
+            return None
+
+    def test_invoice_get_payments(self):
+        """Test GET /api/invoices/{invoice_id}/payments - Get invoice payments"""
+        if not self.token:
+            self.log_test("Get Invoice Payments", False, "No token available - login failed")
+            return
+            
+        # Get existing invoices to test with
+        success, invoices, _ = self.make_request("GET", "/invoices")
+        if not success or not invoices:
+            self.log_test("Get Invoice Payments", False, "No invoices available for payments test")
+            return
+        
+        # Find an invoice with payments
+        invoice_with_payments = None
+        for invoice in invoices:
+            if invoice.get("payments_count", 0) > 0:
+                invoice_with_payments = invoice
+                break
+        
+        if not invoice_with_payments:
+            # Use any invoice
+            invoice_with_payments = invoices[0]
+        
+        invoice_id = invoice_with_payments.get("id")
+        
+        success, data, status_code = self.make_request("GET", f"/invoices/{invoice_id}/payments")
+        
+        if success and status_code == 200 and isinstance(data, list):
+            count = len(data)
+            if count > 0:
+                # Verify payment details
+                first_payment = data[0]
+                has_payment_details = all(key in first_payment for key in [
+                    "payment_method", "amount", "payment_date", "payment_status"
+                ])
+                
+                if has_payment_details:
+                    payment_methods = list(set(payment.get("payment_method", "Unknown") for payment in data))
+                    total_payments = sum(payment.get("amount", 0) for payment in data)
+                    self.log_test("Get Invoice Payments", True, f"Retrieved {count} payments, methods: {payment_methods}, total: RWF {total_payments:,.2f}")
+                else:
+                    self.log_test("Get Invoice Payments", False, "Retrieved payments but missing required details")
+            else:
+                self.log_test("Get Invoice Payments", True, f"No payments found for invoice {invoice_id}")
+        else:
+            self.log_test("Get Invoice Payments", False, f"Status: {status_code}", data)
+
+    def test_invoice_get_logs(self):
+        """Test GET /api/invoices/{invoice_id}/logs - Get invoice audit logs"""
+        if not self.token:
+            self.log_test("Get Invoice Logs", False, "No token available - login failed")
+            return
+            
+        # Get existing invoices to test with
+        success, invoices, _ = self.make_request("GET", "/invoices")
+        if not success or not invoices:
+            self.log_test("Get Invoice Logs", False, "No invoices available for logs test")
+            return
+        
+        invoice_id = invoices[0].get("id")
+        
+        success, data, status_code = self.make_request("GET", f"/invoices/{invoice_id}/logs")
+        
+        if success and status_code == 200 and isinstance(data, list):
+            count = len(data)
+            if count > 0:
+                # Verify log details
+                first_log = data[0]
+                has_log_details = all(key in first_log for key in [
+                    "action", "description", "performed_by", "performed_at"
+                ])
+                
+                if has_log_details:
+                    actions = list(set(log.get("action", "Unknown") for log in data))
+                    self.log_test("Get Invoice Logs", True, f"Retrieved {count} audit logs, actions: {actions}")
+                else:
+                    self.log_test("Get Invoice Logs", False, "Retrieved logs but missing required details")
+            else:
+                self.log_test("Get Invoice Logs", True, f"No audit logs found for invoice {invoice_id}")
+        else:
+            self.log_test("Get Invoice Logs", False, f"Status: {status_code}", data)
+
+    def test_invoices_summary(self):
+        """Test GET /api/invoices/summary - Get comprehensive invoice statistics"""
+        if not self.token:
+            self.log_test("Get Invoices Summary", False, "No token available - login failed")
+            return
+            
+        success, data, status_code = self.make_request("GET", "/invoices/summary")
+        
+        if success and status_code == 200:
+            required_keys = [
+                "total_invoices", "status_counts", "total_invoiced", "total_paid",
+                "total_outstanding", "overdue_count", "overdue_amount", "monthly_invoices"
+            ]
+            has_required_keys = all(key in data for key in required_keys)
+            
+            if has_required_keys:
+                summary = {
+                    "Total Invoices": data.get("total_invoices", 0),
+                    "Total Invoiced": f"RWF {data.get('total_invoiced', 0):,.2f}",
+                    "Total Paid": f"RWF {data.get('total_paid', 0):,.2f}",
+                    "Total Outstanding": f"RWF {data.get('total_outstanding', 0):,.2f}",
+                    "Overdue Count": data.get("overdue_count", 0),
+                    "Overdue Amount": f"RWF {data.get('overdue_amount', 0):,.2f}",
+                    "Monthly Invoices": data.get("monthly_invoices", 0),
+                    "Status Counts": data.get("status_counts", {})
+                }
+                self.log_test("Get Invoices Summary", True, f"Retrieved comprehensive invoice summary: {summary}")
+            else:
+                missing_keys = [key for key in required_keys if key not in data]
+                self.log_test("Get Invoices Summary", False, f"Missing required keys: {missing_keys}")
+        else:
+            self.log_test("Get Invoices Summary", False, f"Status: {status_code}", data)
+
+    def test_invoice_generate_from_order(self):
+        """Test POST /api/invoices/generate-from-order/{order_id} - Generate invoice from order"""
+        if not self.token:
+            self.log_test("Generate Invoice from Order", False, "No token available - login failed")
+            return
+            
+        # Get existing orders to test with
+        success, orders, _ = self.make_request("GET", "/orders")
+        if not success or not orders:
+            self.log_test("Generate Invoice from Order", False, "No orders available for invoice generation test")
+            return
+        
+        # Find an order without an existing invoice
+        order_for_invoice = None
+        for order in orders:
+            # Check if invoice already exists for this order
+            success, invoices, _ = self.make_request("GET", "/invoices")
+            if success and invoices:
+                order_has_invoice = any(invoice.get("order_id") == order.get("id") for invoice in invoices)
+                if not order_has_invoice:
+                    order_for_invoice = order
+                    break
+        
+        if not order_for_invoice:
+            self.log_test("Generate Invoice from Order", False, "No orders without existing invoices available")
+            return
+        
+        order_id = order_for_invoice.get("id")
+        order_number = order_for_invoice.get("order_number", "Unknown")
+        
+        success, data, status_code = self.make_request("POST", f"/invoices/generate-from-order/{order_id}")
+        
+        if success and status_code == 200 and data.get("id"):
+            invoice_id = data.get("id")
+            invoice_number = data.get("invoice_number", "Unknown")
+            total_amount = data.get("total_amount", 0)
+            
+            # Verify invoice was generated correctly
+            if data.get("order_id") == order_id:
+                self.log_test("Generate Invoice from Order", True, f"Generated invoice {invoice_number} from order {order_number}, total: RWF {total_amount:,.2f}")
+                return invoice_id
+            else:
+                self.log_test("Generate Invoice from Order", False, "Generated invoice but order_id mismatch")
+                return None
+        else:
+            self.log_test("Generate Invoice from Order", False, f"Status: {status_code}", data)
+            return None
+
+    def test_invoice_generate_from_service(self):
+        """Test POST /api/invoices/generate-from-service/{service_booking_id} - Generate invoice from service booking"""
+        if not self.token:
+            self.log_test("Generate Invoice from Service", False, "No token available - login failed")
+            return
+            
+        # Get existing service bookings to test with
+        success, bookings, _ = self.make_request("GET", "/services/bookings")
+        if not success or not bookings:
+            self.log_test("Generate Invoice from Service", False, "No service bookings available for invoice generation test")
+            return
+        
+        # Find a service booking without an existing invoice
+        booking_for_invoice = None
+        for booking in bookings:
+            # Check if invoice already exists for this booking
+            success, invoices, _ = self.make_request("GET", "/invoices")
+            if success and invoices:
+                booking_has_invoice = any(invoice.get("service_booking_id") == booking.get("id") for invoice in invoices)
+                if not booking_has_invoice:
+                    booking_for_invoice = booking
+                    break
+        
+        if not booking_for_invoice:
+            self.log_test("Generate Invoice from Service", False, "No service bookings without existing invoices available")
+            return
+        
+        booking_id = booking_for_invoice.get("id")
+        booking_number = booking_for_invoice.get("booking_number", "Unknown")
+        
+        success, data, status_code = self.make_request("POST", f"/invoices/generate-from-service/{booking_id}")
+        
+        if success and status_code == 200 and data.get("id"):
+            invoice_id = data.get("id")
+            invoice_number = data.get("invoice_number", "Unknown")
+            total_amount = data.get("total_amount", 0)
+            
+            # Verify invoice was generated correctly
+            if data.get("service_booking_id") == booking_id:
+                self.log_test("Generate Invoice from Service", True, f"Generated invoice {invoice_number} from service booking {booking_number}, total: RWF {total_amount:,.2f}")
+                return invoice_id
+            else:
+                self.log_test("Generate Invoice from Service", False, "Generated invoice but service_booking_id mismatch")
+                return None
+        else:
+            self.log_test("Generate Invoice from Service", False, f"Status: {status_code}", data)
+            return None
+
+    def test_invoice_calculations(self):
+        """Test invoice calculations accuracy (subtotal, tax, discount, total)"""
+        if not self.token:
+            self.log_test("Invoice Calculations", False, "No token available - login failed")
+            return
+            
+        # Create a test invoice with known values to verify calculations
+        from datetime import datetime, timedelta
+        due_date = (datetime.utcnow() + timedelta(days=30)).isoformat()
+        
+        items = [
+            {
+                "item_type": "product",
+                "description": "Test Product 1",
+                "quantity": 2.0,
+                "unit_price": 50000.0  # 100,000 total
+            },
+            {
+                "item_type": "service",
+                "description": "Test Service",
+                "quantity": 1.0,
+                "hours": 3.0,
+                "hourly_rate": 30000.0  # 90,000 total
+            },
+            {
+                "item_type": "discount",
+                "description": "Volume Discount",
+                "quantity": 1.0,
+                "discount_amount": 20000.0  # -20,000
+            }
+        ]
+        
+        invoice_data = {
+            "invoice_type": "manual",
+            "client_name": "Test Calculations Client",
+            "client_email": "test@calculations.rw",
+            "due_date": due_date,
+            "currency": "rwf",
+            "tax_rate": 0.18,  # 18%
+            "discount_amount": 10000.0,  # Additional invoice-level discount
+            "items": items
+        }
+        
+        success, data, status_code = self.make_request("POST", "/invoices", invoice_data)
+        
+        if success and status_code == 200 and data.get("id"):
+            # Expected calculations:
+            # Item totals: 100,000 + 90,000 - 20,000 = 170,000
+            # Subtotal after invoice discount: 170,000 - 10,000 = 160,000
+            # Tax: 160,000 * 0.18 = 28,800
+            # Total: 160,000 + 28,800 = 188,800
+            
+            expected_subtotal = 160000.0
+            expected_tax = 28800.0
+            expected_total = 188800.0
+            
+            actual_subtotal = data.get("subtotal", 0)
+            actual_tax = data.get("tax_amount", 0)
+            actual_total = data.get("total_amount", 0)
+            
+            # Allow small floating point differences
+            subtotal_correct = abs(actual_subtotal - expected_subtotal) < 0.01
+            tax_correct = abs(actual_tax - expected_tax) < 0.01
+            total_correct = abs(actual_total - expected_total) < 0.01
+            
+            if subtotal_correct and tax_correct and total_correct:
+                self.log_test("Invoice Calculations", True, f"Calculations correct: Subtotal={actual_subtotal:,.2f}, Tax={actual_tax:,.2f}, Total={actual_total:,.2f}")
+            else:
+                self.log_test("Invoice Calculations", False, f"Calculations incorrect: Expected(S={expected_subtotal}, T={expected_tax}, Total={expected_total}), Actual(S={actual_subtotal}, T={actual_tax}, Total={actual_total})")
+        else:
+            self.log_test("Invoice Calculations", False, f"Status: {status_code}", data)
+
+    def test_invoice_number_generation(self):
+        """Test invoice number generation (INV-YYYY-XXXX format)"""
+        if not self.token:
+            self.log_test("Invoice Number Generation", False, "No token available - login failed")
+            return
+            
+        # Create multiple invoices and check number format
+        invoice_numbers = []
+        
+        for i in range(3):
+            invoice_id = self.test_invoice_create()
+            if invoice_id:
+                # Get the created invoice to check its number
+                success, data, _ = self.make_request("GET", f"/invoices/{invoice_id}")
+                if success and data.get("invoice_number"):
+                    invoice_numbers.append(data.get("invoice_number"))
+        
+        if len(invoice_numbers) >= 2:
+            # Check invoice number format (should be INV-YYYY-XXXX)
+            import re
+            pattern = r"INV-\d{4}-\d{4}"
+            valid_numbers = [num for num in invoice_numbers if re.match(pattern, num)]
+            
+            if len(valid_numbers) == len(invoice_numbers):
+                # Check if numbers are sequential
+                numbers = [int(num.split('-')[-1]) for num in invoice_numbers]
+                is_sequential = all(numbers[i] <= numbers[i+1] for i in range(len(numbers)-1))
+                
+                if is_sequential:
+                    self.log_test("Invoice Number Generation", True, f"Generated valid sequential invoice numbers: {invoice_numbers}")
+                else:
+                    self.log_test("Invoice Number Generation", True, f"Generated valid invoice numbers (not sequential): {invoice_numbers}")
+            else:
+                invalid_numbers = [num for num in invoice_numbers if not re.match(pattern, num)]
+                self.log_test("Invoice Number Generation", False, f"Invalid invoice number format: {invalid_numbers}")
+        else:
+            self.log_test("Invoice Number Generation", False, "Could not create enough invoices to test number generation")
+
+    def test_invoice_payment_validation(self):
+        """Test payment validation (amount limits, balance checks)"""
+        if not self.token:
+            self.log_test("Invoice Payment Validation", False, "No token available - login failed")
+            return
+            
+        # Get existing invoices with balance due
+        success, invoices, _ = self.make_request("GET", "/invoices")
+        if not success or not invoices:
+            self.log_test("Invoice Payment Validation", False, "No invoices available for payment validation test")
+            return
+        
+        # Find an invoice with balance due
+        invoice_with_balance = None
+        for invoice in invoices:
+            if invoice.get("balance_due", 0) > 0:
+                invoice_with_balance = invoice
+                break
+        
+        if not invoice_with_balance:
+            self.log_test("Invoice Payment Validation", False, "No invoices with balance due for payment validation test")
+            return
+        
+        invoice_id = invoice_with_balance.get("id")
+        balance_due = invoice_with_balance.get("balance_due", 0)
+        
+        # Test 1: Try to pay more than balance due (should fail)
+        excessive_payment = {
+            "payment_method": "cash",
+            "amount": balance_due + 50000.0,
+            "notes": "Test excessive payment"
+        }
+        
+        success, data, status_code = self.make_request("POST", f"/invoices/{invoice_id}/payments", excessive_payment)
+        
+        if not success and status_code == 400:
+            error_detail = data.get("detail", "")
+            if "cannot exceed balance due" in error_detail.lower():
+                # Test 2: Try to pay zero or negative amount (should fail)
+                zero_payment = {
+                    "payment_method": "cash",
+                    "amount": 0.0,
+                    "notes": "Test zero payment"
+                }
+                
+                success2, data2, status_code2 = self.make_request("POST", f"/invoices/{invoice_id}/payments", zero_payment)
+                
+                if not success2 and status_code2 == 400:
+                    error_detail2 = data2.get("detail", "")
+                    if "must be greater than zero" in error_detail2.lower():
+                        self.log_test("Invoice Payment Validation", True, "Correctly validated payment amounts (excessive and zero payments rejected)")
+                    else:
+                        self.log_test("Invoice Payment Validation", False, f"Wrong error for zero payment: {error_detail2}")
+                else:
+                    self.log_test("Invoice Payment Validation", False, f"Zero payment should have failed but got status: {status_code2}")
+            else:
+                self.log_test("Invoice Payment Validation", False, f"Wrong error for excessive payment: {error_detail}")
+        else:
+            self.log_test("Invoice Payment Validation", False, f"Excessive payment should have failed but got status: {status_code}")
+
+    def test_invoice_status_transitions(self):
+        """Test invoice status changes (draft → sent → paid)"""
+        if not self.token:
+            self.log_test("Invoice Status Transitions", False, "No token available - login failed")
+            return
+            
+        # Create a test invoice
+        invoice_id = self.test_invoice_create()
+        if not invoice_id:
+            self.log_test("Invoice Status Transitions", False, "Could not create test invoice for status transitions")
+            return
+        
+        # Test status transition: draft → sent
+        update_to_sent = {
+            "status": "sent"
+        }
+        
+        success, data, status_code = self.make_request("PUT", f"/invoices/{invoice_id}", update_to_sent)
+        
+        if success and status_code == 200:
+            current_status = data.get("status", "Unknown")
+            if current_status == "sent":
+                # Add a payment to transition to paid
+                total_amount = data.get("total_amount", 0)
+                
+                payment_data = {
+                    "payment_method": "bank_transfer",
+                    "amount": total_amount,
+                    "reference_number": "BANK-123456",
+                    "notes": "Full payment for status transition test"
+                }
+                
+                success2, payment_data_response, status_code2 = self.make_request("POST", f"/invoices/{invoice_id}/payments", payment_data)
+                
+                if success2 and status_code2 == 200:
+                    # Check if status automatically changed to paid
+                    success3, final_data, _ = self.make_request("GET", f"/invoices/{invoice_id}")
+                    
+                    if success3:
+                        final_status = final_data.get("status", "Unknown")
+                        balance_due = final_data.get("balance_due", 0)
+                        
+                        if final_status == "paid" and balance_due == 0:
+                            self.log_test("Invoice Status Transitions", True, f"Status transitions working: draft → sent → paid, balance cleared")
+                        else:
+                            self.log_test("Invoice Status Transitions", False, f"Final status incorrect: {final_status}, balance: {balance_due}")
+                    else:
+                        self.log_test("Invoice Status Transitions", False, "Could not retrieve final invoice status")
+                else:
+                    self.log_test("Invoice Status Transitions", False, f"Payment failed: {status_code2}")
+            else:
+                self.log_test("Invoice Status Transitions", False, f"Status not updated to sent: {current_status}")
+        else:
+            self.log_test("Invoice Status Transitions", False, f"Could not update status to sent: {status_code}")
+
+    def run_comprehensive_invoicing_tests(self):
+        """Run all comprehensive invoicing module tests"""
+        print("\n" + "="*70)
+        print("TESTING COMPREHENSIVE INVOICING MODULE API")
+        print("="*70)
+        
+        # Core invoice CRUD operations
+        self.test_invoices_get()
+        self.test_invoice_create()
+        self.test_invoice_get_single()
+        self.test_invoice_update()
+        self.test_invoice_delete_validation()
+        self.test_invoice_delete_paid_validation()
+        
+        # Invoice filtering and status management
+        self.test_invoices_by_status()
+        self.test_invoices_overdue()
+        
+        # Payment management
+        self.test_invoice_add_payment()
+        self.test_invoice_get_payments()
+        
+        # Audit and logging
+        self.test_invoice_get_logs()
+        
+        # Summary and analytics
+        self.test_invoices_summary()
+        
+        # Invoice generation from other modules
+        self.test_invoice_generate_from_order()
+        self.test_invoice_generate_from_service()
+        
+        # Advanced features and validation
+        self.test_invoice_calculations()
+        self.test_invoice_number_generation()
+        self.test_invoice_payment_validation()
+        self.test_invoice_status_transitions()
+
     def print_summary(self):
         """Print test summary"""
         print("=" * 80)
