@@ -226,6 +226,9 @@ backend:
         - working: true
           agent: "testing"
           comment: "Inventory Management API fully tested and working: GET /inventory/movements (retrieved movement history), POST /inventory/movements (created stock movements), tested all movement types (stock_in, stock_out, adjustment, damaged, return). Stock updates working correctly after movements. All 3/3 inventory tests passed."
+        - working: true
+          agent: "testing"
+          comment: "ENHANCED INVENTORY MANAGEMENT API FULLY TESTED AND WORKING: ✅ All 8 enhanced endpoints tested and verified working perfectly, ✅ GET /api/inventory/movements (returns movements with product details), ✅ GET /api/inventory/movements/{movement_id} (single movement retrieval), ✅ POST /api/inventory/movements (creates movements with stock validation), ✅ PUT /api/inventory/movements/{movement_id} (updates movement details), ✅ DELETE /api/inventory/movements/{movement_id} (deletes movements and reverses stock changes), ✅ GET /api/inventory/movements/product/{product_id} (filters by product), ✅ GET /api/inventory/movements/type/{movement_type} (filters by type), ✅ GET /api/inventory/summary (comprehensive inventory statistics), ✅ Stock validation working correctly (prevents insufficient stock operations), ✅ All movement types tested (stock_in, stock_out, adjustment, damaged), ✅ Stock updates and reversals working perfectly, ✅ Movement history tracking functional, ✅ Product-movement relationships working correctly. Fixed field mapping issues and foreign key constraints during testing. All 12/12 enhanced inventory tests passed (100% success rate). Inventory Management system is production-ready."
 
   - task: "POS System API"
     implemented: true
