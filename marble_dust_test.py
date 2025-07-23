@@ -521,11 +521,17 @@ class MarbleDustTester:
             success, data, status_code = self.make_request("PUT", f"/marble-dust/{batch_id}", update_data)
             
             if success and status_code == 200:
-                updated_status = data.get("status", "Unknown")
-                if updated_status == step["status"]:
-                    successful_steps.append(step["status"])
+                # Get the updated batch to verify status change
+                success_get, batch_data, _ = self.make_request("GET", f"/marble-dust/{batch_id}")
+                if success_get and batch_data:
+                    updated_status = batch_data.get("status", "Unknown")
+                    if updated_status == step["status"]:
+                        successful_steps.append(step["status"])
+                    else:
+                        self.log_test("Manufacturing Workflow", False, f"Status update failed for {step['status']}: expected {step['status']}, got {updated_status}")
+                        return
                 else:
-                    self.log_test("Manufacturing Workflow", False, f"Status update failed for {step['status']}")
+                    self.log_test("Manufacturing Workflow", False, f"Could not verify status update for {step['status']}")
                     return
             else:
                 self.log_test("Manufacturing Workflow", False, f"Failed to update to {step['status']}: {status_code}")
