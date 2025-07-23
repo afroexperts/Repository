@@ -35,6 +35,105 @@ class UserRole(enum.Enum):
     cashier = "cashier"
     inventory_officer = "inventory_officer"
     technician = "technician"
+    sales_rep = "sales_rep"
+    accountant = "accountant"
+    viewer = "viewer"
+
+class Permission(enum.Enum):
+    # Dashboard permissions
+    dashboard_view = "dashboard_view"
+    dashboard_stats = "dashboard_stats"
+    
+    # User management
+    users_view = "users_view"
+    users_create = "users_create"
+    users_update = "users_update"
+    users_delete = "users_delete"
+    
+    # Product management
+    products_view = "products_view"
+    products_create = "products_create"
+    products_update = "products_update"
+    products_delete = "products_delete"
+    
+    # Order management
+    orders_view = "orders_view"
+    orders_create = "orders_create"
+    orders_update = "orders_update"
+    orders_delete = "orders_delete"
+    
+    # Client management
+    clients_view = "clients_view"
+    clients_create = "clients_create"
+    clients_update = "clients_update"
+    clients_delete = "clients_delete"
+    
+    # Inventory management
+    inventory_view = "inventory_view"
+    inventory_create = "inventory_create"
+    inventory_update = "inventory_update"
+    inventory_delete = "inventory_delete"
+    
+    # Financial management
+    finance_view = "finance_view"
+    finance_create = "finance_create"
+    finance_update = "finance_update"
+    finance_delete = "finance_delete"
+    
+    # Invoice management
+    invoices_view = "invoices_view"
+    invoices_create = "invoices_create"
+    invoices_update = "invoices_update"
+    invoices_delete = "invoices_delete"
+    invoices_payment = "invoices_payment"
+    
+    # Reports
+    reports_view = "reports_view"
+    reports_export = "reports_export"
+    
+    # Settings
+    settings_view = "settings_view"
+    settings_update = "settings_update"
+    
+    # POS
+    pos_access = "pos_access"
+    pos_sales = "pos_sales"
+    
+    # Service booking
+    services_view = "services_view"
+    services_create = "services_create"
+    services_update = "services_update"
+    services_delete = "services_delete"
+    
+    # Portfolio management
+    portfolio_view = "portfolio_view"
+    portfolio_create = "portfolio_create"
+    portfolio_update = "portfolio_update"
+    portfolio_delete = "portfolio_delete"
+    
+    # Second-hand sales
+    secondhand_view = "secondhand_view"
+    secondhand_create = "secondhand_create"
+    secondhand_update = "secondhand_update"
+    secondhand_delete = "secondhand_delete"
+    
+    # Marble dust production
+    marble_view = "marble_view"
+    marble_create = "marble_create"
+    marble_update = "marble_update"
+    marble_delete = "marble_delete"
+    
+    # Starlink installations
+    starlink_view = "starlink_view"
+    starlink_create = "starlink_create"
+    starlink_update = "starlink_update"
+    starlink_delete = "starlink_delete"
+
+class Language(enum.Enum):
+    english = "en"
+    french = "fr"
+    kinyarwanda = "rw"
+    swahili = "sw"
 
 class UserStatus(enum.Enum):
     active = "active"
