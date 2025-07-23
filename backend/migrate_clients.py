@@ -14,7 +14,7 @@ def run_migration():
     """Add new columns to clients table"""
     
     # Get database URL from environment
-    db_url = os.environ.get('DATABASE_URL', 'mysql://root:test123@localhost/afro_experts_db')
+    db_url = os.environ.get('DATABASE_URL', 'mysql://erp_user:ErpPassword2025!@localhost/afroexperts_erp')
     
     engine = create_engine(db_url)
     
