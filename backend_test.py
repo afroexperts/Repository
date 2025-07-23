@@ -1291,7 +1291,7 @@ class BackendTester:
             }
             
             success, data, status_code = self.make_request("POST", "/services/bookings", booking_data)
-            if success and status_code == 200:
+            if success and status_code == 200 and data.get("id"):
                 successful_types.append(service_type)
         
         if len(successful_types) == len(service_types):
