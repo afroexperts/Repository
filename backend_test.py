@@ -1633,10 +1633,11 @@ class BackendTester:
         for i in range(3):
             transaction_data = {
                 "transaction_type": "income",
-                "category": "sales",
+                "category": "other",
                 "amount": 50000.0 + (i * 10000),
                 "description": f"Test transaction {i+1} for number generation",
-                "reference_id": f"NUM-GEN-TEST-{i+1:03d}"
+                "reference": f"NUM-GEN-TEST-{i+1:03d}",
+                "payment_method": "bank_transfer"
             }
             
             success, data, status_code = self.make_request("POST", "/finance/transactions", transaction_data)
