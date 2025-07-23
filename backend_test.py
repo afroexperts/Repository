@@ -2152,14 +2152,11 @@ class BackendTester:
         self.test_pos_transactions_create()
         self.test_pos_payment_methods()
         
-        # NEW MODULE TESTS - Service Booking
+        # ENHANCED SERVICE BOOKING MANAGEMENT TESTS
         print("\n" + "="*50)
-        print("TESTING NEW MODULE: SERVICE BOOKING")
+        print("TESTING ENHANCED SERVICE BOOKING MANAGEMENT MODULE")
         print("="*50)
-        self.test_service_bookings_get()
-        self.test_service_bookings_create()
-        self.test_service_bookings_update()
-        self.test_service_types()
+        self.run_enhanced_service_booking_tests()
         
         # NEW MODULE TESTS - Finance Module
         print("\n" + "="*50)
