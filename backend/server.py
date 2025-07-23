@@ -1164,18 +1164,105 @@ def create_client(client: ClientCreate, db: Session = Depends(get_db)):
             client_type=client.client_type,
             company_name=client.company_name,
             tax_number=client.tax_number,
-            credit_limit=client.credit_limit or 0.0
+            credit_limit=client.credit_limit or 0.0,
+            logo=client.logo,
+            website_url=client.website_url,
+            showcase_on_website=client.showcase_on_website,
+            display_order=client.display_order
         )
         
         db.add(db_client)
         db.commit()
         db.refresh(db_client)
         
-        return db_client
+        return {
+            "success": True,
+            "message": "Client created successfully",
+            "id": db_client.id
+        }
         
     except Exception as e:
         logger.error(f"Create client error: {e}")
         raise HTTPException(status_code=500, detail="Failed to create client")
+
+@app.put("/api/clients/{client_id}")
+def update_client(client_id: str, client_update: ClientUpdate, db: Session = Depends(get_db)):
+    """Update existing client"""
+    try:
+        db_client = db.query(Client).filter(Client.id == client_id).first()
+        if not db_client:
+            raise HTTPException(status_code=404, detail="Client not found")
+        
+        # Update fields
+        update_data = client_update.dict(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(db_client, field, value)
+        
+        db_client.updated_at = datetime.utcnow()
+        
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": "Client updated successfully",
+            "id": db_client.id
+        }
+        
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Update client error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to update client: {str(e)}")
+
+@app.get("/api/clients/showcase")
+def get_client_showcase(db: Session = Depends(get_db)):
+    """Get clients for public website showcase"""
+    try:
+        clients = db.query(Client).filter(
+            Client.showcase_on_website == True,
+            Client.logo.isnot(None)
+        ).order_by(Client.display_order.asc(), Client.name.asc()).all()
+        
+        # Format response for showcase
+        showcase_clients = []
+        for client in clients:
+            showcase_client = {
+                "id": client.id,
+                "name": client.name,
+                "company_name": client.company_name,
+                "logo": client.logo,
+                "website_url": client.website_url,
+                "display_order": client.display_order
+            }
+            showcase_clients.append(showcase_client)
+        
+        return showcase_clients
+    except Exception as e:
+        logger.error(f"Get client showcase error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get client showcase")
+
+@app.post("/api/clients/{client_id}/toggle-showcase")
+def toggle_client_showcase(client_id: str, db: Session = Depends(get_db)):
+    """Toggle client showcase visibility"""
+    try:
+        db_client = db.query(Client).filter(Client.id == client_id).first()
+        if not db_client:
+            raise HTTPException(status_code=404, detail="Client not found")
+        
+        db_client.showcase_on_website = not db_client.showcase_on_website
+        db_client.updated_at = datetime.utcnow()
+        
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": f"Client showcase {'enabled' if db_client.showcase_on_website else 'disabled'}",
+            "showcase_enabled": db_client.showcase_on_website
+        }
+        
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Toggle client showcase error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to toggle client showcase")
 
 # ===============================
 # Order Management Endpoints  
