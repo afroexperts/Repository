@@ -3240,12 +3240,11 @@ def get_portfolio_by_category(category: str, db: Session = Depends(get_db)):
     """Get portfolio items by category"""
     try:
         # Validate category
-        try:
-            category_enum = PortfolioCategory(category)
-        except ValueError:
+        valid_categories = [cat.value for cat in PortfolioCategory]
+        if category not in valid_categories:
             raise HTTPException(status_code=400, detail="Invalid portfolio category")
         
-        items = db.query(PortfolioItem).filter(PortfolioItem.category == category_enum).order_by(PortfolioItem.created_at.desc()).all()
+        items = db.query(PortfolioItem).filter(PortfolioItem.category == category).order_by(PortfolioItem.created_at.desc()).all()
         
         # Format response
         formatted_items = []
