@@ -334,6 +334,18 @@ backend:
           agent: "testing"
           comment: "🎉 PORTFOLIO MANAGEMENT API FULLY TESTED AND FUNCTIONAL: ✅ All 8 endpoints working correctly (100% success rate), ✅ Critical database schema issues resolved (changed enum columns to string columns to handle long category names), ✅ CORE CRUD OPERATIONS VERIFIED: Portfolio item creation with all required fields, single item retrieval with full details, item updates with partial data support, item deletion with proper success messages, ✅ ADVANCED FEATURES WORKING: Technologies and results JSON arrays, category/status filtering (7 categories, 5 statuses), summary statistics with item counts and top technologies, ✅ DATA VALIDATION CONFIRMED: Proper validation for categories and statuses, 404 errors for missing items, 400 errors for invalid input, comprehensive error handling and logging. Portfolio Management module is production-ready with complete functionality for managing project portfolios including creation, updates, filtering, and analytics capabilities."
 
+  - task: "Second-Hand Sales Management API"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Second-Hand Sales Management API implemented with complete CRUD operations: ✅ GET /api/secondhand - List all second-hand items, ✅ POST /api/secondhand - Create second-hand item with images, specifications, and seller info, ✅ GET /api/secondhand/{id} - Get single item details with view count increment, ✅ PUT /api/secondhand/{id} - Update item with status and sold tracking, ✅ DELETE /api/secondhand/{id} - Delete item with sold validation, ✅ GET /api/secondhand/category/{category} - Filter by category (7 categories), ✅ GET /api/secondhand/condition/{condition} - Filter by condition (5 conditions), ✅ GET /api/secondhand/summary - Statistics including price analysis and view counts. Includes comprehensive business logic, validation, and marketplace features."
+
   - task: "Reports Module API"
     implemented: true
     working: true
