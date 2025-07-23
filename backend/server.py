@@ -29,7 +29,8 @@ from database import (
     WebsiteSetting, ContactSubmission, UserRole, UserStatus, OrderStatus,
     PaymentMethod, ServiceType, MovementType, TransactionType,
     Invoice, InvoiceItem, InvoicePayment, InvoiceLog, InvoiceTemplate,
-    InvoiceStatus, InvoiceType, PaymentStatus, Currency
+    InvoiceStatus, InvoiceType, PaymentStatus, Currency,
+    PortfolioItem, PortfolioCategory, PortfolioStatus
 )
 
 # Import Pydantic models for validation (keeping the existing ones)
