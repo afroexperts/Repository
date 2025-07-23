@@ -54,6 +54,8 @@ class ServiceBookingServiceType(str, Enum):
     software_development = "software_development"
     logistics_support = "logistics_support"
     consultation = "consultation"
+    maintenance = "maintenance"
+    training = "training"
 
 class UserRole(str, Enum):
     admin = "admin"
