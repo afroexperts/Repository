@@ -959,23 +959,23 @@ def get_transactions_by_category(category: str, db: Session = Depends(get_db)):
 def get_financial_analytics(db: Session = Depends(get_db)):
     """Get comprehensive financial analytics"""
     try:
-        # Monthly income/expense trends
+        # Monthly income/expense trends using MySQL DATE_FORMAT
         monthly_income = db.query(
-            func.date_trunc('month', FinancialTransaction.created_at).label('month'),
+            func.date_format(FinancialTransaction.created_at, '%Y-%m').label('month'),
             func.sum(FinancialTransaction.amount).label('total')
         ).filter(
             FinancialTransaction.transaction_type == TransactionType.income
         ).group_by(
-            func.date_trunc('month', FinancialTransaction.created_at)
+            func.date_format(FinancialTransaction.created_at, '%Y-%m')
         ).order_by('month').all()
         
         monthly_expense = db.query(
-            func.date_trunc('month', FinancialTransaction.created_at).label('month'),
+            func.date_format(FinancialTransaction.created_at, '%Y-%m').label('month'),
             func.sum(FinancialTransaction.amount).label('total')
         ).filter(
             FinancialTransaction.transaction_type == TransactionType.expense
         ).group_by(
-            func.date_trunc('month', FinancialTransaction.created_at)
+            func.date_format(FinancialTransaction.created_at, '%Y-%m')
         ).order_by('month').all()
         
         # Category breakdown
