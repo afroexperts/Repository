@@ -43,7 +43,8 @@ from models import (
     WebsiteSettingsUpdate, InvoiceCreate, InvoiceUpdate, InvoiceItemCreate,
     InvoicePaymentCreate, InvoicePaymentUpdate, InvoiceTemplateCreate,
     PortfolioItemCreate, PortfolioItemUpdate, PortfolioItem as PortfolioItemResponse,
-    SecondHandItemCreate, SecondHandItemUpdate, SecondHandItem as SecondHandItemResponse
+    SecondHandItemCreate, SecondHandItemUpdate, SecondHandItem as SecondHandItemResponse,
+    MarbleDustBatchCreate, MarbleDustBatchUpdate, MarbleDustBatch as MarbleDustBatchResponse
 )
 
 # Configure logging
