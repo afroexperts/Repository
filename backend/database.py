@@ -537,6 +537,7 @@ class Invoice(Base):
     items = relationship("InvoiceItem", back_populates="invoice", cascade="all, delete-orphan")
     payments = relationship("InvoicePayment", back_populates="invoice", cascade="all, delete-orphan")
     logs = relationship("InvoiceLog", back_populates="invoice", cascade="all, delete-orphan")
+    recurring_invoice = relationship("RecurringInvoice", back_populates="generated_invoices")
 
 class InvoiceItem(Base):
     __tablename__ = "invoice_items"
