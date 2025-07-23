@@ -2401,7 +2401,7 @@ def create_invoice(invoice_data: InvoiceCreate, db: Session = Depends(get_db)):
     """Create new invoice"""
     try:
         # Get user ID from token (simplified for demo)
-        user_id = "1502c12e-6750-11f0-adbc-46c85275ff51"
+        user_id = "afea850b-dd9c-436b-96a0-e1f8b293e497"
         
         # Generate invoice number
         invoice_count = db.query(Invoice).count()
