@@ -498,6 +498,487 @@ def update_user_preferences(preferences_update: UserPreferenceUpdate, authorizat
         raise HTTPException(status_code=500, detail="Failed to update user preferences")
 
 # ===============================
+# Recurring Invoices API Endpoints
+# ===============================
+
+@app.get("/api/recurring-invoices")
+def get_recurring_invoices(authorization: str = Header(None), db: Session = Depends(get_db)):
+    """Get all recurring invoice templates"""
+    try:
+        user, permissions = get_current_user_with_permissions(authorization, db)
+        if not user or not permissions.get("invoices_view", False):
+            raise HTTPException(status_code=403, detail="Insufficient permissions")
+        
+        recurring_invoices = db.query(RecurringInvoice).order_by(RecurringInvoice.created_at.desc()).all()
+        
+        # Format response
+        formatted_invoices = []
+        for recurring_invoice in recurring_invoices:
+            # Calculate next invoice date if needed
+            if recurring_invoice.is_active and recurring_invoice.next_invoice_date <= date.today():
+                # Update next invoice date based on frequency
+                next_date = calculate_next_invoice_date(recurring_invoice.next_invoice_date, recurring_invoice.frequency)
+                recurring_invoice.next_invoice_date = next_date
+                db.commit()
+            
+            formatted_invoice = {
+                "id": recurring_invoice.id,
+                "template_name": recurring_invoice.template_name,
+                "client_id": recurring_invoice.client_id,
+                "client_name": recurring_invoice.client.name if recurring_invoice.client else "Unknown",
+                "frequency": recurring_invoice.frequency,
+                "start_date": recurring_invoice.start_date.isoformat(),
+                "end_date": recurring_invoice.end_date.isoformat() if recurring_invoice.end_date else None,
+                "next_invoice_date": recurring_invoice.next_invoice_date.isoformat(),
+                "last_generated_date": recurring_invoice.last_generated_date.isoformat() if recurring_invoice.last_generated_date else None,
+                "total_amount": recurring_invoice.total_amount,
+                "currency": recurring_invoice.currency,
+                "is_active": recurring_invoice.is_active,
+                "auto_send": recurring_invoice.auto_send,
+                "created_at": recurring_invoice.created_at.isoformat(),
+                "items_count": len(recurring_invoice.items)
+            }
+            formatted_invoices.append(formatted_invoice)
+        
+        return formatted_invoices
+    except Exception as e:
+        logger.error(f"Get recurring invoices error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve recurring invoices")
+
+@app.post("/api/recurring-invoices")
+def create_recurring_invoice(invoice_data: RecurringInvoiceCreate, authorization: str = Header(None), db: Session = Depends(get_db)):
+    """Create new recurring invoice template"""
+    try:
+        user, permissions = get_current_user_with_permissions(authorization, db)
+        if not user or not permissions.get("invoices_create", False):
+            raise HTTPException(status_code=403, detail="Insufficient permissions")
+        
+        # Verify client exists
+        client = db.query(Client).filter(Client.id == invoice_data.client_id).first()
+        if not client:
+            raise HTTPException(status_code=404, detail="Client not found")
+        
+        # Calculate totals
+        subtotal = sum(item.quantity * item.unit_price for item in invoice_data.items)
+        tax_amount = subtotal * invoice_data.tax_rate
+        total_amount = subtotal + tax_amount - invoice_data.discount_amount
+        
+        # Calculate next invoice date
+        next_invoice_date = calculate_next_invoice_date(invoice_data.start_date, invoice_data.frequency)
+        
+        # Create recurring invoice
+        db_recurring_invoice = RecurringInvoice(
+            template_name=invoice_data.template_name,
+            client_id=invoice_data.client_id,
+            frequency=invoice_data.frequency.value if hasattr(invoice_data.frequency, 'value') else invoice_data.frequency,
+            start_date=invoice_data.start_date,
+            end_date=invoice_data.end_date,
+            next_invoice_date=next_invoice_date,
+            
+            # Invoice template data
+            invoice_type=invoice_data.invoice_type,
+            subtotal=subtotal,
+            tax_rate=invoice_data.tax_rate,
+            tax_amount=tax_amount,
+            discount_amount=invoice_data.discount_amount,
+            total_amount=total_amount,
+            currency=invoice_data.currency,
+            notes=invoice_data.notes,
+            terms=invoice_data.terms,
+            
+            # Automation settings
+            is_active=True,
+            auto_send=invoice_data.auto_send,
+            send_reminder=invoice_data.send_reminder,
+            reminder_days=invoice_data.reminder_days,
+            
+            created_by=user.id
+        )
+        
+        db.add(db_recurring_invoice)
+        db.flush()
+        
+        # Create recurring invoice items
+        for item_data in invoice_data.items:
+            line_total = item_data.quantity * item_data.unit_price
+            if item_data.discount_amount:
+                line_total -= item_data.discount_amount
+            elif item_data.discount_percentage:
+                line_total -= (line_total * item_data.discount_percentage / 100)
+            
+            db_item = RecurringInvoiceItem(
+                recurring_invoice_id=db_recurring_invoice.id,
+                item_type=item_data.item_type,
+                product_id=item_data.product_id,
+                description=item_data.description,
+                quantity=item_data.quantity,
+                unit_price=item_data.unit_price,
+                line_total=line_total,
+                discount_percentage=item_data.discount_percentage,
+                discount_amount=item_data.discount_amount
+            )
+            db.add(db_item)
+        
+        db.commit()
+        db.refresh(db_recurring_invoice)
+        
+        return {
+            "success": True,
+            "message": "Recurring invoice template created successfully",
+            "id": db_recurring_invoice.id,
+            "template_name": db_recurring_invoice.template_name,
+            "next_invoice_date": db_recurring_invoice.next_invoice_date.isoformat()
+        }
+        
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Create recurring invoice error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create recurring invoice: {str(e)}")
+
+@app.get("/api/recurring-invoices/{recurring_invoice_id}")
+def get_recurring_invoice(recurring_invoice_id: str, authorization: str = Header(None), db: Session = Depends(get_db)):
+    """Get single recurring invoice template with full details"""
+    try:
+        user, permissions = get_current_user_with_permissions(authorization, db)
+        if not user or not permissions.get("invoices_view", False):
+            raise HTTPException(status_code=403, detail="Insufficient permissions")
+        
+        recurring_invoice = db.query(RecurringInvoice).filter(RecurringInvoice.id == recurring_invoice_id).first()
+        if not recurring_invoice:
+            raise HTTPException(status_code=404, detail="Recurring invoice template not found")
+        
+        # Format response with items
+        formatted_items = []
+        for item in recurring_invoice.items:
+            formatted_item = {
+                "id": item.id,
+                "item_type": item.item_type,
+                "product_id": item.product_id,
+                "description": item.description,
+                "quantity": item.quantity,
+                "unit_price": item.unit_price,
+                "line_total": item.line_total,
+                "discount_percentage": item.discount_percentage,
+                "discount_amount": item.discount_amount
+            }
+            formatted_items.append(formatted_item)
+        
+        formatted_invoice = {
+            "id": recurring_invoice.id,
+            "template_name": recurring_invoice.template_name,
+            "client_id": recurring_invoice.client_id,
+            "client_name": recurring_invoice.client.name if recurring_invoice.client else "Unknown",
+            "client_email": recurring_invoice.client.email if recurring_invoice.client else None,
+            "frequency": recurring_invoice.frequency,
+            "start_date": recurring_invoice.start_date.isoformat(),
+            "end_date": recurring_invoice.end_date.isoformat() if recurring_invoice.end_date else None,
+            "next_invoice_date": recurring_invoice.next_invoice_date.isoformat(),
+            "last_generated_date": recurring_invoice.last_generated_date.isoformat() if recurring_invoice.last_generated_date else None,
+            
+            # Invoice template data
+            "invoice_type": recurring_invoice.invoice_type,
+            "subtotal": recurring_invoice.subtotal,
+            "tax_rate": recurring_invoice.tax_rate,
+            "tax_amount": recurring_invoice.tax_amount,
+            "discount_amount": recurring_invoice.discount_amount,
+            "total_amount": recurring_invoice.total_amount,
+            "currency": recurring_invoice.currency,
+            "notes": recurring_invoice.notes,
+            "terms": recurring_invoice.terms,
+            
+            # Status and automation
+            "is_active": recurring_invoice.is_active,
+            "auto_send": recurring_invoice.auto_send,
+            "send_reminder": recurring_invoice.send_reminder,
+            "reminder_days": recurring_invoice.reminder_days,
+            
+            # Audit
+            "created_by": recurring_invoice.created_by,
+            "created_by_name": recurring_invoice.created_by_user.full_name if recurring_invoice.created_by_user else "Unknown",
+            "created_at": recurring_invoice.created_at.isoformat(),
+            "updated_at": recurring_invoice.updated_at.isoformat(),
+            
+            # Items
+            "items": formatted_items,
+            "generated_invoices_count": len(recurring_invoice.generated_invoices)
+        }
+        
+        return formatted_invoice
+    except Exception as e:
+        logger.error(f"Get recurring invoice error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve recurring invoice")
+
+@app.put("/api/recurring-invoices/{recurring_invoice_id}")
+def update_recurring_invoice(recurring_invoice_id: str, invoice_update: RecurringInvoiceUpdate, authorization: str = Header(None), db: Session = Depends(get_db)):
+    """Update existing recurring invoice template"""
+    try:
+        user, permissions = get_current_user_with_permissions(authorization, db)
+        if not user or not permissions.get("invoices_update", False):
+            raise HTTPException(status_code=403, detail="Insufficient permissions")
+        
+        # Get existing recurring invoice
+        db_recurring_invoice = db.query(RecurringInvoice).filter(RecurringInvoice.id == recurring_invoice_id).first()
+        if not db_recurring_invoice:
+            raise HTTPException(status_code=404, detail="Recurring invoice template not found")
+        
+        # Update fields
+        update_data = invoice_update.dict(exclude_unset=True)
+        for field, value in update_data.items():
+            if field == 'frequency' and hasattr(value, 'value'):
+                setattr(db_recurring_invoice, field, value.value)
+                # Recalculate next invoice date if frequency changed
+                db_recurring_invoice.next_invoice_date = calculate_next_invoice_date(
+                    db_recurring_invoice.last_generated_date or db_recurring_invoice.start_date,
+                    value.value
+                )
+            else:
+                setattr(db_recurring_invoice, field, value)
+        
+        db_recurring_invoice.updated_at = datetime.utcnow()
+        
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": "Recurring invoice template updated successfully",
+            "id": db_recurring_invoice.id
+        }
+        
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Update recurring invoice error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to update recurring invoice: {str(e)}")
+
+@app.delete("/api/recurring-invoices/{recurring_invoice_id}")
+def delete_recurring_invoice(recurring_invoice_id: str, authorization: str = Header(None), db: Session = Depends(get_db)):
+    """Delete recurring invoice template"""
+    try:
+        user, permissions = get_current_user_with_permissions(authorization, db)
+        if not user or not permissions.get("invoices_delete", False):
+            raise HTTPException(status_code=403, detail="Insufficient permissions")
+        
+        # Get existing recurring invoice
+        db_recurring_invoice = db.query(RecurringInvoice).filter(RecurringInvoice.id == recurring_invoice_id).first()
+        if not db_recurring_invoice:
+            raise HTTPException(status_code=404, detail="Recurring invoice template not found")
+        
+        # Delete recurring invoice (cascade will handle items)
+        db.delete(db_recurring_invoice)
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": "Recurring invoice template deleted successfully"
+        }
+        
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Delete recurring invoice error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete recurring invoice: {str(e)}")
+
+@app.post("/api/recurring-invoices/{recurring_invoice_id}/generate")
+def generate_invoice_from_template(recurring_invoice_id: str, authorization: str = Header(None), db: Session = Depends(get_db)):
+    """Generate a new invoice from recurring invoice template"""
+    try:
+        user, permissions = get_current_user_with_permissions(authorization, db)
+        if not user or not permissions.get("invoices_create", False):
+            raise HTTPException(status_code=403, detail="Insufficient permissions")
+        
+        # Get recurring invoice template
+        recurring_invoice = db.query(RecurringInvoice).filter(RecurringInvoice.id == recurring_invoice_id).first()
+        if not recurring_invoice:
+            raise HTTPException(status_code=404, detail="Recurring invoice template not found")
+        
+        if not recurring_invoice.is_active:
+            raise HTTPException(status_code=400, detail="Recurring invoice template is not active")
+        
+        # Generate invoice number
+        invoice_count = db.query(Invoice).count()
+        invoice_number = f"INV-{datetime.utcnow().strftime('%Y')}-{invoice_count + 1:04d}"
+        
+        # Create invoice
+        db_invoice = Invoice(
+            invoice_number=invoice_number,
+            invoice_type=recurring_invoice.invoice_type,
+            client_id=recurring_invoice.client_id,
+            client_name=recurring_invoice.client.name if recurring_invoice.client else "Unknown",
+            client_email=recurring_invoice.client.email if recurring_invoice.client else None,
+            client_phone=recurring_invoice.client.phone if recurring_invoice.client else None,
+            client_address=recurring_invoice.client.address if recurring_invoice.client else None,
+            issue_date=datetime.utcnow(),
+            due_date=datetime.utcnow() + timedelta(days=30),  # Default 30 days
+            subtotal=recurring_invoice.subtotal,
+            tax_rate=recurring_invoice.tax_rate,
+            tax_amount=recurring_invoice.tax_amount,
+            discount_amount=recurring_invoice.discount_amount,
+            total_amount=recurring_invoice.total_amount,
+            currency=recurring_invoice.currency,
+            status=InvoiceStatus.draft,
+            notes=recurring_invoice.notes,
+            terms=recurring_invoice.terms,
+            balance_due=recurring_invoice.total_amount,
+            recurring_invoice_id=recurring_invoice.id,
+            created_by=user.id
+        )
+        
+        db.add(db_invoice)
+        db.flush()
+        
+        # Create invoice items from template
+        for template_item in recurring_invoice.items:
+            db_item = InvoiceItem(
+                invoice_id=db_invoice.id,
+                item_type=template_item.item_type,
+                product_id=template_item.product_id,
+                description=template_item.description,
+                quantity=template_item.quantity,
+                unit_price=template_item.unit_price,
+                line_total=template_item.line_total,
+                discount_percentage=template_item.discount_percentage,
+                discount_amount=template_item.discount_amount
+            )
+            db.add(db_item)
+        
+        # Update recurring invoice tracking
+        recurring_invoice.last_generated_date = date.today()
+        recurring_invoice.next_invoice_date = calculate_next_invoice_date(date.today(), recurring_invoice.frequency)
+        
+        # Create audit log
+        log_entry = InvoiceLog(
+            invoice_id=db_invoice.id,
+            action="created",
+            description=f"Invoice {invoice_number} generated from recurring template '{recurring_invoice.template_name}'",
+            performed_by=user.id,
+            log_metadata={"recurring_invoice_id": recurring_invoice.id}
+        )
+        db.add(log_entry)
+        
+        db.commit()
+        db.refresh(db_invoice)
+        
+        # TODO: Auto-send if enabled
+        if recurring_invoice.auto_send:
+            # Implement email sending logic here
+            pass
+        
+        return {
+            "success": True,
+            "message": "Invoice generated successfully from template",
+            "invoice_id": db_invoice.id,
+            "invoice_number": db_invoice.invoice_number,
+            "next_generation_date": recurring_invoice.next_invoice_date.isoformat()
+        }
+        
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Generate invoice from template error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate invoice: {str(e)}")
+
+@app.get("/api/recurring-invoices/summary")
+def get_recurring_invoices_summary(authorization: str = Header(None), db: Session = Depends(get_db)):
+    """Get recurring invoices statistics and summary"""
+    try:
+        user, permissions = get_current_user_with_permissions(authorization, db)
+        if not user or not permissions.get("invoices_view", False):
+            raise HTTPException(status_code=403, detail="Insufficient permissions")
+        
+        # Total templates
+        total_templates = db.query(RecurringInvoice).count()
+        active_templates = db.query(RecurringInvoice).filter(RecurringInvoice.is_active == True).count()
+        
+        # Templates by frequency
+        from sqlalchemy import func
+        frequency_counts = db.query(
+            RecurringInvoice.frequency,
+            func.count(RecurringInvoice.id).label('count')
+        ).group_by(RecurringInvoice.frequency).all()
+        
+        frequency_dict = {freq: count for freq, count in frequency_counts}
+        
+        # Revenue statistics
+        revenue_stats = db.query(
+            func.sum(RecurringInvoice.total_amount).label('total_template_value'),
+            func.avg(RecurringInvoice.total_amount).label('avg_template_value')
+        ).first()
+        
+        # Due for generation (next_invoice_date <= today)
+        due_for_generation = db.query(RecurringInvoice).filter(
+            RecurringInvoice.is_active == True,
+            RecurringInvoice.next_invoice_date <= date.today()
+        ).count()
+        
+        # Generated invoices count
+        generated_invoices = db.query(Invoice).filter(Invoice.recurring_invoice_id.isnot(None)).count()
+        
+        return {
+            "total_templates": total_templates,
+            "active_templates": active_templates,
+            "inactive_templates": total_templates - active_templates,
+            "frequency_distribution": frequency_dict,
+            "revenue_statistics": {
+                "total_template_value": float(revenue_stats.total_template_value) if revenue_stats.total_template_value else 0,
+                "avg_template_value": float(revenue_stats.avg_template_value) if revenue_stats.avg_template_value else 0
+            },
+            "due_for_generation": due_for_generation,
+            "total_generated_invoices": generated_invoices
+        }
+        
+    except Exception as e:
+        logger.error(f"Get recurring invoices summary error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve recurring invoices summary")
+
+# ===============================
+# Helper Functions for Recurring Invoices
+# ===============================
+
+def calculate_next_invoice_date(current_date: date, frequency: str) -> date:
+    """Calculate next invoice date based on frequency"""
+    if frequency == "weekly":
+        return current_date + timedelta(weeks=1)
+    elif frequency == "monthly":
+        # Add one month
+        if current_date.month == 12:
+            return current_date.replace(year=current_date.year + 1, month=1)
+        else:
+            try:
+                return current_date.replace(month=current_date.month + 1)
+            except ValueError:
+                # Handle case where current day doesn't exist in next month (e.g., Jan 31 -> Feb 28)
+                next_month = current_date.replace(month=current_date.month + 1, day=1)
+                return next_month.replace(day=min(current_date.day, 28))
+    elif frequency == "quarterly":
+        # Add 3 months
+        month = current_date.month + 3
+        year = current_date.year
+        if month > 12:
+            month -= 12
+            year += 1
+        try:
+            return current_date.replace(year=year, month=month)
+        except ValueError:
+            return current_date.replace(year=year, month=month, day=28)
+    elif frequency == "semi_annually":
+        # Add 6 months
+        month = current_date.month + 6
+        year = current_date.year
+        if month > 12:
+            month -= 12
+            year += 1
+        try:
+            return current_date.replace(year=year, month=month)
+        except ValueError:
+            return current_date.replace(year=year, month=month, day=28)
+    elif frequency == "annually":
+        # Add 1 year
+        try:
+            return current_date.replace(year=current_date.year + 1)
+        except ValueError:
+            # Handle leap year edge case
+            return current_date.replace(year=current_date.year + 1, day=28)
+    else:
+        return current_date + timedelta(days=30)  # Default to monthly
+
+# ===============================
 # Authentication Endpoints
 # ===============================
 
