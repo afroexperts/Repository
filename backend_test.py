@@ -12,8 +12,8 @@ from typing import Dict, Any, Optional
 
 # Configuration
 BASE_URL = "https://480cb20d-5a56-4bb6-932a-c7e00eadfdd6.preview.emergentagent.com/api"
-DEMO_ADMIN_EMAIL = "admin@afroexperts.com"
-DEMO_ADMIN_PASSWORD = "AfroExperts2025!"
+DEMO_ADMIN_EMAIL = "admin@afroexperts.rw"
+DEMO_ADMIN_PASSWORD = "admin123"
 
 class BackendTester:
     def __init__(self):
