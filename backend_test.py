@@ -1787,12 +1787,9 @@ class BackendTester:
         
         # NEW MODULE TESTS - Finance Module
         print("\n" + "="*50)
-        print("TESTING NEW MODULE: FINANCE MODULE")
+        print("TESTING ENHANCED FINANCE MANAGEMENT MODULE")
         print("="*50)
-        self.test_financial_transactions_get()
-        self.test_financial_transactions_create()
-        self.test_financial_summary()
-        self.test_financial_transaction_types()
+        self.run_enhanced_finance_tests()
         
         # Print summary
         self.print_summary()
