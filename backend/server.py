@@ -30,7 +30,8 @@ from database import (
     PaymentMethod, ServiceType, MovementType, TransactionType,
     Invoice, InvoiceItem, InvoicePayment, InvoiceLog, InvoiceTemplate,
     InvoiceStatus, InvoiceType, PaymentStatus, Currency,
-    PortfolioItem, PortfolioCategory, PortfolioStatus
+    PortfolioItem, PortfolioCategory, PortfolioStatus,
+    SecondHandItem, SecondHandCategory, SecondHandCondition
 )
 
 # Import Pydantic models for validation (keeping the existing ones)
