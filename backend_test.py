@@ -1324,19 +1324,22 @@ class BackendTester:
             
         transaction_data = {
             "transaction_type": "income",
+            "category": "sales",
             "amount": 150000.0,
             "description": "Product sales revenue for January",
-            "reference": "SALES-JAN-2025-001",
-            "payment_method": "bank_transfer"
+            "reference_id": "SALES-JAN-2025-001"
         }
         
         success, data, status_code = self.make_request("POST", "/finance/transactions", transaction_data)
         
-        if success and status_code == 200 and data.get("success"):
+        if success and status_code == 200 and data.get("id"):
             transaction_id = data.get("id")
-            self.log_test("Create Financial Transaction", True, f"Created financial transaction with ID: {transaction_id}")
+            transaction_number = data.get("transaction_number", "Unknown")
+            self.log_test("Create Financial Transaction", True, f"Created financial transaction {transaction_number} with ID: {transaction_id}")
+            return transaction_id
         else:
             self.log_test("Create Financial Transaction", False, f"Status: {status_code}", data)
+            return None
 
     def test_financial_summary(self):
         """Test get financial summary endpoint"""
