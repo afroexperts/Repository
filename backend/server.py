@@ -2590,7 +2590,7 @@ def get_invoice_logs(invoice_id: str, db: Session = Depends(get_db)):
 def generate_invoice_from_order(order_id: str, db: Session = Depends(get_db)):
     """Generate invoice from order"""
     try:
-        user_id = "afea850b-dd9c-436b-96a0-e1f8b293e497"
+        user_id = "56846977-f345-439c-b019-3330f3d16b7e"
         
         # Get order
         order = db.query(Order).filter(Order.id == order_id).first()
