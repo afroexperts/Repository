@@ -1025,8 +1025,8 @@ class BackendTester:
                 "movement_type": movement["type"],
                 "quantity": movement["quantity"],
                 "unit_cost": 25000.0,
-                "reference_number": f"TEST-{movement['type'].upper()}-001",
-                "notes": f"Test {movement['type']} movement"
+                "reference": f"TEST-{movement['type'].upper()}-001",
+                "reason": f"Test {movement['type']} movement"
             }
             
             success, data, status_code = self.make_request("POST", "/inventory/movements", movement_data)
