@@ -707,8 +707,8 @@ def create_inventory_movement(movement_data: InventoryMovementCreate, db: Sessio
             quantity=movement_data.quantity,
             unit_cost=movement_data.unit_cost,
             total_cost=total_cost,
-            reference_number=movement_data.reference_number,
-            notes=movement_data.notes,
+            reference_number=movement_data.reference,
+            notes=movement_data.reason,
             created_by=user_id
         )
         
