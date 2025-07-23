@@ -68,6 +68,11 @@ const Dashboard = () => {
   const [showInventoryModal, setShowInventoryModal] = useState(false);
   const [showServiceBookingModal, setShowServiceBookingModal] = useState(false);
   const [showFinanceModal, setShowFinanceModal] = useState(false);
+  const [showEditFinanceModal, setShowEditFinanceModal] = useState(false);
+  const [showFinanceDetailsModal, setShowFinanceDetailsModal] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState(null);
+  const [financeTypeFilter, setFinanceTypeFilter] = useState('all');
+  const [financeCategoryFilter, setFinanceCategoryFilter] = useState('all');
   const [showSecondHandModal, setShowSecondHandModal] = useState(false);
   const [showMarbleDustModal, setShowMarbleDustModal] = useState(false);
   const [showStarlinkModal, setShowStarlinkModal] = useState(false);
