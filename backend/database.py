@@ -288,6 +288,9 @@ class User(Base):
     @staticmethod
     def hash_password(password: str) -> str:
         return hashlib.sha256(password.encode()).hexdigest()
+    
+    # Relationships
+    preferences = relationship("UserPreference", back_populates="user", uselist=False)
 
 class Product(Base):
     __tablename__ = "products"
