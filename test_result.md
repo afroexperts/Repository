@@ -423,11 +423,11 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Reports Module API"
-    - "Reports Module Frontend"
+    - "Comprehensive Invoicing Module API"
+    - "Invoice Management Frontend"
   stuck_tasks: []
   test_all: false
-  test_priority: "reports_module_completion"
+  test_priority: "invoicing_module_completion"
 
 agent_communication:
     - agent: "main"
