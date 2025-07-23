@@ -255,6 +255,17 @@ const Dashboard = () => {
               setDashboardData(prev => ({ ...prev, clients: clientsResponse.data }));
             }
             break;
+          case "finance":
+            if (dashboardData.financialTransactions.length === 0) {
+              const transactionsResponse = await axios.get(`${API}/finance/transactions`);
+              const summaryResponse = await axios.get(`${API}/finance/summary`);
+              setDashboardData(prev => ({ 
+                ...prev, 
+                financialTransactions: transactionsResponse.data,
+                financialSummary: summaryResponse.data
+              }));
+            }
+            break;
         }
       } catch (error) {
         console.error(`Error fetching ${activeModule} data:`, error);
