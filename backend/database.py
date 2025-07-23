@@ -264,6 +264,7 @@ class ServiceBooking(Base):
     updated_at = Column(DateTime, nullable=True)
     
     # Relationships
+    invoices = relationship("Invoice", back_populates="service_booking")
     technician = relationship("User")
 
 class FinancialTransaction(Base):
