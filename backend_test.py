@@ -3503,7 +3503,366 @@ class BackendTester:
         
         print("="*70)
 
+    # ===============================
+    # PORTFOLIO MANAGEMENT API TESTS
+    # ===============================
+    
+    def test_portfolio_get_all(self):
+        """Test GET /api/portfolio - Get all portfolio items"""
+        if not self.token:
+            self.log_test("Get All Portfolio Items", False, "No token available - login failed")
+            return
+            
+        success, data, status_code = self.make_request("GET", "/portfolio")
+        
+        if success and status_code == 200 and isinstance(data, list):
+            count = len(data)
+            if count > 0:
+                categories = list(set(item.get("category", "Unknown") for item in data))
+                statuses = list(set(item.get("status", "Unknown") for item in data))
+                self.log_test("Get All Portfolio Items", True, f"Retrieved {count} portfolio items with categories: {categories}, statuses: {statuses}")
+            else:
+                self.log_test("Get All Portfolio Items", True, "No portfolio items found")
+        else:
+            self.log_test("Get All Portfolio Items", False, f"Status: {status_code}", data)
+
+    def test_portfolio_create(self):
+        """Test POST /api/portfolio - Create new portfolio item"""
+        if not self.token:
+            self.log_test("Create Portfolio Item", False, "No token available - login failed")
+            return
+            
+        portfolio_data = {
+            "title": "Afro Bulk SMS Platform",
+            "category": "Digital Platforms",
+            "description": "Advanced SMS broadcasting platform with analytics and automation features for businesses across Rwanda",
+            "image": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k=",
+            "technologies": ["Python", "FastAPI", "React", "MySQL", "Redis"],
+            "client": "Afro Experts",
+            "date": "2024",
+            "status": "Live",
+            "link": "https://sms.afroexperts.rw",
+            "results": ["10,000+ users", "99.9% uptime", "50M+ messages sent", "24/7 support"]
+        }
+        
+        success, data, status_code = self.make_request("POST", "/portfolio", portfolio_data)
+        
+        if success and status_code == 200 and data.get("success"):
+            portfolio_id = data.get("id")
+            self.log_test("Create Portfolio Item", True, f"Created portfolio item with ID: {portfolio_id}")
+            return portfolio_id
+        else:
+            self.log_test("Create Portfolio Item", False, f"Status: {status_code}", data)
+            return None
+
+    def test_portfolio_get_single(self):
+        """Test GET /api/portfolio/{id} - Get single portfolio item details"""
+        if not self.token:
+            self.log_test("Get Single Portfolio Item", False, "No token available - login failed")
+            return
+            
+        # First get existing portfolio items to test with
+        success, items, _ = self.make_request("GET", "/portfolio")
+        if not success or not items or len(items) == 0:
+            self.log_test("Get Single Portfolio Item", False, "No portfolio items available for single item test")
+            return
+            
+        item_id = items[0].get("id")
+        
+        success, data, status_code = self.make_request("GET", f"/portfolio/{item_id}")
+        
+        if success and status_code == 200 and data.get("id"):
+            title = data.get("title", "Unknown")
+            category = data.get("category", "Unknown")
+            status_value = data.get("status", "Unknown")
+            self.log_test("Get Single Portfolio Item", True, f"Retrieved portfolio item '{title}' - Category: {category}, Status: {status_value}")
+        else:
+            self.log_test("Get Single Portfolio Item", False, f"Status: {status_code}", data)
+
+    def test_portfolio_update(self):
+        """Test PUT /api/portfolio/{id} - Update existing portfolio item"""
+        if not self.token:
+            self.log_test("Update Portfolio Item", False, "No token available - login failed")
+            return
+            
+        # First get existing portfolio items to test with
+        success, items, _ = self.make_request("GET", "/portfolio")
+        if not success or not items or len(items) == 0:
+            self.log_test("Update Portfolio Item", False, "No portfolio items available for update test")
+            return
+            
+        item_id = items[0].get("id")
+        
+        update_data = {
+            "description": "Updated description via API test - Enhanced SMS platform with new features",
+            "status": "Active",
+            "results": ["15,000+ users", "99.95% uptime", "75M+ messages sent", "Enhanced analytics"]
+        }
+        
+        success, data, status_code = self.make_request("PUT", f"/portfolio/{item_id}", update_data)
+        
+        if success and status_code == 200 and data.get("success"):
+            self.log_test("Update Portfolio Item", True, f"Updated portfolio item {item_id}")
+        else:
+            self.log_test("Update Portfolio Item", False, f"Status: {status_code}", data)
+
+    def test_portfolio_delete(self):
+        """Test DELETE /api/portfolio/{id} - Delete portfolio item"""
+        if not self.token:
+            self.log_test("Delete Portfolio Item", False, "No token available - login failed")
+            return
+            
+        # First create a test portfolio item to delete
+        portfolio_id = self.test_portfolio_create()
+        if not portfolio_id:
+            self.log_test("Delete Portfolio Item", False, "Could not create test portfolio item for deletion")
+            return
+        
+        # Delete the portfolio item
+        success, data, status_code = self.make_request("DELETE", f"/portfolio/{portfolio_id}")
+        
+        if success and status_code == 200 and data.get("success"):
+            message = data.get("message", "Portfolio item deleted")
+            self.log_test("Delete Portfolio Item", True, f"Successfully deleted portfolio item: {message}")
+        else:
+            self.log_test("Delete Portfolio Item", False, f"Status: {status_code}", data)
+
+    def test_portfolio_filter_by_category(self):
+        """Test GET /api/portfolio/category/{category} - Filter portfolio items by category"""
+        if not self.token:
+            self.log_test("Filter Portfolio by Category", False, "No token available - login failed")
+            return
+            
+        # Test different categories
+        categories_to_test = ["Digital Platforms", "Business Solutions", "Network Solutions", "Security Solutions"]
+        successful_categories = []
+        
+        for category in categories_to_test:
+            success, data, status_code = self.make_request("GET", f"/portfolio/category/{category}")
+            
+            if success and status_code == 200:
+                total_items = data.get("total_items", 0)
+                items = data.get("items", [])
+                if len(items) == total_items:
+                    successful_categories.append(f"{category}({total_items})")
+                else:
+                    self.log_test("Filter Portfolio by Category", False, f"Mismatch in item count for {category}")
+                    return
+        
+        if len(successful_categories) > 0:
+            self.log_test("Filter Portfolio by Category", True, f"Successfully filtered by categories: {successful_categories}")
+        else:
+            self.log_test("Filter Portfolio by Category", False, "Failed to filter by any category")
+
+    def test_portfolio_filter_by_status(self):
+        """Test GET /api/portfolio/status/{status} - Filter portfolio items by status"""
+        if not self.token:
+            self.log_test("Filter Portfolio by Status", False, "No token available - login failed")
+            return
+            
+        # Test different statuses
+        statuses_to_test = ["Live", "Active", "Completed", "Operating", "In Progress"]
+        successful_statuses = []
+        
+        for status in statuses_to_test:
+            success, data, status_code = self.make_request("GET", f"/portfolio/status/{status}")
+            
+            if success and status_code == 200:
+                total_items = data.get("total_items", 0)
+                items = data.get("items", [])
+                if len(items) == total_items:
+                    successful_statuses.append(f"{status}({total_items})")
+                else:
+                    self.log_test("Filter Portfolio by Status", False, f"Mismatch in item count for {status}")
+                    return
+        
+        if len(successful_statuses) > 0:
+            self.log_test("Filter Portfolio by Status", True, f"Successfully filtered by statuses: {successful_statuses}")
+        else:
+            self.log_test("Filter Portfolio by Status", False, "Failed to filter by any status")
+
+    def test_portfolio_summary(self):
+        """Test GET /api/portfolio/summary - Get portfolio statistics and summary"""
+        if not self.token:
+            self.log_test("Get Portfolio Summary", False, "No token available - login failed")
+            return
+            
+        success, data, status_code = self.make_request("GET", "/portfolio/summary")
+        
+        if success and status_code == 200:
+            required_keys = ["total_items", "category_counts", "status_counts", "recent_items", "top_technologies"]
+            has_required_keys = all(key in data for key in required_keys)
+            
+            if has_required_keys:
+                summary = {
+                    "Total Items": data.get("total_items", 0),
+                    "Category Counts": data.get("category_counts", {}),
+                    "Status Counts": data.get("status_counts", {}),
+                    "Recent Items": data.get("recent_items", 0),
+                    "Top Technologies": data.get("top_technologies", {})
+                }
+                self.log_test("Get Portfolio Summary", True, f"Retrieved portfolio summary: Total Items: {summary['Total Items']}, Categories: {len(summary['Category Counts'])}, Statuses: {len(summary['Status Counts'])}")
+            else:
+                missing_keys = [key for key in required_keys if key not in data]
+                self.log_test("Get Portfolio Summary", False, f"Missing required keys: {missing_keys}")
+        else:
+            self.log_test("Get Portfolio Summary", False, f"Status: {status_code}", data)
+
+    def test_portfolio_validation_invalid_category(self):
+        """Test portfolio validation with invalid category"""
+        if not self.token:
+            self.log_test("Portfolio Invalid Category Validation", False, "No token available - login failed")
+            return
+            
+        success, data, status_code = self.make_request("GET", "/portfolio/category/InvalidCategory")
+        
+        if not success and status_code == 400:
+            error_detail = data.get("detail", "")
+            if "Invalid portfolio category" in error_detail:
+                self.log_test("Portfolio Invalid Category Validation", True, f"Correctly rejected invalid category: {error_detail}")
+            else:
+                self.log_test("Portfolio Invalid Category Validation", False, f"Wrong error message: {error_detail}")
+        else:
+            self.log_test("Portfolio Invalid Category Validation", False, f"Should have failed but got status: {status_code}")
+
+    def test_portfolio_validation_invalid_status(self):
+        """Test portfolio validation with invalid status"""
+        if not self.token:
+            self.log_test("Portfolio Invalid Status Validation", False, "No token available - login failed")
+            return
+            
+        success, data, status_code = self.make_request("GET", "/portfolio/status/InvalidStatus")
+        
+        if not success and status_code == 400:
+            error_detail = data.get("detail", "")
+            if "Invalid portfolio status" in error_detail:
+                self.log_test("Portfolio Invalid Status Validation", True, f"Correctly rejected invalid status: {error_detail}")
+            else:
+                self.log_test("Portfolio Invalid Status Validation", False, f"Wrong error message: {error_detail}")
+        else:
+            self.log_test("Portfolio Invalid Status Validation", False, f"Should have failed but got status: {status_code}")
+
+    def test_portfolio_create_validation(self):
+        """Test portfolio creation with validation"""
+        if not self.token:
+            self.log_test("Portfolio Create Validation", False, "No token available - login failed")
+            return
+            
+        # Test with valid data
+        valid_portfolio_data = {
+            "title": "Network Infrastructure Project",
+            "category": "Network Solutions",
+            "description": "Complete network setup for enterprise client",
+            "image": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD//gA7Q1JFQVRPUjogZ2QtanBlZyB2MS4wICh1c2luZyBJSkcgSlBFRyB2ODApLCBxdWFsaXR5ID0gOTAK/9sAQwADAgIDAgIDAwMDBAMDBAUIBQUEBAUKBwcGCAwKDAwLCgsLDQ4SEA0OEQ4LCxAWEBETFBUVFQwPFxgWFBgSFBUU/9sAQwEDBAQFBAUJBQUJFA0LDRQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQU/8AAEQgAAQABAwEiAAIRAQMRAf/EAB8AAAEFAQEBAQEBAAAAAAAAAAABAgMEBQYHCAkKC//EALUQAAIBAwMCBAMFBQQEAAABfQECAwAEEQUSITFBBhNRYQcicRQygZGhCCNCscEVUtHwJDNicoIJChYXGBkaJSYnKCkqNDU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6g4SFhoeIiYqSk5SVlpeYmZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2drh4uPk5ebn6Onq8fLz9PX29/j5+v/EAB8BAAMBAQEBAQEBAQEAAAAAAAABAgMEBQYHCAkKC//EALURAAIBAgQEAwQHBQQEAAECdwABAgMRBAUhMQYSQVEHYXETIjKBkQgUobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD9/KKKKAP/2Q==",
+            "technologies": ["Cisco", "Ubiquiti", "Fiber Optic", "Network Security"],
+            "client": "Rwanda Development Bank",
+            "date": "2024",
+            "status": "Completed",
+            "link": "https://portfolio.afroexperts.rw/network-project",
+            "results": ["100% uptime", "50+ workstations connected", "Enterprise-grade security"]
+        }
+        
+        success, data, status_code = self.make_request("POST", "/portfolio", valid_portfolio_data)
+        
+        if success and status_code == 200 and data.get("success"):
+            portfolio_id = data.get("id")
+            self.log_test("Portfolio Create Validation", True, f"Successfully created portfolio item with valid data: {portfolio_id}")
+        else:
+            self.log_test("Portfolio Create Validation", False, f"Failed to create with valid data - Status: {status_code}", data)
+
+    def test_portfolio_technologies_array(self):
+        """Test portfolio creation and retrieval with technologies array"""
+        if not self.token:
+            self.log_test("Portfolio Technologies Array", False, "No token available - login failed")
+            return
+            
+        # Create portfolio with multiple technologies
+        portfolio_data = {
+            "title": "E-commerce Platform Development",
+            "category": "Digital Platforms",
+            "description": "Full-stack e-commerce solution with payment integration",
+            "image": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k=",
+            "technologies": ["React", "Node.js", "MongoDB", "Stripe API", "AWS", "Docker"],
+            "client": "Kigali Shopping Mall",
+            "date": "2024",
+            "status": "In Progress",
+            "results": ["Mobile responsive", "Payment gateway integrated", "Admin dashboard"]
+        }
+        
+        success, data, status_code = self.make_request("POST", "/portfolio", portfolio_data)
+        
+        if success and status_code == 200 and data.get("success"):
+            portfolio_id = data.get("id")
+            
+            # Retrieve the created item to verify technologies array
+            success, item_data, _ = self.make_request("GET", f"/portfolio/{portfolio_id}")
+            
+            if success and item_data.get("technologies"):
+                technologies = item_data.get("technologies", [])
+                if isinstance(technologies, list) and len(technologies) == 6:
+                    self.log_test("Portfolio Technologies Array", True, f"Technologies array correctly stored and retrieved: {technologies}")
+                else:
+                    self.log_test("Portfolio Technologies Array", False, f"Technologies array format incorrect: {technologies}")
+            else:
+                self.log_test("Portfolio Technologies Array", False, "Could not retrieve technologies array")
+        else:
+            self.log_test("Portfolio Technologies Array", False, f"Failed to create portfolio with technologies - Status: {status_code}", data)
+
+    def test_portfolio_results_array(self):
+        """Test portfolio creation and retrieval with results array"""
+        if not self.token:
+            self.log_test("Portfolio Results Array", False, "No token available - login failed")
+            return
+            
+        # Get existing portfolio items to test with
+        success, items, _ = self.make_request("GET", "/portfolio")
+        if not success or not items or len(items) == 0:
+            self.log_test("Portfolio Results Array", False, "No portfolio items available for results array test")
+            return
+            
+        item = items[0]
+        results = item.get("results", [])
+        
+        if isinstance(results, list) and len(results) > 0:
+            self.log_test("Portfolio Results Array", True, f"Results array correctly formatted: {results}")
+        else:
+            self.log_test("Portfolio Results Array", False, f"Results array format incorrect or empty: {results}")
+
+    def run_portfolio_tests(self):
+        """Run all Portfolio Management API tests"""
+        print("\n" + "="*60)
+        print("TESTING PORTFOLIO MANAGEMENT API")
+        print("="*60)
+        
+        # Core CRUD operations
+        self.test_portfolio_get_all()
+        self.test_portfolio_create()
+        self.test_portfolio_get_single()
+        self.test_portfolio_update()
+        self.test_portfolio_delete()
+        
+        # Filtering operations
+        self.test_portfolio_filter_by_category()
+        self.test_portfolio_filter_by_status()
+        
+        # Summary and analytics
+        self.test_portfolio_summary()
+        
+        # Validation tests
+        self.test_portfolio_validation_invalid_category()
+        self.test_portfolio_validation_invalid_status()
+        self.test_portfolio_create_validation()
+        
+        # Data structure tests
+        self.test_portfolio_technologies_array()
+        self.test_portfolio_results_array()
+
 if __name__ == "__main__":
     tester = BackendTester()
-    # Focus on invoice testing as requested
-    tester.run_focused_invoice_testing()
+    # Run Portfolio Management API tests as requested
+    tester.test_authentication_login()
+    if tester.token:
+        tester.run_portfolio_tests()
+        tester.print_summary()
+    else:
+        print("❌ Authentication failed - cannot proceed with Portfolio API testing")
