@@ -2977,7 +2977,7 @@ def generate_invoice_from_order(order_id: str, db: Session = Depends(get_db)):
             action="created",
             description=f"Invoice {invoice_number} generated from order {order.order_number}",
             performed_by=user_id,
-            metadata={"order_id": order_id, "order_number": order.order_number}
+            log_metadata={"order_id": order_id, "order_number": order.order_number}
         )
         db.add(log_entry)
         
