@@ -2717,7 +2717,7 @@ def get_overdue_invoices(db: Session = Depends(get_db)):
         return formatted_invoices
     except Exception as e:
         logger.error(f"Get overdue invoices error: {e}")
-        raise HTTPException(status_code=500, detail="Failed to retrieve overdue invoices")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve overdue invoices: {str(e)}")
 
 @app.post("/api/invoices/{invoice_id}/payments")
 def add_invoice_payment(invoice_id: str, payment_data: InvoicePaymentCreate, db: Session = Depends(get_db)):
