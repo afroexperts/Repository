@@ -3151,6 +3151,50 @@ def create_portfolio_item(item_data: PortfolioItemCreate, db: Session = Depends(
         logger.error(f"Create portfolio item error: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to create portfolio item: {str(e)}")
 
+@app.get("/api/portfolio/summary")
+def get_portfolio_summary(db: Session = Depends(get_db)):
+    """Get portfolio statistics and summary"""
+    try:
+        # Total items
+        total_items = db.query(PortfolioItem).count()
+        
+        # Items by category
+        category_counts = {}
+        for category in PortfolioCategory:
+            count = db.query(PortfolioItem).filter(PortfolioItem.category == category.value).count()
+            category_counts[category.value] = count
+        
+        # Items by status
+        status_counts = {}
+        for status in PortfolioStatus:
+            count = db.query(PortfolioItem).filter(PortfolioItem.status == status.value).count()
+            status_counts[status.value] = count
+        
+        # Recent items
+        recent_items = db.query(PortfolioItem).order_by(PortfolioItem.created_at.desc()).limit(5).all()
+        
+        # Technologies usage (get most used technologies)
+        technology_usage = {}
+        all_items = db.query(PortfolioItem).all()
+        for item in all_items:
+            if item.technologies and isinstance(item.technologies, list):
+                for tech in item.technologies:
+                    technology_usage[tech] = technology_usage.get(tech, 0) + 1
+        
+        # Sort technologies by usage
+        top_technologies = sorted(technology_usage.items(), key=lambda x: x[1], reverse=True)[:10]
+        
+        return {
+            "total_items": total_items,
+            "category_counts": category_counts,
+            "status_counts": status_counts,
+            "recent_items": len(recent_items),
+            "top_technologies": dict(top_technologies)
+        }
+    except Exception as e:
+        logger.error(f"Get portfolio summary error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve portfolio summary: {str(e)}")
+
 @app.get("/api/portfolio/{item_id}")
 def get_portfolio_item(item_id: str, db: Session = Depends(get_db)):
     """Get single portfolio item with full details"""
