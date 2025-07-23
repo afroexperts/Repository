@@ -287,6 +287,15 @@ const Dashboard = () => {
               }));
             }
             break;
+          case "reports":
+            if (dashboardData.availableReports.length === 0) {
+              const reportsResponse = await axios.get(`${API}/reports/list`);
+              setDashboardData(prev => ({ 
+                ...prev, 
+                availableReports: reportsResponse.data.reports || []
+              }));
+            }
+            break;
         }
       } catch (error) {
         console.error(`Error fetching ${activeModule} data:`, error);
