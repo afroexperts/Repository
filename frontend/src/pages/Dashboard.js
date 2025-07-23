@@ -264,6 +264,17 @@ const Dashboard = () => {
               setDashboardData(prev => ({ ...prev, clients: clientsResponse.data }));
             }
             break;
+          case "services":
+            if (dashboardData.serviceBookings.length === 0) {
+              const bookingsResponse = await axios.get(`${API}/services/bookings`);
+              const summaryResponse = await axios.get(`${API}/services/summary`);
+              setDashboardData(prev => ({ 
+                ...prev, 
+                serviceBookings: bookingsResponse.data,
+                servicesSummary: summaryResponse.data
+              }));
+            }
+            break;
           case "finance":
             if (dashboardData.financialTransactions.length === 0) {
               const transactionsResponse = await axios.get(`${API}/finance/transactions`);
