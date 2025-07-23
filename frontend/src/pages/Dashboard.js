@@ -140,7 +140,9 @@ const Dashboard = () => {
     service_type: 'it_support',
     description: '',
     location: '',
-    preferred_date: ''
+    preferred_date: '',
+    cost_estimate: '',
+    notes: ''
   });
   
   const [financeForm, setFinanceForm] = useState({
