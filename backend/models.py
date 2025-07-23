@@ -119,6 +119,223 @@ class User(BaseModel):
     class Config:
         use_enum_values = True
 
+# Invoice-related Enums and Models
+class InvoiceStatus(str, Enum):
+    draft = "draft"
+    sent = "sent"
+    paid = "paid"
+    partially_paid = "partially_paid"
+    overdue = "overdue"
+    cancelled = "cancelled"
+
+class InvoiceType(str, Enum):
+    manual = "manual"
+    pos_sale = "pos_sale"
+    service_booking = "service_booking"
+    rental = "rental"
+    logistics = "logistics"
+
+class PaymentStatus(str, Enum):
+    pending = "pending"
+    completed = "completed"
+    failed = "failed"
+    refunded = "refunded"
+
+class Currency(str, Enum):
+    rwf = "RWF"
+    usd = "USD"
+    eur = "EUR"
+
+class PaymentMethod(str, Enum):
+    cash = "cash"
+    card = "card"
+    mobile_money = "mobile_money"
+    bank_transfer = "bank_transfer"
+    afropay = "afropay"
+
+# Invoice Item Models
+class InvoiceItemCreate(BaseModel):
+    item_type: str  # product, service, discount
+    product_id: Optional[str] = None
+    description: str
+    quantity: float = 1.0
+    unit_price: float = 0.0
+    weight: Optional[float] = None
+    weight_unit: Optional[str] = None
+    hours: Optional[float] = None
+    hourly_rate: Optional[float] = None
+    discount_percentage: Optional[float] = None
+    discount_amount: Optional[float] = None
+
+class InvoiceItemUpdate(BaseModel):
+    description: Optional[str] = None
+    quantity: Optional[float] = None
+    unit_price: Optional[float] = None
+    weight: Optional[float] = None
+    weight_unit: Optional[str] = None
+    hours: Optional[float] = None
+    hourly_rate: Optional[float] = None
+    discount_percentage: Optional[float] = None
+    discount_amount: Optional[float] = None
+
+class InvoiceItem(BaseModel):
+    id: str
+    item_type: str
+    product_id: Optional[str] = None
+    description: str
+    quantity: float
+    unit_price: float
+    line_total: float
+    weight: Optional[float] = None
+    weight_unit: Optional[str] = None
+    hours: Optional[float] = None
+    hourly_rate: Optional[float] = None
+    discount_percentage: Optional[float] = None
+    discount_amount: Optional[float] = None
+    created_at: datetime
+
+# Invoice Payment Models
+class InvoicePaymentCreate(BaseModel):
+    payment_method: PaymentMethod
+    amount: float
+    payment_date: Optional[datetime] = None
+    reference_number: Optional[str] = None
+    transaction_id: Optional[str] = None
+    notes: Optional[str] = None
+
+class InvoicePaymentUpdate(BaseModel):
+    payment_status: Optional[PaymentStatus] = None
+    reference_number: Optional[str] = None
+    transaction_id: Optional[str] = None
+    afropay_transaction_id: Optional[str] = None
+    afropay_status: Optional[str] = None
+    notes: Optional[str] = None
+
+class InvoicePayment(BaseModel):
+    id: str
+    payment_method: PaymentMethod
+    amount: float
+    payment_date: datetime
+    payment_status: PaymentStatus
+    reference_number: Optional[str] = None
+    transaction_id: Optional[str] = None
+    afropay_transaction_id: Optional[str] = None
+    afropay_status: Optional[str] = None
+    notes: Optional[str] = None
+    created_at: datetime
+
+# Invoice Models
+class InvoiceCreate(BaseModel):
+    invoice_type: InvoiceType = InvoiceType.manual
+    client_id: Optional[str] = None
+    client_name: str
+    client_email: Optional[str] = None
+    client_phone: Optional[str] = None
+    client_address: Optional[str] = None
+    due_date: datetime
+    currency: Currency = Currency.rwf
+    tax_rate: float = 0.18
+    discount_amount: float = 0.0
+    notes: Optional[str] = None
+    terms: Optional[str] = None
+    order_id: Optional[str] = None
+    service_booking_id: Optional[str] = None
+    is_recurring: bool = False
+    recurring_frequency: Optional[str] = None
+    items: List[InvoiceItemCreate]
+
+class InvoiceUpdate(BaseModel):
+    client_name: Optional[str] = None
+    client_email: Optional[str] = None
+    client_phone: Optional[str] = None
+    client_address: Optional[str] = None
+    due_date: Optional[datetime] = None
+    currency: Optional[Currency] = None
+    tax_rate: Optional[float] = None
+    discount_amount: Optional[float] = None
+    notes: Optional[str] = None
+    terms: Optional[str] = None
+    status: Optional[InvoiceStatus] = None
+    is_recurring: Optional[bool] = None
+    recurring_frequency: Optional[str] = None
+
+class Invoice(BaseModel):
+    id: str
+    invoice_number: str
+    invoice_type: InvoiceType
+    client_id: Optional[str] = None
+    client_name: str
+    client_email: Optional[str] = None
+    client_phone: Optional[str] = None
+    client_address: Optional[str] = None
+    issue_date: datetime
+    due_date: datetime
+    subtotal: float
+    tax_rate: float
+    tax_amount: float
+    discount_amount: float
+    total_amount: float
+    currency: Currency
+    status: InvoiceStatus
+    notes: Optional[str] = None
+    terms: Optional[str] = None
+    order_id: Optional[str] = None
+    service_booking_id: Optional[str] = None
+    is_recurring: bool
+    recurring_frequency: Optional[str] = None
+    next_invoice_date: Optional[datetime] = None
+    paid_amount: float
+    balance_due: float
+    created_by: str
+    created_at: datetime
+    updated_at: datetime
+    email_sent: bool
+    email_sent_at: Optional[datetime] = None
+    sms_sent: bool
+    sms_sent_at: Optional[datetime] = None
+    reminder_count: int
+    last_reminder_sent: Optional[datetime] = None
+    items: List[InvoiceItem] = []
+    payments: List[InvoicePayment] = []
+
+class InvoiceLog(BaseModel):
+    id: str
+    action: str
+    description: Optional[str] = None
+    performed_by: str
+    performed_at: datetime
+    metadata: Optional[dict] = None
+
+class InvoiceTemplate(BaseModel):
+    id: str
+    name: str
+    logo_url: Optional[str] = None
+    company_name: str
+    company_address: Optional[str] = None
+    company_phone: Optional[str] = None
+    company_email: Optional[str] = None
+    primary_color: str = "#0c4864"
+    secondary_color: str = "#ffffff"
+    font_family: str = "Helvetica"
+    footer_text: Optional[str] = None
+    default_terms: Optional[str] = None
+    is_default: bool = False
+    is_active: bool = True
+
+class InvoiceTemplateCreate(BaseModel):
+    name: str
+    logo_url: Optional[str] = None
+    company_name: str
+    company_address: Optional[str] = None
+    company_phone: Optional[str] = None
+    company_email: Optional[str] = None
+    primary_color: str = "#0c4864"
+    secondary_color: str = "#ffffff"
+    font_family: str = "Helvetica"
+    footer_text: Optional[str] = None
+    default_terms: Optional[str] = None
+    is_default: bool = False
+
 # Product Models
 class ProductCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=200)
