@@ -370,18 +370,23 @@ class MarbleDustTester:
         for status in statuses:
             success, data, status_code = self.make_request("GET", f"/marble-dust/status/{status}")
             
-            if success and status_code == 200 and isinstance(data, list):
-                count = len(data)
-                if count > 0:
-                    # Verify all batches have the correct status
-                    correct_status = all(batch.get("status") == status for batch in data)
-                    if correct_status:
-                        successful_statuses.append(f"{status}({count})")
+            if success and status_code == 200:
+                if "batches" in data and isinstance(data["batches"], list):
+                    batches = data["batches"]
+                    count = len(batches)
+                    if count > 0:
+                        # Verify all batches have the correct status
+                        correct_status = all(batch.get("status") == status for batch in batches)
+                        if correct_status:
+                            successful_statuses.append(f"{status}({count})")
+                        else:
+                            self.log_test("Filter Batches by Status", False, f"Retrieved batches contain wrong statuses for {status}")
+                            return
                     else:
-                        self.log_test("Filter Batches by Status", False, f"Retrieved batches contain wrong statuses for {status}")
-                        return
+                        successful_statuses.append(f"{status}(0)")
                 else:
-                    successful_statuses.append(f"{status}(0)")
+                    self.log_test("Filter Batches by Status", False, f"Invalid response format for {status}")
+                    return
         
         if len(successful_statuses) == len(statuses):
             self.log_test("Filter Batches by Status", True, f"Successfully filtered batches by status: {successful_statuses}")
