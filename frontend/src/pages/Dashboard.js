@@ -185,6 +185,29 @@ const Dashboard = () => {
     installation_date: '',
     technician_id: ''
   });
+
+  const [invoiceForm, setInvoiceForm] = useState({
+    invoice_type: 'manual',
+    client_name: '',
+    client_email: '',
+    client_phone: '',
+    client_address: '',
+    due_date: '',
+    currency: 'RWF',
+    tax_rate: 0.18,
+    discount_amount: 0,
+    notes: '',
+    terms: '',
+    items: []
+  });
+
+  const [paymentForm, setPaymentForm] = useState({
+    payment_method: 'cash',
+    amount: '',
+    payment_date: '',
+    reference_number: '',
+    notes: ''
+  });
   
   const [dashboardData, setDashboardData] = useState({
     stats: {},
