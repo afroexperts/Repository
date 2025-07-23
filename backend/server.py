@@ -905,7 +905,6 @@ def update_financial_transaction(transaction_id: str, transaction_update: dict, 
         if 'reference_id' in transaction_update:
             transaction.reference_id = transaction_update['reference_id']
         
-        transaction.updated_at = datetime.utcnow()
         db.commit()
         db.refresh(transaction)
         
