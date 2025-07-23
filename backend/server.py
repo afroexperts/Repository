@@ -2851,7 +2851,7 @@ def get_invoice_logs(invoice_id: str, db: Session = Depends(get_db)):
                 "performed_by": log.performed_by,
                 "performed_by_name": log.performed_by_user.name if log.performed_by_user else "Unknown",
                 "performed_at": log.performed_at.isoformat() if log.performed_at else None,
-                "metadata": log.metadata
+                "metadata": log.log_metadata
             }
             formatted_logs.append(formatted_log)
         
