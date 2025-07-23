@@ -62,6 +62,8 @@ class ServiceType(enum.Enum):
     software_development = "software_development"
     logistics_support = "logistics_support"
     consultation = "consultation"
+    maintenance = "maintenance"
+    training = "training"
 
 class MovementType(enum.Enum):
     stock_in = "stock_in"
