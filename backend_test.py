@@ -1324,10 +1324,11 @@ class BackendTester:
             
         transaction_data = {
             "transaction_type": "income",
-            "category": "sales",
+            "category": "other",
             "amount": 150000.0,
             "description": "Product sales revenue for January",
-            "reference_id": "SALES-JAN-2025-001"
+            "reference": "SALES-JAN-2025-001",
+            "payment_method": "bank_transfer"
         }
         
         success, data, status_code = self.make_request("POST", "/finance/transactions", transaction_data)
