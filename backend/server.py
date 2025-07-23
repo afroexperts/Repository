@@ -3307,6 +3307,8 @@ def get_portfolio_by_status(status: str, db: Session = Depends(get_db)):
             "items": formatted_items
         }
         
+    except HTTPException:
+        raise  # Re-raise HTTPExceptions to preserve status codes
     except Exception as e:
         logger.error(f"Get portfolio by status error: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to retrieve portfolio items by status: {str(e)}")
