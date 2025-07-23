@@ -142,6 +142,26 @@ class MarbleDustStatus(enum.Enum):
     shipped = "shipped"
     sold = "sold"
 
+class StarlinkKitType(enum.Enum):
+    standard = "standard"
+    priority = "priority"
+    mobility = "mobility"
+    maritime = "maritime"
+    aviation = "aviation"
+
+class StarlinkInstallationStatus(enum.Enum):
+    scheduled = "scheduled"
+    in_progress = "in_progress"
+    completed = "completed"
+    cancelled = "cancelled"
+    rescheduled = "rescheduled"
+
+class StarlinkServiceStatus(enum.Enum):
+    active = "active"
+    suspended = "suspended"
+    terminated = "terminated"
+    pending_activation = "pending_activation"
+
 class Currency(enum.Enum):
     rwf = "RWF"
     usd = "USD"
