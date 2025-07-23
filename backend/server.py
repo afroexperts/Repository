@@ -2769,7 +2769,7 @@ def add_invoice_payment(invoice_id: str, payment_data: InvoicePaymentCreate, db:
             action="payment_added",
             description=f"Payment of {payment_data.amount} {invoice.currency.value} added via {payment_data.payment_method.value}",
             performed_by=user_id,
-            metadata={
+            log_metadata={
                 "payment_amount": payment_data.amount,
                 "payment_method": payment_data.payment_method.value,
                 "reference_number": payment_data.reference_number
