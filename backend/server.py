@@ -3011,7 +3011,7 @@ def generate_invoice_from_service(service_booking_id: str, db: Session = Depends
         invoice_number = f"INV-{datetime.utcnow().strftime('%Y')}-{invoice_count + 1:04d}"
         
         # Calculate amounts
-        service_amount = service_booking.actual_cost or service_booking.cost_estimate or 0.0
+        service_amount = service_booking.actual_cost or service_booking.estimated_cost or 0.0
         tax_amount = service_amount * 0.18
         total_amount = service_amount + tax_amount
         
