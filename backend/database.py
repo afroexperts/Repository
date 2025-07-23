@@ -504,13 +504,13 @@ class PortfolioItem(Base):
     
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     title = Column(String(200), nullable=False)
-    category = Column(Enum(PortfolioCategory, length=50), nullable=False)
+    category = Column(String(50), nullable=False)  # Store enum value as string
     description = Column(Text, nullable=False)
     image = Column(Text, nullable=False)  # Can store URL or base64 image
     technologies = Column(JSON, nullable=False, default=list)  # Store as JSON array
     client = Column(String(100), nullable=False)
     date = Column(String(10), nullable=False)  # Year or Year-Month format
-    status = Column(Enum(PortfolioStatus, length=20), nullable=False)
+    status = Column(String(20), nullable=False)  # Store enum value as string
     link = Column(String(500), nullable=True)
     results = Column(JSON, nullable=False, default=list)  # Store as JSON array
     
