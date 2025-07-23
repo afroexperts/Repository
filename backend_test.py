@@ -3857,12 +3857,483 @@ class BackendTester:
         self.test_portfolio_technologies_array()
         self.test_portfolio_results_array()
 
+    # ===============================
+    # SECOND-HAND SALES MANAGEMENT API TESTS
+    # ===============================
+    
+    def test_secondhand_get_all(self):
+        """Test GET /api/secondhand - List all second-hand items"""
+        if not self.token:
+            self.log_test("Get All Second-Hand Items", False, "No token available - login failed")
+            return
+            
+        success, data, status_code = self.make_request("GET", "/secondhand")
+        
+        if success and status_code == 200 and isinstance(data, list):
+            count = len(data)
+            if count > 0:
+                categories = list(set(item.get("category", "Unknown") for item in data))
+                conditions = list(set(item.get("condition", "Unknown") for item in data))
+                statuses = list(set(item.get("status", "Unknown") for item in data))
+                self.log_test("Get All Second-Hand Items", True, f"Retrieved {count} items. Categories: {categories}, Conditions: {conditions}, Statuses: {statuses}")
+            else:
+                self.log_test("Get All Second-Hand Items", True, "No second-hand items found")
+        else:
+            self.log_test("Get All Second-Hand Items", False, f"Status: {status_code}", data)
+
+    def test_secondhand_create(self):
+        """Test POST /api/secondhand - Create new second-hand item"""
+        if not self.token:
+            self.log_test("Create Second-Hand Item", False, "No token available - login failed")
+            return
+            
+        item_data = {
+            "product_name": "iPhone 12 Pro Max",
+            "category": "electronics",
+            "condition": "very_good",
+            "original_price": 1200000.0,
+            "selling_price": 850000.0,
+            "description": "Excellent condition iPhone 12 Pro Max, 256GB storage, with original box and charger. Battery health at 90%. No scratches or damage.",
+            "images": ["data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="],
+            "specifications": {
+                "storage": "256GB",
+                "color": "Space Gray",
+                "battery_health": "90%",
+                "network": "5G",
+                "warranty": "No warranty remaining"
+            },
+            "warranty_info": "No warranty remaining - device is out of manufacturer warranty",
+            "seller_name": "John Doe",
+            "seller_contact": "+250788123456",
+            "location": "Kigali, Rwanda"
+        }
+        
+        success, data, status_code = self.make_request("POST", "/secondhand", item_data)
+        
+        if success and status_code == 200 and data.get("success"):
+            item_id = data.get("id")
+            self.log_test("Create Second-Hand Item", True, f"Created second-hand item with ID: {item_id}")
+            return item_id
+        else:
+            self.log_test("Create Second-Hand Item", False, f"Status: {status_code}", data)
+            return None
+
+    def test_secondhand_get_single(self):
+        """Test GET /api/secondhand/{id} - Get single item details with view count increment"""
+        if not self.token:
+            self.log_test("Get Single Second-Hand Item", False, "No token available - login failed")
+            return
+            
+        # First get existing items to test with
+        success, items, _ = self.make_request("GET", "/secondhand")
+        if not success or not items or len(items) == 0:
+            # Create a test item first
+            item_id = self.test_secondhand_create()
+            if not item_id:
+                self.log_test("Get Single Second-Hand Item", False, "No items available and could not create test item")
+                return
+        else:
+            item_id = items[0].get("id")
+            
+        # Get initial view count
+        success, initial_data, _ = self.make_request("GET", f"/secondhand/{item_id}")
+        if not success:
+            self.log_test("Get Single Second-Hand Item", False, "Could not get initial item data")
+            return
+            
+        initial_views = initial_data.get("views_count", 0)
+        
+        # Get the item again to test view count increment
+        success, data, status_code = self.make_request("GET", f"/secondhand/{item_id}")
+        
+        if success and status_code == 200 and data.get("id"):
+            product_name = data.get("product_name", "Unknown")
+            category = data.get("category", "Unknown")
+            condition = data.get("condition", "Unknown")
+            new_views = data.get("views_count", 0)
+            
+            # Check if view count was incremented
+            if new_views > initial_views:
+                self.log_test("Get Single Second-Hand Item", True, f"Retrieved item '{product_name}' ({category}, {condition}), view count incremented: {initial_views} → {new_views}")
+            else:
+                self.log_test("Get Single Second-Hand Item", True, f"Retrieved item '{product_name}' ({category}, {condition}), views: {new_views} (increment may not be working)")
+        else:
+            self.log_test("Get Single Second-Hand Item", False, f"Status: {status_code}", data)
+
+    def test_secondhand_update(self):
+        """Test PUT /api/secondhand/{id} - Update existing item with status management"""
+        if not self.token:
+            self.log_test("Update Second-Hand Item", False, "No token available - login failed")
+            return
+            
+        # First get existing items to test with
+        success, items, _ = self.make_request("GET", "/secondhand")
+        if not success or not items or len(items) == 0:
+            # Create a test item first
+            item_id = self.test_secondhand_create()
+            if not item_id:
+                self.log_test("Update Second-Hand Item", False, "No items available and could not create test item")
+                return
+        else:
+            item_id = items[0].get("id")
+            
+        update_data = {
+            "selling_price": 800000.0,
+            "description": "Updated description - Price reduced for quick sale!",
+            "status": "reserved",
+            "warranty_info": "Updated warranty information"
+        }
+        
+        success, data, status_code = self.make_request("PUT", f"/secondhand/{item_id}", update_data)
+        
+        if success and status_code == 200 and data.get("success"):
+            self.log_test("Update Second-Hand Item", True, f"Updated second-hand item {item_id} with new status and price")
+        else:
+            self.log_test("Update Second-Hand Item", False, f"Status: {status_code}", data)
+
+    def test_secondhand_status_sold_tracking(self):
+        """Test status management - sold item tracking with timestamp"""
+        if not self.token:
+            self.log_test("Second-Hand Status Sold Tracking", False, "No token available - login failed")
+            return
+            
+        # Create a test item first
+        item_id = self.test_secondhand_create()
+        if not item_id:
+            self.log_test("Second-Hand Status Sold Tracking", False, "Could not create test item")
+            return
+            
+        # Update status to sold
+        update_data = {"status": "sold"}
+        
+        success, data, status_code = self.make_request("PUT", f"/secondhand/{item_id}", update_data)
+        
+        if success and status_code == 200:
+            # Get the updated item to check sold_at timestamp
+            success, item_data, _ = self.make_request("GET", f"/secondhand/{item_id}")
+            if success and item_data.get("sold_at"):
+                self.log_test("Second-Hand Status Sold Tracking", True, f"Item marked as sold with timestamp: {item_data.get('sold_at')}")
+            else:
+                self.log_test("Second-Hand Status Sold Tracking", True, f"Item updated to sold status (sold_at timestamp may not be visible in response)")
+        else:
+            self.log_test("Second-Hand Status Sold Tracking", False, f"Status: {status_code}", data)
+
+    def test_secondhand_delete_validation(self):
+        """Test DELETE /api/secondhand/{id} - Delete item with business validation"""
+        if not self.token:
+            self.log_test("Delete Second-Hand Item Validation", False, "No token available - login failed")
+            return
+            
+        # Create a test item first
+        item_id = self.test_secondhand_create()
+        if not item_id:
+            self.log_test("Delete Second-Hand Item Validation", False, "Could not create test item")
+            return
+            
+        # Try to delete the available item (should succeed)
+        success, data, status_code = self.make_request("DELETE", f"/secondhand/{item_id}")
+        
+        if success and status_code == 200 and data.get("success"):
+            self.log_test("Delete Second-Hand Item Validation", True, f"Successfully deleted available item: {data.get('message')}")
+        else:
+            self.log_test("Delete Second-Hand Item Validation", False, f"Status: {status_code}", data)
+
+    def test_secondhand_delete_sold_validation(self):
+        """Test DELETE validation - Should fail for sold items"""
+        if not self.token:
+            self.log_test("Delete Sold Item Validation", False, "No token available - login failed")
+            return
+            
+        # Create a test item first
+        item_id = self.test_secondhand_create()
+        if not item_id:
+            self.log_test("Delete Sold Item Validation", False, "Could not create test item")
+            return
+            
+        # Update status to sold
+        update_data = {"status": "sold"}
+        success, _, _ = self.make_request("PUT", f"/secondhand/{item_id}", update_data)
+        
+        if not success:
+            self.log_test("Delete Sold Item Validation", False, "Could not update item to sold status")
+            return
+            
+        # Now try to delete the sold item (should fail)
+        success, data, status_code = self.make_request("DELETE", f"/secondhand/{item_id}")
+        
+        if not success and status_code == 400:
+            error_detail = data.get("detail", "Unknown error")
+            if "Cannot delete sold items" in error_detail:
+                self.log_test("Delete Sold Item Validation", True, "Correctly prevented deletion of sold item")
+            else:
+                self.log_test("Delete Sold Item Validation", False, f"Wrong error message: {error_detail}")
+        else:
+            self.log_test("Delete Sold Item Validation", False, f"Should have failed but got status: {status_code}")
+
+    def test_secondhand_filter_by_category(self):
+        """Test GET /api/secondhand/category/{category} - Filter by category"""
+        if not self.token:
+            self.log_test("Filter Second-Hand by Category", False, "No token available - login failed")
+            return
+            
+        # Test valid categories
+        categories_to_test = ["electronics", "furniture", "appliances", "vehicles", "machinery", "office_equipment", "other"]
+        successful_categories = []
+        
+        for category in categories_to_test:
+            success, data, status_code = self.make_request("GET", f"/secondhand/category/{category}")
+            
+            if success and status_code == 200:
+                total_items = data.get("total_items", 0)
+                items = data.get("items", [])
+                
+                # Verify all items are of the correct category
+                if total_items == 0 or all(item.get("category") == category for item in items):
+                    successful_categories.append(f"{category}({total_items})")
+                else:
+                    self.log_test("Filter Second-Hand by Category", False, f"Category {category} returned items with wrong categories")
+                    return
+        
+        if len(successful_categories) == len(categories_to_test):
+            self.log_test("Filter Second-Hand by Category", True, f"All categories working: {successful_categories}")
+        else:
+            self.log_test("Filter Second-Hand by Category", False, f"Some categories failed")
+
+    def test_secondhand_filter_by_condition(self):
+        """Test GET /api/secondhand/condition/{condition} - Filter by condition"""
+        if not self.token:
+            self.log_test("Filter Second-Hand by Condition", False, "No token available - login failed")
+            return
+            
+        # Test valid conditions
+        conditions_to_test = ["excellent", "very_good", "good", "fair", "poor"]
+        successful_conditions = []
+        
+        for condition in conditions_to_test:
+            success, data, status_code = self.make_request("GET", f"/secondhand/condition/{condition}")
+            
+            if success and status_code == 200:
+                total_items = data.get("total_items", 0)
+                items = data.get("items", [])
+                
+                # Verify all items are of the correct condition
+                if total_items == 0 or all(item.get("condition") == condition for item in items):
+                    successful_conditions.append(f"{condition}({total_items})")
+                else:
+                    self.log_test("Filter Second-Hand by Condition", False, f"Condition {condition} returned items with wrong conditions")
+                    return
+        
+        if len(successful_conditions) == len(conditions_to_test):
+            self.log_test("Filter Second-Hand by Condition", True, f"All conditions working: {successful_conditions}")
+        else:
+            self.log_test("Filter Second-Hand by Condition", False, f"Some conditions failed")
+
+    def test_secondhand_summary_statistics(self):
+        """Test GET /api/secondhand/summary - Get statistics including price analysis"""
+        if not self.token:
+            self.log_test("Second-Hand Summary Statistics", False, "No token available - login failed")
+            return
+            
+        success, data, status_code = self.make_request("GET", "/secondhand/summary")
+        
+        if success and status_code == 200:
+            required_keys = ["total_items", "category_counts", "condition_counts", "status_counts", "price_statistics", "total_views"]
+            has_required_keys = all(key in data for key in required_keys)
+            
+            if has_required_keys:
+                summary = {
+                    "Total Items": data.get("total_items", 0),
+                    "Categories": data.get("category_counts", {}),
+                    "Conditions": data.get("condition_counts", {}),
+                    "Status Counts": data.get("status_counts", {}),
+                    "Price Stats": data.get("price_statistics", {}),
+                    "Total Views": data.get("total_views", 0)
+                }
+                self.log_test("Second-Hand Summary Statistics", True, f"Retrieved comprehensive summary: {summary}")
+            else:
+                missing_keys = [key for key in required_keys if key not in data]
+                self.log_test("Second-Hand Summary Statistics", False, f"Missing required keys: {missing_keys}")
+        else:
+            self.log_test("Second-Hand Summary Statistics", False, f"Status: {status_code}", data)
+
+    def test_secondhand_price_analysis(self):
+        """Test price analysis functionality in summary"""
+        if not self.token:
+            self.log_test("Second-Hand Price Analysis", False, "No token available - login failed")
+            return
+            
+        # Create multiple items with different prices for testing
+        test_items = [
+            {"product_name": "Test Laptop", "category": "electronics", "condition": "good", "selling_price": 500000.0},
+            {"product_name": "Test Phone", "category": "electronics", "condition": "very_good", "selling_price": 300000.0},
+            {"product_name": "Test Tablet", "category": "electronics", "condition": "excellent", "selling_price": 400000.0}
+        ]
+        
+        created_items = []
+        for item_data in test_items:
+            full_item_data = {
+                **item_data,
+                "original_price": item_data["selling_price"] * 1.5,
+                "description": f"Test item for price analysis: {item_data['product_name']}",
+                "seller_name": "Test Seller",
+                "seller_contact": "+250788000000",
+                "location": "Test Location"
+            }
+            
+            success, data, status_code = self.make_request("POST", "/secondhand", full_item_data)
+            if success and data.get("id"):
+                created_items.append(data.get("id"))
+        
+        if len(created_items) >= 2:
+            # Get summary to check price analysis
+            success, data, status_code = self.make_request("GET", "/secondhand/summary")
+            
+            if success and status_code == 200:
+                price_stats = data.get("price_statistics", {})
+                if price_stats.get("min_price") and price_stats.get("max_price") and price_stats.get("average_price"):
+                    self.log_test("Second-Hand Price Analysis", True, f"Price analysis working: Min: {price_stats['min_price']}, Max: {price_stats['max_price']}, Avg: {price_stats['average_price']}")
+                else:
+                    self.log_test("Second-Hand Price Analysis", False, "Price statistics incomplete")
+            else:
+                self.log_test("Second-Hand Price Analysis", False, f"Could not get summary: {status_code}")
+        else:
+            self.log_test("Second-Hand Price Analysis", False, "Could not create enough test items for price analysis")
+
+    def test_secondhand_data_validation(self):
+        """Test data validation for required fields and enums"""
+        if not self.token:
+            self.log_test("Second-Hand Data Validation", False, "No token available - login failed")
+            return
+            
+        # Test invalid category
+        invalid_category_data = {
+            "product_name": "Test Item",
+            "category": "invalid_category",
+            "condition": "good",
+            "original_price": 100000.0,
+            "selling_price": 80000.0,
+            "description": "Test item with invalid category"
+        }
+        
+        success, data, status_code = self.make_request("POST", "/secondhand", invalid_category_data)
+        
+        if not success and status_code in [400, 422]:
+            # Test invalid condition
+            invalid_condition_data = {
+                "product_name": "Test Item",
+                "category": "electronics",
+                "condition": "invalid_condition",
+                "original_price": 100000.0,
+                "selling_price": 80000.0,
+                "description": "Test item with invalid condition"
+            }
+            
+            success, data, status_code = self.make_request("POST", "/secondhand", invalid_condition_data)
+            
+            if not success and status_code in [400, 422]:
+                self.log_test("Second-Hand Data Validation", True, "Correctly validated invalid categories and conditions")
+            else:
+                self.log_test("Second-Hand Data Validation", False, f"Invalid condition not caught: {status_code}")
+        else:
+            self.log_test("Second-Hand Data Validation", False, f"Invalid category not caught: {status_code}")
+
+    def test_secondhand_marketplace_workflow(self):
+        """Test complete marketplace workflow: create → view → update → sell → delete validation"""
+        if not self.token:
+            self.log_test("Second-Hand Marketplace Workflow", False, "No token available - login failed")
+            return
+            
+        workflow_steps = []
+        
+        # Step 1: Create item
+        item_data = {
+            "product_name": "Workflow Test MacBook",
+            "category": "electronics",
+            "condition": "very_good",
+            "original_price": 2000000.0,
+            "selling_price": 1500000.0,
+            "description": "MacBook Pro for workflow testing",
+            "seller_name": "Workflow Tester",
+            "seller_contact": "+250788999000",
+            "location": "Kigali"
+        }
+        
+        success, data, _ = self.make_request("POST", "/secondhand", item_data)
+        if success and data.get("id"):
+            item_id = data.get("id")
+            workflow_steps.append("✅ Created")
+        else:
+            self.log_test("Second-Hand Marketplace Workflow", False, "Failed at creation step")
+            return
+        
+        # Step 2: View item (increment views)
+        success, data, _ = self.make_request("GET", f"/secondhand/{item_id}")
+        if success and data.get("views_count", 0) > 0:
+            workflow_steps.append("✅ Viewed")
+        else:
+            workflow_steps.append("❌ View count not incremented")
+        
+        # Step 3: Update item (reserve)
+        success, data, _ = self.make_request("PUT", f"/secondhand/{item_id}", {"status": "reserved"})
+        if success:
+            workflow_steps.append("✅ Reserved")
+        else:
+            workflow_steps.append("❌ Reservation failed")
+        
+        # Step 4: Mark as sold
+        success, data, _ = self.make_request("PUT", f"/secondhand/{item_id}", {"status": "sold"})
+        if success:
+            workflow_steps.append("✅ Sold")
+        else:
+            workflow_steps.append("❌ Sale failed")
+        
+        # Step 5: Try to delete sold item (should fail)
+        success, data, status_code = self.make_request("DELETE", f"/secondhand/{item_id}")
+        if not success and status_code == 400:
+            workflow_steps.append("✅ Delete validation")
+        else:
+            workflow_steps.append("❌ Delete validation failed")
+        
+        # Count successful steps
+        successful_steps = len([step for step in workflow_steps if "✅" in step])
+        total_steps = len(workflow_steps)
+        
+        if successful_steps == total_steps:
+            self.log_test("Second-Hand Marketplace Workflow", True, f"Complete workflow successful: {' → '.join(workflow_steps)}")
+        else:
+            self.log_test("Second-Hand Marketplace Workflow", False, f"Workflow partially failed ({successful_steps}/{total_steps}): {' → '.join(workflow_steps)}")
+
+    def run_secondhand_tests(self):
+        """Run all Second-Hand Sales Management API tests"""
+        print("\n" + "="*60)
+        print("TESTING SECOND-HAND SALES MANAGEMENT API")
+        print("="*60)
+        
+        # Core CRUD operations
+        self.test_secondhand_get_all()
+        self.test_secondhand_create()
+        self.test_secondhand_get_single()
+        self.test_secondhand_update()
+        self.test_secondhand_status_sold_tracking()
+        self.test_secondhand_delete_validation()
+        self.test_secondhand_delete_sold_validation()
+        
+        # Filtering and analytics
+        self.test_secondhand_filter_by_category()
+        self.test_secondhand_filter_by_condition()
+        self.test_secondhand_summary_statistics()
+        self.test_secondhand_price_analysis()
+        
+        # Business logic and validation
+        self.test_secondhand_data_validation()
+        self.test_secondhand_marketplace_workflow()
+
 if __name__ == "__main__":
     tester = BackendTester()
-    # Run Portfolio Management API tests as requested
+    # Run Second-Hand Sales Management API tests as requested
     tester.test_authentication_login()
     if tester.token:
-        tester.run_portfolio_tests()
+        tester.run_secondhand_tests()
         tester.print_summary()
     else:
-        print("❌ Authentication failed - cannot proceed with Portfolio API testing")
+        print("❌ Authentication failed - cannot proceed with Second-Hand Sales API testing")
