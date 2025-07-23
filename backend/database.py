@@ -326,6 +326,13 @@ class Client(Base):
     tax_number = Column(String(50), nullable=True)
     credit_limit = Column(Float, default=0.0)
     current_balance = Column(Float, default=0.0)
+    
+    # Website showcase fields
+    logo = Column(Text, nullable=True)  # Base64 encoded logo
+    website_url = Column(String(500), nullable=True)  # Client's website URL
+    showcase_on_website = Column(Boolean, default=False)  # Show on public website
+    display_order = Column(Integer, default=0)  # Order for display
+    
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, nullable=True)
     
