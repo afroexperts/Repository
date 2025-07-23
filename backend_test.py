@@ -2399,6 +2399,12 @@ class BackendTester:
         print("="*50)
         self.run_enhanced_finance_tests()
         
+        # REPORTS MODULE TESTS
+        print("\n" + "="*50)
+        print("TESTING REPORTS MODULE")
+        print("="*50)
+        self.run_reports_module_tests()
+        
         # Print summary
         self.print_summary()
 
