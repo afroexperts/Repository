@@ -1246,7 +1246,7 @@ def get_services_summary(db: Session = Depends(get_db)):
             ServiceBooking.status == 'completed'
         ).scalar() or 0
         
-        estimated_revenue = db.query(func.sum(ServiceBooking.cost_estimate)).filter(
+        estimated_revenue = db.query(func.sum(ServiceBooking.estimated_cost)).filter(
             ServiceBooking.status.in_(['confirmed', 'in_progress'])
         ).scalar() or 0
         
