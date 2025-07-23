@@ -392,29 +392,30 @@ class MarbleDustTester:
         success, data, status_code = self.make_request("GET", "/marble-dust/summary")
         
         if success and status_code == 200:
-            required_keys = ["total_batches", "quality_distribution", "status_distribution", 
-                           "production_metrics", "financial_summary", "recent_batches"]
+            required_keys = ["total_batches", "quality_counts", "status_counts", 
+                           "production_statistics", "recent_batches", "low_stock_batches"]
             has_required_keys = all(key in data for key in required_keys)
             
             if has_required_keys:
                 summary = {
                     "Total Batches": data.get("total_batches", 0),
-                    "Quality Distribution": data.get("quality_distribution", {}),
-                    "Status Distribution": data.get("status_distribution", {}),
-                    "Production Metrics": data.get("production_metrics", {}),
-                    "Financial Summary": data.get("financial_summary", {})
+                    "Quality Distribution": data.get("quality_counts", {}),
+                    "Status Distribution": data.get("status_counts", {}),
+                    "Production Statistics": data.get("production_statistics", {}),
+                    "Recent Batches": data.get("recent_batches", 0),
+                    "Low Stock Batches": data.get("low_stock_batches", 0)
                 }
                 
-                # Verify financial calculations
-                financial_summary = data.get("financial_summary", {})
-                has_financial_metrics = all(key in financial_summary for key in 
-                    ["total_production_cost", "total_revenue", "total_profit", "average_profit_margin"])
+                # Verify production statistics
+                production_stats = data.get("production_statistics", {})
+                has_financial_metrics = all(key in production_stats for key in 
+                    ["total_production_cost", "total_revenue", "total_profit", "profit_margin_percentage"])
                 
                 if has_financial_metrics:
                     self.log_test("Get Marble Dust Summary", True, f"Retrieved comprehensive summary: {summary}")
                 else:
-                    missing_financial = [key for key in ["total_production_cost", "total_revenue", "total_profit", "average_profit_margin"] 
-                                       if key not in financial_summary]
+                    missing_financial = [key for key in ["total_production_cost", "total_revenue", "total_profit", "profit_margin_percentage"] 
+                                       if key not in production_stats]
                     self.log_test("Get Marble Dust Summary", False, f"Missing financial metrics: {missing_financial}")
             else:
                 missing_keys = [key for key in required_keys if key not in data]
