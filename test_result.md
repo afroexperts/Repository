@@ -446,11 +446,10 @@ metadata:
   run_ui: false
 
 test_plan:
-  current_focus:
-    - "Portfolio Management API"
+  current_focus: []
   stuck_tasks: []
   test_all: false
-  test_priority: "portfolio_module_completion"
+  test_priority: "next_crud_modules"
 
 agent_communication:
     - agent: "main"
