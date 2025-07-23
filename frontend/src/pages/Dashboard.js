@@ -996,6 +996,11 @@ const Dashboard = () => {
     return filtered;
   };
 
+  const getUniqueCategories = () => {
+    const categories = [...new Set(dashboardData.financialTransactions.map(t => t.category))];
+    return categories.filter(cat => cat);
+  };
+
   const handleGenerateReport = async (reportType, format) => {
     try {
       const response = await axios.get(`${API}/reports/${reportType}/${format}`, {
