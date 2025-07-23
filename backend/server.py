@@ -39,7 +39,8 @@ from models import (
     ProductCreate, OrderCreate, ClientCreate, InventoryMovementCreate,
     ServiceBookingCreate, FinancialTransactionCreate, ContactSubmissionCreate,
     WebsiteSettingsUpdate, InvoiceCreate, InvoiceUpdate, InvoiceItemCreate,
-    InvoicePaymentCreate, InvoicePaymentUpdate, InvoiceTemplateCreate
+    InvoicePaymentCreate, InvoicePaymentUpdate, InvoiceTemplateCreate,
+    PortfolioItemCreate, PortfolioItemUpdate, PortfolioItem as PortfolioItemResponse
 )
 
 # Configure logging
