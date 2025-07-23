@@ -844,10 +844,166 @@ def create_service_booking(booking_data: dict, db: Session = Depends(get_db)):
 # Finance Endpoints
 # ===============================
 
-@app.get("/api/finance/transactions") 
+@app.get("/api/finance/transactions")
 def get_financial_transactions(db: Session = Depends(get_db)):
-    """Get financial transactions"""
-    return db.query(FinancialTransaction).order_by(FinancialTransaction.created_at.desc()).limit(100).all()
+    """Get financial transactions with enhanced details"""
+    try:
+        transactions = db.query(FinancialTransaction).order_by(FinancialTransaction.created_at.desc()).limit(100).all()
+        
+        # Format response with additional details
+        formatted_transactions = []
+        for transaction in transactions:
+            formatted_transaction = {
+                "id": transaction.id,
+                "transaction_number": transaction.transaction_number,
+                "transaction_type": transaction.transaction_type.value,
+                "category": transaction.category,
+                "description": transaction.description,
+                "amount": transaction.amount,
+                "reference_id": transaction.reference_id,
+                "created_at": transaction.created_at.isoformat() if transaction.created_at else None,
+                "updated_at": transaction.updated_at.isoformat() if transaction.updated_at else None,
+                "created_by": transaction.created_by
+            }
+            formatted_transactions.append(formatted_transaction)
+        
+        return formatted_transactions
+    except Exception as e:
+        logger.error(f"Get financial transactions error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve financial transactions")
+
+@app.get("/api/finance/transactions/{transaction_id}")
+def get_financial_transaction(transaction_id: str, db: Session = Depends(get_db)):
+    """Get single financial transaction"""
+    try:
+        transaction = db.query(FinancialTransaction).filter(FinancialTransaction.id == transaction_id).first()
+        if not transaction:
+            raise HTTPException(status_code=404, detail="Transaction not found")
+        return transaction
+    except Exception as e:
+        logger.error(f"Get financial transaction error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve financial transaction")
+
+@app.put("/api/finance/transactions/{transaction_id}")
+def update_financial_transaction(transaction_id: str, transaction_update: dict, db: Session = Depends(get_db)):
+    """Update financial transaction"""
+    try:
+        transaction = db.query(FinancialTransaction).filter(FinancialTransaction.id == transaction_id).first()
+        if not transaction:
+            raise HTTPException(status_code=404, detail="Transaction not found")
+        
+        # Update allowed fields
+        if 'category' in transaction_update:
+            transaction.category = transaction_update['category']
+        if 'description' in transaction_update:
+            transaction.description = transaction_update['description']
+        if 'amount' in transaction_update:
+            transaction.amount = float(transaction_update['amount'])
+        if 'reference_id' in transaction_update:
+            transaction.reference_id = transaction_update['reference_id']
+        
+        transaction.updated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(transaction)
+        
+        return transaction
+    except Exception as e:
+        logger.error(f"Update financial transaction error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update financial transaction")
+
+@app.delete("/api/finance/transactions/{transaction_id}")
+def delete_financial_transaction(transaction_id: str, db: Session = Depends(get_db)):
+    """Delete financial transaction"""
+    try:
+        transaction = db.query(FinancialTransaction).filter(FinancialTransaction.id == transaction_id).first()
+        if not transaction:
+            raise HTTPException(status_code=404, detail="Transaction not found")
+        
+        db.delete(transaction)
+        db.commit()
+        
+        return {"message": "Transaction deleted successfully"}
+    except Exception as e:
+        logger.error(f"Delete financial transaction error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete financial transaction")
+
+@app.get("/api/finance/transactions/type/{transaction_type}")
+def get_transactions_by_type(transaction_type: str, db: Session = Depends(get_db)):
+    """Get transactions by type (income/expense)"""
+    try:
+        transactions = db.query(FinancialTransaction).filter(
+            FinancialTransaction.transaction_type == TransactionType(transaction_type)
+        ).order_by(FinancialTransaction.created_at.desc()).all()
+        return transactions
+    except Exception as e:
+        logger.error(f"Get transactions by type error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve transactions by type")
+
+@app.get("/api/finance/transactions/category/{category}")
+def get_transactions_by_category(category: str, db: Session = Depends(get_db)):
+    """Get transactions by category"""
+    try:
+        transactions = db.query(FinancialTransaction).filter(
+            FinancialTransaction.category == category
+        ).order_by(FinancialTransaction.created_at.desc()).all()
+        return transactions
+    except Exception as e:
+        logger.error(f"Get transactions by category error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve transactions by category")
+
+@app.get("/api/finance/analytics")
+def get_financial_analytics(db: Session = Depends(get_db)):
+    """Get comprehensive financial analytics"""
+    try:
+        # Monthly income/expense trends
+        monthly_income = db.query(
+            func.date_trunc('month', FinancialTransaction.created_at).label('month'),
+            func.sum(FinancialTransaction.amount).label('total')
+        ).filter(
+            FinancialTransaction.transaction_type == TransactionType.income
+        ).group_by(
+            func.date_trunc('month', FinancialTransaction.created_at)
+        ).order_by('month').all()
+        
+        monthly_expense = db.query(
+            func.date_trunc('month', FinancialTransaction.created_at).label('month'),
+            func.sum(FinancialTransaction.amount).label('total')
+        ).filter(
+            FinancialTransaction.transaction_type == TransactionType.expense
+        ).group_by(
+            func.date_trunc('month', FinancialTransaction.created_at)
+        ).order_by('month').all()
+        
+        # Category breakdown
+        category_breakdown = db.query(
+            FinancialTransaction.category,
+            FinancialTransaction.transaction_type,
+            func.sum(FinancialTransaction.amount).label('total')
+        ).group_by(
+            FinancialTransaction.category,
+            FinancialTransaction.transaction_type
+        ).all()
+        
+        # Recent transactions
+        recent_transactions = db.query(FinancialTransaction).order_by(
+            FinancialTransaction.created_at.desc()
+        ).limit(10).all()
+        
+        return {
+            "monthly_income": [{"month": str(item.month), "total": float(item.total)} for item in monthly_income],
+            "monthly_expense": [{"month": str(item.month), "total": float(item.total)} for item in monthly_expense],
+            "category_breakdown": [
+                {
+                    "category": item.category,
+                    "type": item.transaction_type.value,
+                    "total": float(item.total)
+                } for item in category_breakdown
+            ],
+            "recent_transactions": len(recent_transactions)
+        }
+    except Exception as e:
+        logger.error(f"Financial analytics error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve financial analytics")
 
 @app.get("/api/finance/summary")
 def get_financial_summary(db: Session = Depends(get_db)):
