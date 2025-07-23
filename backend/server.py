@@ -1142,10 +1142,10 @@ def update_service_booking(booking_id: str, booking_update: dict, db: Session = 
         # Update allowed fields
         if 'status' in booking_update:
             booking.status = booking_update['status']
-        if 'technician_id' in booking_update:
-            booking.technician_id = booking_update['technician_id']
-        if 'cost_estimate' in booking_update:
-            booking.cost_estimate = float(booking_update['cost_estimate'])
+        if 'assigned_technician_id' in booking_update:
+            booking.assigned_technician_id = booking_update['assigned_technician_id']
+        if 'estimated_cost' in booking_update:
+            booking.estimated_cost = float(booking_update['estimated_cost'])
         if 'actual_cost' in booking_update:
             booking.actual_cost = float(booking_update['actual_cost'])
         if 'notes' in booking_update:
