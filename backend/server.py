@@ -31,7 +31,8 @@ from database import (
     Invoice, InvoiceItem, InvoicePayment, InvoiceLog, InvoiceTemplate,
     InvoiceStatus, InvoiceType, PaymentStatus, Currency,
     PortfolioItem, PortfolioCategory, PortfolioStatus,
-    SecondHandItem, SecondHandCategory, SecondHandCondition
+    SecondHandItem, SecondHandCategory, SecondHandCondition,
+    MarbleDustBatch, MarbleDustQuality, MarbleDustStatus
 )
 
 # Import Pydantic models for validation (keeping the existing ones)
