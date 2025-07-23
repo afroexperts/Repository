@@ -251,7 +251,7 @@ backend:
     file: "backend/server.py"
     stuck_count: 1
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
         - working: true
           agent: "main"
@@ -262,6 +262,9 @@ backend:
         - working: false
           agent: "testing"
           comment: "🚨 CRITICAL ISSUE DISCOVERED: Invoice Module CRUD operations are INCOMPLETE. ✅ Previously failing endpoints now WORKING: GET /api/invoices/summary (routing fixed), GET /api/invoices/overdue (routing fixed), GET /api/invoices/{id}/logs (field mapping fixed), POST /api/invoices/generate-from-service/{id} (field mapping fixed). ✅ 8/13 endpoints working correctly (61.5% success rate). ❌ MISSING CRITICAL ENDPOINTS: POST /api/invoices (create invoice), PUT /api/invoices/{id} (update invoice), DELETE /api/invoices/{id} (delete invoice), POST /api/invoices/{id}/payments (add payment). These core CRUD operations return 405 Method Not Allowed, indicating endpoints are not implemented in backend/server.py. Invoice module is NOT production-ready without these essential operations."
+        - working: "NA"
+          agent: "main"
+          comment: "Re-investigating the Invoicing Module CRUD issues. Previous testing revealed that routing conflicts were partially resolved but core CRUD operations (POST /api/invoices, PUT /api/invoices/{id}, DELETE /api/invoices/{id}, POST /api/invoices/{id}/payments) are returning 405 Method Not Allowed. Need to verify the current implementation state and identify what endpoints are actually missing vs. having routing conflicts."
     implemented: true
     working: true
     file: "backend/server.py"
