@@ -756,7 +756,7 @@ def create_financial_transaction(transaction_data: FinancialTransactionCreate, d
             category=transaction_data.category,
             description=transaction_data.description,
             amount=transaction_data.amount,
-            reference_id=transaction_data.reference_id,
+            reference_id=transaction_data.reference,
             created_by=user_id
         )
         
