@@ -1373,9 +1373,9 @@ class BackendTester:
             
         transaction_types = [
             {"type": "expense", "category": "office_supplies", "amount": 50000.0, "description": "Office supplies purchase"},
-            {"type": "income", "amount": 200000.0, "description": "Service consultation fee"},
+            {"type": "income", "category": "sales", "amount": 200000.0, "description": "Service consultation fee"},
             {"type": "expense", "category": "utilities", "amount": 75000.0, "description": "Monthly electricity bill"},
-            {"type": "income", "amount": 300000.0, "description": "Hardware sales revenue"}
+            {"type": "income", "category": "sales", "amount": 300000.0, "description": "Hardware sales revenue"}
         ]
         
         successful_types = []
@@ -1383,15 +1383,11 @@ class BackendTester:
         for trans in transaction_types:
             transaction_data = {
                 "transaction_type": trans["type"],
+                "category": trans["category"],
                 "amount": trans["amount"],
                 "description": trans["description"],
-                "reference": f"TEST-{trans['type'].upper()}-{len(successful_types)+1}",
-                "payment_method": "bank_transfer"
+                "reference_id": f"TEST-{trans['type'].upper()}-{len(successful_types)+1}"
             }
-            
-            # Only add category for expense transactions
-            if trans["type"] == "expense" and "category" in trans:
-                transaction_data["category"] = trans["category"]
             
             success, data, status_code = self.make_request("POST", "/finance/transactions", transaction_data)
             if success and status_code == 200:
@@ -1404,6 +1400,332 @@ class BackendTester:
             expected_types = [f"{t['type']}-{t.get('category', 'general')}" for t in transaction_types]
             failed_types = [t for t in expected_types if t not in successful_types]
             self.log_test("Test Financial Transaction Types", False, f"Failed types: {failed_types}, Successful: {successful_types}")
+
+    # ENHANCED FINANCE MANAGEMENT API TESTS
+    def test_finance_transaction_single(self):
+        """Test GET /api/finance/transactions/{transaction_id} - Get single transaction details"""
+        if not self.token:
+            self.log_test("Get Single Finance Transaction", False, "No token available - login failed")
+            return
+            
+        # First get existing transactions to test with
+        success, transactions, _ = self.make_request("GET", "/finance/transactions")
+        if not success or not transactions or len(transactions) == 0:
+            self.log_test("Get Single Finance Transaction", False, "No transactions available for single transaction test")
+            return
+            
+        transaction_id = transactions[0].get("id")
+        
+        success, data, status_code = self.make_request("GET", f"/finance/transactions/{transaction_id}")
+        
+        if success and status_code == 200 and data.get("id"):
+            transaction_number = data.get("transaction_number", "Unknown")
+            transaction_type = data.get("transaction_type", "Unknown")
+            amount = data.get("amount", 0)
+            self.log_test("Get Single Finance Transaction", True, f"Retrieved transaction {transaction_number}: {transaction_type}, amount: {amount}")
+        else:
+            self.log_test("Get Single Finance Transaction", False, f"Status: {status_code}", data)
+
+    def test_finance_transaction_update(self):
+        """Test PUT /api/finance/transactions/{transaction_id} - Update transaction details"""
+        if not self.token:
+            self.log_test("Update Finance Transaction", False, "No token available - login failed")
+            return
+            
+        # First get existing transactions to test with
+        success, transactions, _ = self.make_request("GET", "/finance/transactions")
+        if not success or not transactions or len(transactions) == 0:
+            self.log_test("Update Finance Transaction", False, "No transactions available for update test")
+            return
+            
+        transaction_id = transactions[0].get("id")
+        
+        update_data = {
+            "category": "updated_category",
+            "description": "Updated transaction description via API test",
+            "amount": 125000.0,
+            "reference_id": "UPDATED-REF-001"
+        }
+        
+        success, data, status_code = self.make_request("PUT", f"/finance/transactions/{transaction_id}", update_data)
+        
+        if success and status_code == 200 and data.get("id"):
+            updated_description = data.get("description", "")
+            updated_amount = data.get("amount", 0)
+            self.log_test("Update Finance Transaction", True, f"Updated transaction {transaction_id}: {updated_description}, amount: {updated_amount}")
+        else:
+            self.log_test("Update Finance Transaction", False, f"Status: {status_code}", data)
+
+    def test_finance_transaction_delete(self):
+        """Test DELETE /api/finance/transactions/{transaction_id} - Delete transaction"""
+        if not self.token:
+            self.log_test("Delete Finance Transaction", False, "No token available - login failed")
+            return
+            
+        # First create a transaction to delete
+        transaction_data = {
+            "transaction_type": "expense",
+            "category": "test_category",
+            "amount": 25000.0,
+            "description": "Test transaction for deletion",
+            "reference_id": "DELETE-TEST-001"
+        }
+        
+        success, created_data, status_code = self.make_request("POST", "/finance/transactions", transaction_data)
+        if not success or status_code != 200:
+            self.log_test("Delete Finance Transaction", False, "Could not create transaction for deletion test")
+            return
+            
+        transaction_id = created_data.get("id")
+        
+        # Delete the transaction
+        success, data, status_code = self.make_request("DELETE", f"/finance/transactions/{transaction_id}")
+        
+        if success and status_code == 200:
+            message = data.get("message", "Transaction deleted")
+            self.log_test("Delete Finance Transaction", True, f"Successfully deleted transaction: {message}")
+        else:
+            self.log_test("Delete Finance Transaction", False, f"Status: {status_code}", data)
+
+    def test_finance_transactions_by_type(self):
+        """Test GET /api/finance/transactions/type/{transaction_type} - Filter transactions by type"""
+        if not self.token:
+            self.log_test("Get Transactions by Type", False, "No token available - login failed")
+            return
+            
+        # Test different transaction types
+        types_to_test = ["income", "expense"]
+        successful_types = []
+        
+        for transaction_type in types_to_test:
+            success, data, status_code = self.make_request("GET", f"/finance/transactions/type/{transaction_type}")
+            
+            if success and status_code == 200 and isinstance(data, list):
+                count = len(data)
+                if count > 0:
+                    # Verify all transactions are of the correct type
+                    correct_type = all(transaction.get("transaction_type") == transaction_type for transaction in data)
+                    if correct_type:
+                        successful_types.append(f"{transaction_type}({count})")
+                    else:
+                        self.log_test("Get Transactions by Type", False, f"Retrieved transactions contain wrong transaction types for {transaction_type}")
+                        return
+                else:
+                    successful_types.append(f"{transaction_type}(0)")
+        
+        if len(successful_types) == len(types_to_test):
+            self.log_test("Get Transactions by Type", True, f"Successfully filtered transactions by type: {successful_types}")
+        else:
+            self.log_test("Get Transactions by Type", False, f"Failed to filter some transaction types")
+
+    def test_finance_transactions_by_category(self):
+        """Test GET /api/finance/transactions/category/{category} - Filter transactions by category"""
+        if not self.token:
+            self.log_test("Get Transactions by Category", False, "No token available - login failed")
+            return
+            
+        # First get existing transactions to find categories
+        success, transactions, _ = self.make_request("GET", "/finance/transactions")
+        if not success or not transactions or len(transactions) == 0:
+            self.log_test("Get Transactions by Category", False, "No transactions available for category filter test")
+            return
+            
+        # Get unique categories from existing transactions
+        categories = list(set(transaction.get("category") for transaction in transactions if transaction.get("category")))
+        
+        if not categories:
+            self.log_test("Get Transactions by Category", False, "No categories found in existing transactions")
+            return
+            
+        # Test filtering by the first available category
+        test_category = categories[0]
+        
+        success, data, status_code = self.make_request("GET", f"/finance/transactions/category/{test_category}")
+        
+        if success and status_code == 200 and isinstance(data, list):
+            count = len(data)
+            if count > 0:
+                # Verify all transactions are of the correct category
+                correct_category = all(transaction.get("category") == test_category for transaction in data)
+                if correct_category:
+                    self.log_test("Get Transactions by Category", True, f"Successfully filtered {count} transactions by category '{test_category}'")
+                else:
+                    self.log_test("Get Transactions by Category", False, f"Retrieved transactions contain wrong categories for {test_category}")
+            else:
+                self.log_test("Get Transactions by Category", True, f"No transactions found for category '{test_category}'")
+        else:
+            self.log_test("Get Transactions by Category", False, f"Status: {status_code}", data)
+
+    def test_finance_analytics(self):
+        """Test GET /api/finance/analytics - Get comprehensive financial analytics"""
+        if not self.token:
+            self.log_test("Get Finance Analytics", False, "No token available - login failed")
+            return
+            
+        success, data, status_code = self.make_request("GET", "/finance/analytics")
+        
+        if success and status_code == 200:
+            required_keys = ["monthly_income", "monthly_expense", "category_breakdown", "recent_transactions"]
+            has_required_keys = all(key in data for key in required_keys)
+            
+            if has_required_keys:
+                analytics = {
+                    "Monthly Income Records": len(data.get("monthly_income", [])),
+                    "Monthly Expense Records": len(data.get("monthly_expense", [])),
+                    "Category Breakdown Items": len(data.get("category_breakdown", [])),
+                    "Recent Transactions": data.get("recent_transactions", 0)
+                }
+                self.log_test("Get Finance Analytics", True, f"Retrieved financial analytics: {analytics}")
+            else:
+                missing_keys = [key for key in required_keys if key not in data]
+                self.log_test("Get Finance Analytics", False, f"Missing required keys: {missing_keys}")
+        else:
+            self.log_test("Get Finance Analytics", False, f"Status: {status_code}", data)
+
+    def test_finance_enhanced_summary(self):
+        """Test GET /api/finance/summary - Get enhanced financial summary"""
+        if not self.token:
+            self.log_test("Get Enhanced Finance Summary", False, "No token available - login failed")
+            return
+            
+        success, data, status_code = self.make_request("GET", "/finance/summary")
+        
+        if success and status_code == 200:
+            required_keys = ["total_income", "total_expense", "net_profit", "monthly_income", "monthly_expense", "monthly_net", "income_count", "expense_count", "total_transactions", "top_income_categories", "top_expense_categories"]
+            has_required_keys = all(key in data for key in required_keys)
+            
+            if has_required_keys:
+                summary = {
+                    "Total Income": data.get("total_income", 0),
+                    "Total Expense": data.get("total_expense", 0),
+                    "Net Profit": data.get("net_profit", 0),
+                    "Monthly Income": data.get("monthly_income", 0),
+                    "Monthly Expense": data.get("monthly_expense", 0),
+                    "Monthly Net": data.get("monthly_net", 0),
+                    "Income Count": data.get("income_count", 0),
+                    "Expense Count": data.get("expense_count", 0),
+                    "Total Transactions": data.get("total_transactions", 0),
+                    "Top Income Categories": len(data.get("top_income_categories", [])),
+                    "Top Expense Categories": len(data.get("top_expense_categories", []))
+                }
+                self.log_test("Get Enhanced Finance Summary", True, f"Retrieved enhanced financial summary: {summary}")
+            else:
+                missing_keys = [key for key in required_keys if key not in data]
+                self.log_test("Get Enhanced Finance Summary", False, f"Missing required keys: {missing_keys}")
+        else:
+            self.log_test("Get Enhanced Finance Summary", False, f"Status: {status_code}", data)
+
+    def test_finance_transaction_number_generation(self):
+        """Test transaction number generation works correctly"""
+        if not self.token:
+            self.log_test("Finance Transaction Number Generation", False, "No token available - login failed")
+            return
+            
+        # Create multiple transactions and check transaction number format
+        transaction_numbers = []
+        
+        for i in range(3):
+            transaction_data = {
+                "transaction_type": "income",
+                "category": "sales",
+                "amount": 50000.0 + (i * 10000),
+                "description": f"Test transaction {i+1} for number generation",
+                "reference_id": f"NUM-GEN-TEST-{i+1:03d}"
+            }
+            
+            success, data, status_code = self.make_request("POST", "/finance/transactions", transaction_data)
+            if success and status_code == 200 and data.get("transaction_number"):
+                transaction_numbers.append(data.get("transaction_number"))
+        
+        if len(transaction_numbers) >= 2:
+            # Check transaction number format (should be TXN-YYYYMMDD-XXXX)
+            import re
+            pattern = r"TXN-\d{8}-\d{4}"
+            valid_numbers = [num for num in transaction_numbers if re.match(pattern, num)]
+            
+            if len(valid_numbers) == len(transaction_numbers):
+                self.log_test("Finance Transaction Number Generation", True, f"Generated valid transaction numbers: {transaction_numbers}")
+            else:
+                invalid_numbers = [num for num in transaction_numbers if not re.match(pattern, num)]
+                self.log_test("Finance Transaction Number Generation", False, f"Invalid transaction number format: {invalid_numbers}")
+        else:
+            self.log_test("Finance Transaction Number Generation", False, "Could not create enough transactions to test number generation")
+
+    def test_finance_summary_calculations(self):
+        """Test that financial summary calculations are accurate"""
+        if not self.token:
+            self.log_test("Finance Summary Calculations", False, "No token available - login failed")
+            return
+            
+        # Create test transactions with known amounts
+        test_transactions = [
+            {"type": "income", "category": "sales", "amount": 100000.0, "description": "Test income 1"},
+            {"type": "income", "category": "services", "amount": 150000.0, "description": "Test income 2"},
+            {"type": "expense", "category": "supplies", "amount": 50000.0, "description": "Test expense 1"},
+            {"type": "expense", "category": "utilities", "amount": 30000.0, "description": "Test expense 2"}
+        ]
+        
+        created_transactions = []
+        expected_income = 0
+        expected_expense = 0
+        
+        for trans in test_transactions:
+            transaction_data = {
+                "transaction_type": trans["type"],
+                "category": trans["category"],
+                "amount": trans["amount"],
+                "description": trans["description"],
+                "reference_id": f"CALC-TEST-{len(created_transactions)+1}"
+            }
+            
+            success, data, status_code = self.make_request("POST", "/finance/transactions", transaction_data)
+            if success and status_code == 200:
+                created_transactions.append(data.get("id"))
+                if trans["type"] == "income":
+                    expected_income += trans["amount"]
+                else:
+                    expected_expense += trans["amount"]
+        
+        if len(created_transactions) == len(test_transactions):
+            # Get summary and verify calculations
+            success, summary_data, _ = self.make_request("GET", "/finance/summary")
+            if success:
+                total_income = summary_data.get("total_income", 0)
+                total_expense = summary_data.get("total_expense", 0)
+                net_profit = summary_data.get("net_profit", 0)
+                expected_net = expected_income - expected_expense
+                
+                # Check if our test transactions are reflected in the totals (they should be >= our expected amounts)
+                if total_income >= expected_income and total_expense >= expected_expense:
+                    self.log_test("Finance Summary Calculations", True, f"Summary calculations accurate: Income >= {expected_income}, Expense >= {expected_expense}, Net: {net_profit}")
+                else:
+                    self.log_test("Finance Summary Calculations", False, f"Summary calculations incorrect: Expected Income >= {expected_income} (got {total_income}), Expected Expense >= {expected_expense} (got {total_expense})")
+            else:
+                self.log_test("Finance Summary Calculations", False, "Could not retrieve summary for calculation verification")
+        else:
+            self.log_test("Finance Summary Calculations", False, f"Could not create all test transactions: {len(created_transactions)}/{len(test_transactions)}")
+
+    def run_enhanced_finance_tests(self):
+        """Run all enhanced finance management tests"""
+        print("\n" + "="*60)
+        print("TESTING ENHANCED FINANCE MANAGEMENT API")
+        print("="*60)
+        
+        # Basic finance tests
+        self.test_financial_transactions_get()
+        self.test_financial_transactions_create()
+        self.test_financial_transaction_types()
+        
+        # Enhanced finance management tests
+        self.test_finance_transaction_single()
+        self.test_finance_transaction_update()
+        self.test_finance_transaction_delete()
+        self.test_finance_transactions_by_type()
+        self.test_finance_transactions_by_category()
+        self.test_finance_analytics()
+        self.test_finance_enhanced_summary()
+        self.test_finance_transaction_number_generation()
+        self.test_finance_summary_calculations()
 
     def run_all_tests(self):
         """Run all backend tests in sequence"""
