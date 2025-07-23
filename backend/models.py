@@ -119,6 +119,76 @@ class User(BaseModel):
     class Config:
         use_enum_values = True
 
+# Second-Hand Sales Models
+class SecondHandCondition(str, Enum):
+    excellent = "excellent"
+    very_good = "very_good"
+    good = "good"
+    fair = "fair"
+    poor = "poor"
+
+class SecondHandCategory(str, Enum):
+    electronics = "electronics"
+    furniture = "furniture"
+    appliances = "appliances"
+    vehicles = "vehicles"
+    machinery = "machinery"
+    office_equipment = "office_equipment"
+    other = "other"
+
+class SecondHandItemCreate(BaseModel):
+    product_name: str = Field(..., min_length=1, max_length=200)
+    category: SecondHandCategory
+    condition: SecondHandCondition
+    original_price: float = Field(..., gt=0)
+    selling_price: float = Field(..., gt=0)
+    description: str = Field(..., min_length=10, max_length=1000)
+    images: List[str] = Field(default_factory=list)  # Base64 images or URLs
+    specifications: Optional[dict] = Field(default_factory=dict)
+    warranty_info: Optional[str] = Field(None, max_length=500)
+    seller_name: Optional[str] = Field(None, max_length=100)
+    seller_contact: Optional[str] = Field(None, max_length=100)
+    location: Optional[str] = Field(None, max_length=200)
+
+class SecondHandItemUpdate(BaseModel):
+    product_name: Optional[str] = Field(None, min_length=1, max_length=200)
+    category: Optional[SecondHandCategory] = None
+    condition: Optional[SecondHandCondition] = None
+    original_price: Optional[float] = Field(None, gt=0)
+    selling_price: Optional[float] = Field(None, gt=0)
+    description: Optional[str] = Field(None, min_length=10, max_length=1000)
+    images: Optional[List[str]] = None
+    specifications: Optional[dict] = None
+    warranty_info: Optional[str] = Field(None, max_length=500)
+    seller_name: Optional[str] = Field(None, max_length=100)
+    seller_contact: Optional[str] = Field(None, max_length=100)
+    location: Optional[str] = Field(None, max_length=200)
+    status: Optional[str] = None  # available, sold, reserved
+
+class SecondHandItem(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    product_name: str
+    category: SecondHandCategory
+    condition: SecondHandCondition
+    original_price: float
+    selling_price: float
+    description: str
+    images: List[str]
+    specifications: dict
+    warranty_info: Optional[str] = None
+    seller_name: Optional[str] = None
+    seller_contact: Optional[str] = None
+    location: Optional[str] = None
+    status: str = "available"  # available, sold, reserved
+    views_count: int = 0
+    created_by: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: Optional[datetime] = None
+    sold_at: Optional[datetime] = None
+
+    class Config:
+        use_enum_values = True
+
 # Invoice-related Enums and Models
 class InvoiceStatus(str, Enum):
     draft = "draft"
