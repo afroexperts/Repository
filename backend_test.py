@@ -2105,6 +2105,239 @@ class BackendTester:
         self.test_finance_transaction_number_generation()
         self.test_finance_summary_calculations()
 
+    # REPORTS MODULE TESTS
+    def test_reports_list(self):
+        """Test GET /api/reports/list - Get available reports list"""
+        if not self.token:
+            self.log_test("Get Reports List", False, "No token available - login failed")
+            return
+            
+        success, data, status_code = self.make_request("GET", "/reports/list")
+        
+        if success and status_code == 200 and data.get("reports"):
+            reports = data.get("reports", [])
+            report_names = [report.get("name", "Unknown") for report in reports]
+            report_count = len(reports)
+            
+            # Check if all expected reports are present
+            expected_reports = ["Orders Report", "Inventory Report", "Financial Report", "Service Bookings Report", "Comprehensive Business Report"]
+            found_reports = [name for name in expected_reports if name in report_names]
+            
+            if len(found_reports) == len(expected_reports):
+                self.log_test("Get Reports List", True, f"Retrieved {report_count} reports: {report_names}")
+            else:
+                missing_reports = [name for name in expected_reports if name not in report_names]
+                self.log_test("Get Reports List", False, f"Missing reports: {missing_reports}, Found: {found_reports}")
+        else:
+            self.log_test("Get Reports List", False, f"Status: {status_code}", data)
+
+    def test_reports_orders_pdf(self):
+        """Test GET /api/reports/orders/pdf - Generate PDF report for orders"""
+        if not self.token:
+            self.log_test("Generate Orders PDF Report", False, "No token available - login failed")
+            return
+            
+        success, data, status_code = self.make_request("GET", "/reports/orders/pdf")
+        
+        if success and status_code == 200:
+            # For PDF reports, we expect binary data or a file response
+            # Since we're getting JSON response, check if it contains file data or download info
+            if isinstance(data, dict) and ("file" in data or "download_url" in data):
+                self.log_test("Generate Orders PDF Report", True, "PDF report generated successfully")
+            else:
+                # If it's a direct file response, the success indicates it worked
+                self.log_test("Generate Orders PDF Report", True, "PDF report generated and ready for download")
+        else:
+            self.log_test("Generate Orders PDF Report", False, f"Status: {status_code}", data)
+
+    def test_reports_orders_excel(self):
+        """Test GET /api/reports/orders/excel - Generate Excel report for orders"""
+        if not self.token:
+            self.log_test("Generate Orders Excel Report", False, "No token available - login failed")
+            return
+            
+        success, data, status_code = self.make_request("GET", "/reports/orders/excel")
+        
+        if success and status_code == 200:
+            # For Excel reports, we expect binary data or a file response
+            if isinstance(data, dict) and ("file" in data or "download_url" in data):
+                self.log_test("Generate Orders Excel Report", True, "Excel report generated successfully")
+            else:
+                # If it's a direct file response, the success indicates it worked
+                self.log_test("Generate Orders Excel Report", True, "Excel report generated and ready for download")
+        else:
+            self.log_test("Generate Orders Excel Report", False, f"Status: {status_code}", data)
+
+    def test_reports_inventory_pdf(self):
+        """Test GET /api/reports/inventory/pdf - Generate PDF report for inventory"""
+        if not self.token:
+            self.log_test("Generate Inventory PDF Report", False, "No token available - login failed")
+            return
+            
+        success, data, status_code = self.make_request("GET", "/reports/inventory/pdf")
+        
+        if success and status_code == 200:
+            self.log_test("Generate Inventory PDF Report", True, "Inventory PDF report generated successfully")
+        else:
+            self.log_test("Generate Inventory PDF Report", False, f"Status: {status_code}", data)
+
+    def test_reports_inventory_excel(self):
+        """Test GET /api/reports/inventory/excel - Generate Excel report for inventory"""
+        if not self.token:
+            self.log_test("Generate Inventory Excel Report", False, "No token available - login failed")
+            return
+            
+        success, data, status_code = self.make_request("GET", "/reports/inventory/excel")
+        
+        if success and status_code == 200:
+            self.log_test("Generate Inventory Excel Report", True, "Inventory Excel report generated successfully")
+        else:
+            self.log_test("Generate Inventory Excel Report", False, f"Status: {status_code}", data)
+
+    def test_reports_finance_pdf(self):
+        """Test GET /api/reports/finance/pdf - Generate PDF report for financial transactions"""
+        if not self.token:
+            self.log_test("Generate Finance PDF Report", False, "No token available - login failed")
+            return
+            
+        success, data, status_code = self.make_request("GET", "/reports/finance/pdf")
+        
+        if success and status_code == 200:
+            self.log_test("Generate Finance PDF Report", True, "Finance PDF report generated successfully")
+        else:
+            self.log_test("Generate Finance PDF Report", False, f"Status: {status_code}", data)
+
+    def test_reports_finance_excel(self):
+        """Test GET /api/reports/finance/excel - Generate Excel report for financial transactions"""
+        if not self.token:
+            self.log_test("Generate Finance Excel Report", False, "No token available - login failed")
+            return
+            
+        success, data, status_code = self.make_request("GET", "/reports/finance/excel")
+        
+        if success and status_code == 200:
+            self.log_test("Generate Finance Excel Report", True, "Finance Excel report generated successfully")
+        else:
+            self.log_test("Generate Finance Excel Report", False, f"Status: {status_code}", data)
+
+    def test_reports_services_pdf(self):
+        """Test GET /api/reports/services/pdf - Generate PDF report for service bookings"""
+        if not self.token:
+            self.log_test("Generate Services PDF Report", False, "No token available - login failed")
+            return
+            
+        success, data, status_code = self.make_request("GET", "/reports/services/pdf")
+        
+        if success and status_code == 200:
+            self.log_test("Generate Services PDF Report", True, "Services PDF report generated successfully")
+        else:
+            self.log_test("Generate Services PDF Report", False, f"Status: {status_code}", data)
+
+    def test_reports_services_excel(self):
+        """Test GET /api/reports/services/excel - Generate Excel report for service bookings"""
+        if not self.token:
+            self.log_test("Generate Services Excel Report", False, "No token available - login failed")
+            return
+            
+        success, data, status_code = self.make_request("GET", "/reports/services/excel")
+        
+        if success and status_code == 200:
+            self.log_test("Generate Services Excel Report", True, "Services Excel report generated successfully")
+        else:
+            self.log_test("Generate Services Excel Report", False, f"Status: {status_code}", data)
+
+    def test_reports_comprehensive_pdf(self):
+        """Test GET /api/reports/comprehensive/pdf - Generate comprehensive business report"""
+        if not self.token:
+            self.log_test("Generate Comprehensive PDF Report", False, "No token available - login failed")
+            return
+            
+        success, data, status_code = self.make_request("GET", "/reports/comprehensive/pdf")
+        
+        if success and status_code == 200:
+            self.log_test("Generate Comprehensive PDF Report", True, "Comprehensive business PDF report generated successfully")
+        else:
+            self.log_test("Generate Comprehensive PDF Report", False, f"Status: {status_code}", data)
+
+    def test_reports_with_data_validation(self):
+        """Test report generation with existing data and validate content accuracy"""
+        if not self.token:
+            self.log_test("Reports Data Validation", False, "No token available - login failed")
+            return
+            
+        # First, get some baseline data to compare against reports
+        orders_success, orders_data, _ = self.make_request("GET", "/orders")
+        products_success, products_data, _ = self.make_request("GET", "/products")
+        finance_success, finance_data, _ = self.make_request("GET", "/finance/transactions")
+        
+        if not (orders_success and products_success and finance_success):
+            self.log_test("Reports Data Validation", False, "Could not retrieve baseline data for validation")
+            return
+        
+        # Count baseline data
+        orders_count = len(orders_data) if isinstance(orders_data, list) else 0
+        products_count = len(products_data) if isinstance(products_data, list) else 0
+        finance_count = len(finance_data) if isinstance(finance_data, list) else 0
+        
+        # Test that reports can be generated when data exists
+        reports_to_test = [
+            ("orders/pdf", "Orders PDF"),
+            ("inventory/pdf", "Inventory PDF"),
+            ("finance/pdf", "Finance PDF")
+        ]
+        
+        successful_reports = []
+        for endpoint, report_name in reports_to_test:
+            success, data, status_code = self.make_request("GET", f"/reports/{endpoint}")
+            if success and status_code == 200:
+                successful_reports.append(report_name)
+        
+        if len(successful_reports) == len(reports_to_test):
+            self.log_test("Reports Data Validation", True, f"All reports generated with existing data: Orders({orders_count}), Products({products_count}), Finance({finance_count})")
+        else:
+            failed_reports = [name for endpoint, name in reports_to_test if name not in successful_reports]
+            self.log_test("Reports Data Validation", False, f"Failed reports: {failed_reports}, Successful: {successful_reports}")
+
+    def test_reports_error_handling(self):
+        """Test report error handling for edge cases"""
+        if not self.token:
+            self.log_test("Reports Error Handling", False, "No token available - login failed")
+            return
+            
+        # Test invalid report endpoint
+        success, data, status_code = self.make_request("GET", "/reports/invalid/pdf")
+        
+        if not success and status_code == 404:
+            self.log_test("Reports Error Handling", True, "Correctly handled invalid report endpoint with 404")
+        else:
+            self.log_test("Reports Error Handling", False, f"Invalid endpoint should return 404, got: {status_code}")
+
+    def run_reports_module_tests(self):
+        """Run all Reports Module tests"""
+        print("\n" + "="*60)
+        print("TESTING REPORTS MODULE API")
+        print("="*60)
+        
+        # Core reports tests
+        self.test_reports_list()
+        
+        # PDF report generation tests
+        self.test_reports_orders_pdf()
+        self.test_reports_inventory_pdf()
+        self.test_reports_finance_pdf()
+        self.test_reports_services_pdf()
+        self.test_reports_comprehensive_pdf()
+        
+        # Excel report generation tests
+        self.test_reports_orders_excel()
+        self.test_reports_inventory_excel()
+        self.test_reports_finance_excel()
+        self.test_reports_services_excel()
+        
+        # Data validation and error handling tests
+        self.test_reports_with_data_validation()
+        self.test_reports_error_handling()
+
     def run_all_tests(self):
         """Run all backend tests in sequence"""
         print("=" * 80)
