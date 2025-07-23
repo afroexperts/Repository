@@ -1178,6 +1178,8 @@ def delete_service_booking(booking_id: str, db: Session = Depends(get_db)):
         db.commit()
         
         return {"message": "Booking deleted successfully"}
+    except HTTPException:
+        raise  # Re-raise HTTPExceptions to preserve status codes
     except Exception as e:
         logger.error(f"Delete service booking error: {e}")
         raise HTTPException(status_code=500, detail="Failed to delete service booking")
