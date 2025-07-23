@@ -3252,12 +3252,12 @@ def get_portfolio_by_category(category: str, db: Session = Depends(get_db)):
             formatted_item = {
                 "id": item.id,
                 "title": item.title,
-                "category": item.category.value,
+                "category": item.category,
                 "description": item.description,
                 "image": item.image,
                 "client": item.client,
                 "date": item.date,
-                "status": item.status.value,
+                "status": item.status,
                 "link": item.link,
                 "created_at": item.created_at.isoformat() if item.created_at else None
             }
