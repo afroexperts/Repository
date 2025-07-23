@@ -1272,7 +1272,7 @@ class BackendTester:
             self.log_test("Test Service Types", False, "No token available - login failed")
             return
             
-        service_types = ["it_support", "network_installation", "starlink_installation", "software_development", "consultation"]
+        service_types = ["it_support", "network_installation", "starlink_installation", "software_development", "consultation", "maintenance", "training"]
         successful_types = []
         
         for service_type in service_types:
@@ -1284,7 +1284,8 @@ class BackendTester:
                 "description": f"Test booking for {service_type} service",
                 "preferred_date": "2025-01-25T10:00:00",
                 "location": "Test Location",
-                "urgency": "normal"
+                "cost_estimate": 75000.0,
+                "notes": f"Test booking for {service_type} validation"
             }
             
             success, data, status_code = self.make_request("POST", "/services/bookings", booking_data)
@@ -1296,6 +1297,373 @@ class BackendTester:
         else:
             failed_types = [t for t in service_types if t not in successful_types]
             self.log_test("Test Service Types", False, f"Failed types: {failed_types}, Successful: {successful_types}")
+
+    # ENHANCED SERVICE BOOKING MANAGEMENT API TESTS
+    def test_service_booking_single(self):
+        """Test GET /api/services/bookings/{booking_id} - Get single booking details"""
+        if not self.token:
+            self.log_test("Get Single Service Booking", False, "No token available - login failed")
+            return
+            
+        # First get existing bookings to test with
+        success, bookings, _ = self.make_request("GET", "/services/bookings")
+        if not success or not bookings or len(bookings) == 0:
+            self.log_test("Get Single Service Booking", False, "No bookings available for single booking test")
+            return
+            
+        booking_id = bookings[0].get("id")
+        
+        success, data, status_code = self.make_request("GET", f"/services/bookings/{booking_id}")
+        
+        if success and status_code == 200 and data.get("id"):
+            booking_number = data.get("booking_number", "Unknown")
+            service_type = data.get("service_type", "Unknown")
+            status_value = data.get("status", "Unknown")
+            self.log_test("Get Single Service Booking", True, f"Retrieved booking {booking_number}: {service_type}, status: {status_value}")
+        else:
+            self.log_test("Get Single Service Booking", False, f"Status: {status_code}", data)
+
+    def test_service_booking_delete_validation(self):
+        """Test DELETE /api/services/bookings/{booking_id} - Delete booking with validation"""
+        if not self.token:
+            self.log_test("Delete Service Booking Validation", False, "No token available - login failed")
+            return
+            
+        # First create a test booking to delete
+        booking_data = {
+            "client_name": "Test Delete Client",
+            "client_email": "testdelete@example.rw",
+            "client_phone": "+250788999888",
+            "service_type": "consultation",
+            "description": "Test booking for deletion validation",
+            "preferred_date": "2025-01-30T14:00:00",
+            "location": "Test Location",
+            "cost_estimate": 50000.0,
+            "notes": "Test booking created for deletion test"
+        }
+        
+        success, data, status_code = self.make_request("POST", "/services/bookings", booking_data)
+        if not success or not data.get("id"):
+            self.log_test("Delete Service Booking Validation", False, "Could not create test booking for deletion")
+            return
+            
+        booking_id = data.get("id")
+        
+        # Try to delete the booking (should succeed for pending bookings)
+        success, data, status_code = self.make_request("DELETE", f"/services/bookings/{booking_id}")
+        
+        if success and status_code == 200:
+            message = data.get("message", "Booking deleted")
+            self.log_test("Delete Service Booking Validation", True, f"Successfully deleted booking: {message}")
+        else:
+            self.log_test("Delete Service Booking Validation", False, f"Status: {status_code}", data)
+
+    def test_service_booking_delete_in_progress_validation(self):
+        """Test DELETE validation - Should fail for in_progress/completed bookings"""
+        if not self.token:
+            self.log_test("Delete In-Progress Booking Validation", False, "No token available - login failed")
+            return
+            
+        # First create a test booking
+        booking_data = {
+            "client_name": "Test In-Progress Client",
+            "client_email": "testinprogress@example.rw",
+            "client_phone": "+250788777666",
+            "service_type": "it_support",
+            "description": "Test booking for in-progress deletion validation",
+            "preferred_date": "2025-01-28T11:00:00",
+            "location": "Test Location",
+            "cost_estimate": 60000.0,
+            "notes": "Test booking for in-progress deletion validation"
+        }
+        
+        success, data, status_code = self.make_request("POST", "/services/bookings", booking_data)
+        if not success or not data.get("id"):
+            self.log_test("Delete In-Progress Booking Validation", False, "Could not create test booking")
+            return
+            
+        booking_id = data.get("id")
+        
+        # Update booking status to in_progress
+        status_update = {"status": "in_progress"}
+        success, _, _ = self.make_request("PUT", f"/services/bookings/{booking_id}/status", status_update)
+        
+        if not success:
+            self.log_test("Delete In-Progress Booking Validation", False, "Could not update booking to in_progress status")
+            return
+        
+        # Now try to delete the in_progress booking (should fail)
+        success, data, status_code = self.make_request("DELETE", f"/services/bookings/{booking_id}")
+        
+        if not success and status_code == 400:
+            error_detail = data.get("detail", "Unknown error")
+            if "Cannot delete booking that is in progress or completed" in error_detail:
+                self.log_test("Delete In-Progress Booking Validation", True, "Correctly prevented deletion of in_progress booking")
+            else:
+                self.log_test("Delete In-Progress Booking Validation", False, f"Wrong error message: {error_detail}")
+        else:
+            self.log_test("Delete In-Progress Booking Validation", False, f"Should have failed but got status: {status_code}")
+
+    def test_service_bookings_by_status(self):
+        """Test GET /api/services/bookings/status/{status} - Filter bookings by status"""
+        if not self.token:
+            self.log_test("Get Bookings by Status", False, "No token available - login failed")
+            return
+            
+        # Test different statuses
+        statuses_to_test = ["pending", "confirmed", "in_progress", "completed", "cancelled"]
+        successful_statuses = []
+        
+        for status in statuses_to_test:
+            success, data, status_code = self.make_request("GET", f"/services/bookings/status/{status}")
+            
+            if success and status_code == 200 and isinstance(data, list):
+                count = len(data)
+                # Verify all bookings have the correct status
+                if count > 0:
+                    correct_status = all(booking.get("status") == status for booking in data)
+                    if correct_status:
+                        successful_statuses.append(f"{status}({count})")
+                    else:
+                        self.log_test("Get Bookings by Status", False, f"Retrieved bookings contain wrong status for {status}")
+                        return
+                else:
+                    successful_statuses.append(f"{status}(0)")
+        
+        if len(successful_statuses) > 0:
+            self.log_test("Get Bookings by Status", True, f"Retrieved bookings by status: {successful_statuses}")
+        else:
+            self.log_test("Get Bookings by Status", False, "Failed to retrieve bookings by any status")
+
+    def test_service_bookings_by_type(self):
+        """Test GET /api/services/bookings/type/{service_type} - Filter bookings by service type"""
+        if not self.token:
+            self.log_test("Get Bookings by Service Type", False, "No token available - login failed")
+            return
+            
+        # Test different service types
+        service_types_to_test = ["it_support", "network_installation", "starlink_installation", "software_development", "consultation", "maintenance", "training"]
+        successful_types = []
+        
+        for service_type in service_types_to_test:
+            success, data, status_code = self.make_request("GET", f"/services/bookings/type/{service_type}")
+            
+            if success and status_code == 200 and isinstance(data, list):
+                count = len(data)
+                if count > 0:
+                    # Verify all bookings have the correct service type
+                    correct_type = all(booking.get("service_type") == service_type for booking in data)
+                    if correct_type:
+                        successful_types.append(f"{service_type}({count})")
+                    else:
+                        self.log_test("Get Bookings by Service Type", False, f"Retrieved bookings contain wrong service type for {service_type}")
+                        return
+                else:
+                    successful_types.append(f"{service_type}(0)")
+        
+        if len(successful_types) > 0:
+            self.log_test("Get Bookings by Service Type", True, f"Retrieved bookings by service type: {successful_types}")
+        else:
+            self.log_test("Get Bookings by Service Type", False, "Failed to retrieve bookings by any service type")
+
+    def test_service_booking_status_update(self):
+        """Test PUT /api/services/bookings/{booking_id}/status - Update booking status"""
+        if not self.token:
+            self.log_test("Update Service Booking Status", False, "No token available - login failed")
+            return
+            
+        # First create a booking to update
+        booking_data = {
+            "client_name": "Test Status Update Client",
+            "client_email": "teststatus@example.rw",
+            "client_phone": "+250788666555",
+            "service_type": "network_installation",
+            "description": "Test booking for status update validation",
+            "preferred_date": "2025-01-26T13:00:00",
+            "location": "Test Location",
+            "cost_estimate": 120000.0,
+            "notes": "Test booking for status update"
+        }
+        
+        success, data, status_code = self.make_request("POST", "/services/bookings", booking_data)
+        if not success or not data.get("id"):
+            self.log_test("Update Service Booking Status", False, "Could not create test booking for status update")
+            return
+            
+        booking_id = data.get("id")
+        
+        # Test status transitions: pending → confirmed → in_progress → completed
+        status_transitions = [
+            {"status": "confirmed", "description": "confirmed status"},
+            {"status": "in_progress", "description": "in_progress status"},
+            {"status": "completed", "description": "completed status"}
+        ]
+        
+        successful_transitions = []
+        
+        for transition in status_transitions:
+            status_update = {"status": transition["status"]}
+            success, data, status_code = self.make_request("PUT", f"/services/bookings/{booking_id}/status", status_update)
+            
+            if success and status_code == 200:
+                message = data.get("message", "Status updated")
+                successful_transitions.append(transition["status"])
+            else:
+                self.log_test("Update Service Booking Status", False, f"Failed to update to {transition['status']}: {status_code}")
+                return
+        
+        if len(successful_transitions) == len(status_transitions):
+            self.log_test("Update Service Booking Status", True, f"Successfully updated booking status through transitions: {' → '.join(successful_transitions)}")
+        else:
+            self.log_test("Update Service Booking Status", False, f"Failed some status transitions. Successful: {successful_transitions}")
+
+    def test_service_booking_number_generation(self):
+        """Test booking number generation works correctly"""
+        if not self.token:
+            self.log_test("Service Booking Number Generation", False, "No token available - login failed")
+            return
+            
+        # Create multiple bookings and check booking number format
+        booking_numbers = []
+        
+        for i in range(3):
+            booking_data = {
+                "client_name": f"Test Number Gen Client {i+1}",
+                "client_email": f"testnumber{i+1}@example.rw",
+                "client_phone": f"+25078800{i+1:04d}",
+                "service_type": "consultation",
+                "description": f"Test booking {i+1} for number generation validation",
+                "preferred_date": "2025-01-27T10:00:00",
+                "location": "Test Location",
+                "cost_estimate": 40000.0,
+                "notes": f"Test booking {i+1} for number generation"
+            }
+            
+            success, data, status_code = self.make_request("POST", "/services/bookings", booking_data)
+            if success and data.get("id"):
+                # Get the created booking to check its booking number
+                booking_id = data.get("id")
+                success, booking_data, _ = self.make_request("GET", f"/services/bookings/{booking_id}")
+                if success and booking_data.get("booking_number"):
+                    booking_numbers.append(booking_data.get("booking_number"))
+        
+        if len(booking_numbers) >= 2:
+            # Check booking number format (should be SRV-YYYYMMDD-XXXX)
+            import re
+            pattern = r"SRV-\d{8}-\d{4}"
+            valid_numbers = [num for num in booking_numbers if re.match(pattern, num)]
+            
+            if len(valid_numbers) == len(booking_numbers):
+                self.log_test("Service Booking Number Generation", True, f"Generated valid booking numbers: {booking_numbers}")
+            else:
+                invalid_numbers = [num for num in booking_numbers if not re.match(pattern, num)]
+                self.log_test("Service Booking Number Generation", False, f"Invalid booking number format: {invalid_numbers}")
+        else:
+            self.log_test("Service Booking Number Generation", False, "Could not create enough bookings to test number generation")
+
+    def test_service_cost_tracking(self):
+        """Test cost estimate and actual cost tracking"""
+        if not self.token:
+            self.log_test("Service Cost Tracking", False, "No token available - login failed")
+            return
+            
+        # Create a booking with cost estimate
+        booking_data = {
+            "client_name": "Test Cost Tracking Client",
+            "client_email": "testcost@example.rw",
+            "client_phone": "+250788444333",
+            "service_type": "software_development",
+            "description": "Test booking for cost tracking validation",
+            "preferred_date": "2025-01-29T15:00:00",
+            "location": "Test Location",
+            "cost_estimate": 200000.0,
+            "notes": "Test booking for cost tracking"
+        }
+        
+        success, data, status_code = self.make_request("POST", "/services/bookings", booking_data)
+        if not success or not data.get("id"):
+            self.log_test("Service Cost Tracking", False, "Could not create test booking for cost tracking")
+            return
+            
+        booking_id = data.get("id")
+        
+        # Update booking with actual cost
+        update_data = {
+            "actual_cost": 185000.0,
+            "status": "completed",
+            "notes": "Service completed with actual cost tracking"
+        }
+        
+        success, data, status_code = self.make_request("PUT", f"/services/bookings/{booking_id}", update_data)
+        
+        if success and status_code == 200:
+            # Verify cost tracking
+            success, booking_data, _ = self.make_request("GET", f"/services/bookings/{booking_id}")
+            if success:
+                cost_estimate = booking_data.get("cost_estimate", 0)
+                actual_cost = booking_data.get("actual_cost", 0)
+                
+                if cost_estimate == 200000.0 and actual_cost == 185000.0:
+                    cost_difference = cost_estimate - actual_cost
+                    self.log_test("Service Cost Tracking", True, f"Cost tracking working: Estimate: {cost_estimate}, Actual: {actual_cost}, Difference: {cost_difference}")
+                else:
+                    self.log_test("Service Cost Tracking", False, f"Cost tracking incorrect: Estimate: {cost_estimate}, Actual: {actual_cost}")
+            else:
+                self.log_test("Service Cost Tracking", False, "Could not retrieve booking after cost update")
+        else:
+            self.log_test("Service Cost Tracking", False, f"Failed to update booking with actual cost: {status_code}")
+
+    def test_services_summary(self):
+        """Test GET /api/services/summary - Get comprehensive service booking summary"""
+        if not self.token:
+            self.log_test("Get Services Summary", False, "No token available - login failed")
+            return
+            
+        success, data, status_code = self.make_request("GET", "/services/summary")
+        
+        if success and status_code == 200:
+            required_keys = ["total_bookings", "status_counts", "service_type_counts", "total_revenue", "estimated_revenue", "recent_bookings", "monthly_bookings"]
+            has_required_keys = all(key in data for key in required_keys)
+            
+            if has_required_keys:
+                summary = {
+                    "Total Bookings": data.get("total_bookings", 0),
+                    "Status Counts": data.get("status_counts", {}),
+                    "Service Type Counts": data.get("service_type_counts", {}),
+                    "Total Revenue": data.get("total_revenue", 0),
+                    "Estimated Revenue": data.get("estimated_revenue", 0),
+                    "Recent Bookings": data.get("recent_bookings", 0),
+                    "Monthly Bookings": data.get("monthly_bookings", 0)
+                }
+                self.log_test("Get Services Summary", True, f"Retrieved services summary: {summary}")
+            else:
+                missing_keys = [key for key in required_keys if key not in data]
+                self.log_test("Get Services Summary", False, f"Missing required keys: {missing_keys}")
+        else:
+            self.log_test("Get Services Summary", False, f"Status: {status_code}", data)
+
+    def run_enhanced_service_booking_tests(self):
+        """Run all enhanced service booking management tests"""
+        print("\n" + "="*60)
+        print("TESTING ENHANCED SERVICE BOOKING MANAGEMENT API")
+        print("="*60)
+        
+        # Basic service booking tests
+        self.test_service_bookings_get()
+        self.test_service_bookings_create()
+        self.test_service_bookings_update()
+        self.test_service_types()
+        
+        # Enhanced service booking management tests
+        self.test_service_booking_single()
+        self.test_service_booking_delete_validation()
+        self.test_service_booking_delete_in_progress_validation()
+        self.test_service_bookings_by_status()
+        self.test_service_bookings_by_type()
+        self.test_service_booking_status_update()
+        self.test_service_booking_number_generation()
+        self.test_service_cost_tracking()
+        self.test_services_summary()
 
     # NEW MODULE TESTS - FINANCE MODULE
     def test_financial_transactions_get(self):
