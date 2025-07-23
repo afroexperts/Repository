@@ -448,7 +448,7 @@ class InvoiceLog(Base):
     performed_at = Column(DateTime, default=datetime.utcnow)
     
     # Additional data (JSON format)
-    metadata = Column(JSON, nullable=True)
+    log_metadata = Column(JSON, nullable=True)
     
     # Relationships
     invoice = relationship("Invoice", back_populates="logs")
