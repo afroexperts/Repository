@@ -53,7 +53,7 @@ class PaymentMethod(enum.Enum):
     card = "card"
     mobile_money = "mobile_money"
     bank_transfer = "bank_transfer"
-    afro_payi = "afro_payi"
+    afropay = "afropay"
 
 class ServiceType(enum.Enum):
     it_support = "it_support"
