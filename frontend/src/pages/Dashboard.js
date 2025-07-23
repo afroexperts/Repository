@@ -2642,19 +2642,78 @@ const Dashboard = () => {
                   <div className="space-y-4">
                     {dashboardData.clients.map((client) => (
                       <div key={client.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
-                        <div className="space-y-1">
-                          <h4 className="font-medium">{client.name}</h4>
-                          <p className="text-sm text-gray-600">{client.email}</p>
-                          <div className="flex items-center space-x-2">
-                            <Badge variant="outline" className="text-xs">
-                              {client.client_type === 'business' ? 'Business' : 'Individual'}
-                            </Badge>
-                            <span className="text-xs text-gray-500">{client.phone}</span>
+                        <div className="flex items-center space-x-4">
+                          {/* Client Logo */}
+                          <div className="flex-shrink-0">
+                            {client.logo ? (
+                              <img
+                                src={client.logo}
+                                alt={client.company_name || client.name}
+                                className="h-12 w-12 object-contain rounded-lg border"
+                              />
+                            ) : (
+                              <div className="h-12 w-12 bg-gray-200 rounded-lg flex items-center justify-center">
+                                <User className="h-6 w-6 text-gray-400" />
+                              </div>
+                            )}
+                          </div>
+                          
+                          <div className="space-y-1">
+                            <div className="flex items-center space-x-2">
+                              <h4 className="font-medium">{client.name}</h4>
+                              {client.showcase_on_website && (
+                                <Badge className="bg-green-100 text-green-800 text-xs">
+                                  <Globe className="h-3 w-3 mr-1" />
+                                  Showcased
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-sm text-gray-600">{client.email}</p>
+                            <div className="flex items-center space-x-2">
+                              <Badge variant="outline" className="text-xs">
+                                {client.client_type === 'business' ? 'Business' : 'Individual'}
+                              </Badge>
+                              <span className="text-xs text-gray-500">{client.phone}</span>
+                              {client.website_url && (
+                                <a
+                                  href={client.website_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-xs text-blue-600 hover:underline flex items-center"
+                                >
+                                  <ExternalLink className="h-3 w-3 mr-1" />
+                                  Website
+                                </a>
+                              )}
+                            </div>
                           </div>
                         </div>
-                        <div className="text-right space-y-1">
-                          <p className="text-sm font-medium">Credit Limit: RWF {client.credit_limit.toLocaleString()}</p>
-                          <p className="text-xs text-gray-500">Orders: {client.total_orders || 0}</p>
+                        
+                        <div className="flex items-center space-x-3">
+                          <div className="text-right space-y-1">
+                            <p className="text-sm font-medium">Credit Limit: RWF {client.credit_limit.toLocaleString()}</p>
+                            <p className="text-xs text-gray-500">Orders: {client.total_orders || 0}</p>
+                          </div>
+                          
+                          {/* Showcase Toggle Button */}
+                          <Button
+                            size="sm"
+                            variant={client.showcase_on_website ? "default" : "outline"}
+                            className={client.showcase_on_website ? "bg-green-600 hover:bg-green-700" : ""}
+                            onClick={() => toggleClientShowcase(client.id)}
+                          >
+                            {client.showcase_on_website ? (
+                              <>
+                                <Eye className="h-4 w-4 mr-1" />
+                                Featured
+                              </>
+                            ) : (
+                              <>
+                                <EyeOff className="h-4 w-4 mr-1" />
+                                Feature
+                              </>
+                            )}
+                          </Button>
                         </div>
                       </div>
                     ))}
