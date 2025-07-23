@@ -836,7 +836,7 @@ def create_service_booking(booking_data: ServiceBookingCreate, db: Session = Dep
             location=booking_data.location,
             preferred_date=booking_data.preferred_date,
             status='pending',
-            cost_estimate=booking_data.cost_estimate,
+            estimated_cost=booking_data.cost_estimate,
             notes=booking_data.notes
         )
         
