@@ -1081,8 +1081,190 @@ def get_financial_summary(db: Session = Depends(get_db)):
 
 @app.get("/api/services/bookings")
 def get_service_bookings(db: Session = Depends(get_db)):
-    """Get service bookings"""
-    return db.query(ServiceBooking).order_by(ServiceBooking.created_at.desc()).all()
+    """Get service bookings with enhanced details"""
+    try:
+        bookings = db.query(ServiceBooking).order_by(ServiceBooking.created_at.desc()).all()
+        
+        # Format response with additional details
+        formatted_bookings = []
+        for booking in bookings:
+            formatted_booking = {
+                "id": booking.id,
+                "booking_number": booking.booking_number,
+                "client_name": booking.client_name,
+                "client_email": booking.client_email,
+                "client_phone": booking.client_phone,
+                "service_type": booking.service_type.value,
+                "description": booking.description,
+                "location": booking.location,
+                "preferred_date": booking.preferred_date.isoformat() if booking.preferred_date else None,
+                "status": booking.status,
+                "technician_id": booking.technician_id,
+                "cost_estimate": booking.cost_estimate,
+                "actual_cost": booking.actual_cost,
+                "notes": booking.notes,
+                "created_at": booking.created_at.isoformat() if booking.created_at else None,
+                "updated_at": booking.updated_at.isoformat() if booking.updated_at else None
+            }
+            formatted_bookings.append(formatted_booking)
+        
+        return formatted_bookings
+    except Exception as e:
+        logger.error(f"Get service bookings error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve service bookings")
+
+@app.get("/api/services/bookings/{booking_id}")
+def get_service_booking(booking_id: str, db: Session = Depends(get_db)):
+    """Get single service booking"""
+    try:
+        booking = db.query(ServiceBooking).filter(ServiceBooking.id == booking_id).first()
+        if not booking:
+            raise HTTPException(status_code=404, detail="Booking not found")
+        return booking
+    except Exception as e:
+        logger.error(f"Get service booking error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve service booking")
+
+@app.put("/api/services/bookings/{booking_id}")
+def update_service_booking(booking_id: str, booking_update: dict, db: Session = Depends(get_db)):
+    """Update service booking"""
+    try:
+        booking = db.query(ServiceBooking).filter(ServiceBooking.id == booking_id).first()
+        if not booking:
+            raise HTTPException(status_code=404, detail="Booking not found")
+        
+        # Update allowed fields
+        if 'status' in booking_update:
+            booking.status = booking_update['status']
+        if 'technician_id' in booking_update:
+            booking.technician_id = booking_update['technician_id']
+        if 'cost_estimate' in booking_update:
+            booking.cost_estimate = float(booking_update['cost_estimate'])
+        if 'actual_cost' in booking_update:
+            booking.actual_cost = float(booking_update['actual_cost'])
+        if 'notes' in booking_update:
+            booking.notes = booking_update['notes']
+        if 'preferred_date' in booking_update:
+            booking.preferred_date = datetime.fromisoformat(booking_update['preferred_date'].replace('Z', '+00:00'))
+        
+        booking.updated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(booking)
+        
+        return booking
+    except Exception as e:
+        logger.error(f"Update service booking error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update service booking")
+
+@app.delete("/api/services/bookings/{booking_id}")
+def delete_service_booking(booking_id: str, db: Session = Depends(get_db)):
+    """Delete service booking"""
+    try:
+        booking = db.query(ServiceBooking).filter(ServiceBooking.id == booking_id).first()
+        if not booking:
+            raise HTTPException(status_code=404, detail="Booking not found")
+        
+        # Check if booking can be deleted (not in progress or completed)
+        if booking.status in ['in_progress', 'completed']:
+            raise HTTPException(status_code=400, detail="Cannot delete booking that is in progress or completed")
+        
+        db.delete(booking)
+        db.commit()
+        
+        return {"message": "Booking deleted successfully"}
+    except Exception as e:
+        logger.error(f"Delete service booking error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete service booking")
+
+@app.get("/api/services/bookings/status/{status}")
+def get_bookings_by_status(status: str, db: Session = Depends(get_db)):
+    """Get bookings by status"""
+    try:
+        bookings = db.query(ServiceBooking).filter(ServiceBooking.status == status).order_by(ServiceBooking.created_at.desc()).all()
+        return bookings
+    except Exception as e:
+        logger.error(f"Get bookings by status error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve bookings by status")
+
+@app.get("/api/services/bookings/type/{service_type}")
+def get_bookings_by_type(service_type: str, db: Session = Depends(get_db)):
+    """Get bookings by service type"""
+    try:
+        bookings = db.query(ServiceBooking).filter(ServiceBooking.service_type == ServiceType(service_type)).order_by(ServiceBooking.created_at.desc()).all()
+        return bookings
+    except Exception as e:
+        logger.error(f"Get bookings by type error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve bookings by type")
+
+@app.put("/api/services/bookings/{booking_id}/status")
+def update_booking_status(booking_id: str, status_update: dict, db: Session = Depends(get_db)):
+    """Update booking status"""
+    try:
+        booking = db.query(ServiceBooking).filter(ServiceBooking.id == booking_id).first()
+        if not booking:
+            raise HTTPException(status_code=404, detail="Booking not found")
+        
+        new_status = status_update['status']
+        booking.status = new_status
+        booking.updated_at = datetime.utcnow()
+        
+        db.commit()
+        db.refresh(booking)
+        
+        return {"message": f"Booking status updated to {new_status}", "booking": booking}
+    except Exception as e:
+        logger.error(f"Update booking status error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update booking status")
+
+@app.get("/api/services/summary")
+def get_services_summary(db: Session = Depends(get_db)):
+    """Get service booking summary statistics"""
+    try:
+        # Total bookings
+        total_bookings = db.query(ServiceBooking).count()
+        
+        # Bookings by status
+        status_counts = {}
+        for status in ['pending', 'confirmed', 'in_progress', 'completed', 'cancelled']:
+            count = db.query(ServiceBooking).filter(ServiceBooking.status == status).count()
+            status_counts[status] = count
+        
+        # Bookings by service type
+        service_type_counts = {}
+        for service_type in ServiceType:
+            count = db.query(ServiceBooking).filter(ServiceBooking.service_type == service_type).count()
+            service_type_counts[service_type.value] = count
+        
+        # Revenue calculations
+        total_revenue = db.query(func.sum(ServiceBooking.actual_cost)).filter(
+            ServiceBooking.status == 'completed'
+        ).scalar() or 0
+        
+        estimated_revenue = db.query(func.sum(ServiceBooking.cost_estimate)).filter(
+            ServiceBooking.status.in_(['confirmed', 'in_progress'])
+        ).scalar() or 0
+        
+        # Recent bookings
+        recent_bookings = db.query(ServiceBooking).order_by(ServiceBooking.created_at.desc()).limit(5).all()
+        
+        # This month's bookings
+        current_month_start = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        monthly_bookings = db.query(ServiceBooking).filter(
+            ServiceBooking.created_at >= current_month_start
+        ).count()
+        
+        return {
+            "total_bookings": total_bookings,
+            "status_counts": status_counts,
+            "service_type_counts": service_type_counts,
+            "total_revenue": float(total_revenue),
+            "estimated_revenue": float(estimated_revenue),
+            "recent_bookings": len(recent_bookings),
+            "monthly_bookings": monthly_bookings
+        }
+    except Exception as e:
+        logger.error(f"Get services summary error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve services summary")
 
 # ===============================
 # Health Check
