@@ -45,7 +45,8 @@ from models import (
     InvoicePaymentCreate, InvoicePaymentUpdate, InvoiceTemplateCreate,
     PortfolioItemCreate, PortfolioItemUpdate, PortfolioItem as PortfolioItemResponse,
     SecondHandItemCreate, SecondHandItemUpdate, SecondHandItem as SecondHandItemResponse,
-    MarbleDustBatchCreate, MarbleDustBatchUpdate, MarbleDustBatch as MarbleDustBatchResponse
+    MarbleDustBatchCreate, MarbleDustBatchUpdate, MarbleDustBatch as MarbleDustBatchResponse,
+    StarlinkInstallationCreate, StarlinkInstallationUpdate, StarlinkInstallation as StarlinkInstallationResponse
 )
 
 # Configure logging
