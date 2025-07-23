@@ -397,11 +397,10 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Enhanced Finance Management API"
-    - "Finance Management Frontend"
+    - "Reports Module API"
   stuck_tasks: []
   test_all: false
-  test_priority: "finance_management_completion"
+  test_priority: "reports_module_completion"
 
 agent_communication:
     - agent: "main"
