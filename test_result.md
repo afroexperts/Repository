@@ -473,10 +473,11 @@ metadata:
   run_ui: false
 
 test_plan:
-  current_focus: []
+  current_focus:
+    - "Marble Dust Production Management API"
   stuck_tasks: []
   test_all: false
-  test_priority: "completed"
+  test_priority: "marble_module_completion"
 
 agent_communication:
     - agent: "main"
