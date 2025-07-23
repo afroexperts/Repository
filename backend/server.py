@@ -91,6 +91,413 @@ app.add_middleware(
 )
 
 # ===============================
+# RBAC Helper Functions
+# ===============================
+
+def get_user_role_permissions(role: str) -> Dict[str, bool]:
+    """Get default permissions for a role"""
+    role_permissions = {
+        "admin": {
+            # Admin has all permissions
+            perm.value: True for perm in Permission
+        },
+        "manager": {
+            # Manager has most permissions except user management
+            "dashboard_view": True, "dashboard_stats": True,
+            "products_view": True, "products_create": True, "products_update": True, "products_delete": True,
+            "orders_view": True, "orders_create": True, "orders_update": True, "orders_delete": True,
+            "clients_view": True, "clients_create": True, "clients_update": True, "clients_delete": True,
+            "inventory_view": True, "inventory_create": True, "inventory_update": True, "inventory_delete": True,
+            "finance_view": True, "finance_create": True, "finance_update": True, "finance_delete": True,
+            "invoices_view": True, "invoices_create": True, "invoices_update": True, "invoices_delete": True, "invoices_payment": True,
+            "reports_view": True, "reports_export": True,
+            "settings_view": True, "settings_update": True,
+            "pos_access": True, "pos_sales": True,
+            "services_view": True, "services_create": True, "services_update": True, "services_delete": True,
+            "portfolio_view": True, "portfolio_create": True, "portfolio_update": True, "portfolio_delete": True,
+            "secondhand_view": True, "secondhand_create": True, "secondhand_update": True, "secondhand_delete": True,
+            "marble_view": True, "marble_create": True, "marble_update": True, "marble_delete": True,
+            "starlink_view": True, "starlink_create": True, "starlink_update": True, "starlink_delete": True,
+        },
+        "cashier": {
+            # Cashier has POS and basic viewing permissions
+            "dashboard_view": True,
+            "products_view": True,
+            "clients_view": True, "clients_create": True,
+            "orders_view": True, "orders_create": True,
+            "pos_access": True, "pos_sales": True,
+            "invoices_view": True, "invoices_create": True, "invoices_payment": True,
+            "reports_view": True,
+        },
+        "inventory_officer": {
+            # Inventory officer has inventory and product permissions
+            "dashboard_view": True,
+            "products_view": True, "products_create": True, "products_update": True,
+            "inventory_view": True, "inventory_create": True, "inventory_update": True, "inventory_delete": True,
+            "reports_view": True, "reports_export": True,
+            "marble_view": True, "marble_create": True, "marble_update": True,
+        },
+        "technician": {
+            # Technician has service and starlink permissions
+            "dashboard_view": True,
+            "services_view": True, "services_update": True,
+            "starlink_view": True, "starlink_create": True, "starlink_update": True,
+            "reports_view": True,
+        },
+        "sales_rep": {
+            # Sales rep has client and sales permissions
+            "dashboard_view": True,
+            "clients_view": True, "clients_create": True, "clients_update": True,
+            "orders_view": True, "orders_create": True, "orders_update": True,
+            "invoices_view": True, "invoices_create": True,
+            "secondhand_view": True, "secondhand_create": True, "secondhand_update": True,
+            "starlink_view": True, "starlink_create": True,
+            "reports_view": True,
+        },
+        "accountant": {
+            # Accountant has financial permissions
+            "dashboard_view": True, "dashboard_stats": True,
+            "finance_view": True, "finance_create": True, "finance_update": True, "finance_delete": True,
+            "invoices_view": True, "invoices_create": True, "invoices_update": True, "invoices_payment": True,
+            "reports_view": True, "reports_export": True,
+            "orders_view": True, "clients_view": True,
+        },
+        "viewer": {
+            # Viewer has only read permissions
+            "dashboard_view": True,
+            "products_view": True, "orders_view": True, "clients_view": True,
+            "inventory_view": True, "finance_view": True, "invoices_view": True,
+            "reports_view": True, "services_view": True, "portfolio_view": True,
+            "secondhand_view": True, "marble_view": True, "starlink_view": True,
+        }
+    }
+    return role_permissions.get(role, {})
+
+def check_user_permission(user: User, permission: str, db: Session) -> bool:
+    """Check if user has specific permission"""
+    # Check user-specific permissions first
+    user_perm = db.query(UserPermission).filter(
+        UserPermission.user_id == user.id,
+        UserPermission.permission == permission,
+        UserPermission.granted == True,
+        (UserPermission.expires_at.is_(None) | (UserPermission.expires_at > datetime.utcnow()))
+    ).first()
+    
+    if user_perm:
+        return True
+    
+    # Check role-based permissions
+    role_perm = db.query(RolePermission).filter(
+        RolePermission.role == user.role.value,
+        RolePermission.permission == permission,
+        RolePermission.granted == True
+    ).first()
+    
+    if role_perm:
+        return True
+    
+    # Fall back to default role permissions
+    default_permissions = get_user_role_permissions(user.role.value)
+    return default_permissions.get(permission, False)
+
+def get_current_user_with_permissions(token: str, db: Session) -> tuple:
+    """Get current user and their permissions"""
+    if not token or not token.startswith("Bearer "):
+        return None, {}
+    
+    try:
+        token = token.replace("Bearer ", "")
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = payload.get("sub")
+        if not user_id:
+            return None, {}
+    except:
+        return None, {}
+    
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        return None, {}
+    
+    # Get all user permissions
+    permissions = {}
+    for perm in Permission:
+        permissions[perm.value] = check_user_permission(user, perm.value, db)
+    
+    return user, permissions
+
+def require_permission(permission: str):
+    """Decorator to require specific permission for endpoint access"""
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            # Get token from request headers
+            auth_header = kwargs.get('authorization') or kwargs.get('request', {}).get('headers', {}).get('authorization')
+            if not auth_header:
+                raise HTTPException(status_code=401, detail="Authorization header required")
+            
+            db = next(get_db())
+            user, permissions = get_current_user_with_permissions(auth_header, db)
+            
+            if not user:
+                raise HTTPException(status_code=401, detail="Invalid authentication credentials")
+            
+            if not permissions.get(permission, False):
+                raise HTTPException(status_code=403, detail=f"Insufficient permissions. Required: {permission}")
+            
+            # Add user and permissions to kwargs
+            kwargs['current_user'] = user
+            kwargs['user_permissions'] = permissions
+            
+            return func(*args, **kwargs)
+        return wrapper
+    return decorator
+
+# ===============================
+# RBAC API Endpoints
+# ===============================
+
+@app.get("/api/rbac/permissions/check/{permission}")
+def check_permission(permission: str, authorization: str = Header(None), db: Session = Depends(get_db)):
+    """Check if current user has specific permission"""
+    try:
+        user, permissions = get_current_user_with_permissions(authorization, db)
+        if not user:
+            raise HTTPException(status_code=401, detail="Authentication required")
+        
+        has_permission = permissions.get(permission, False)
+        return {
+            "permission": permission,
+            "granted": has_permission,
+            "user_id": user.id,
+            "user_role": user.role.value
+        }
+    except Exception as e:
+        logger.error(f"Check permission error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to check permission")
+
+@app.get("/api/rbac/permissions/user")
+def get_user_permissions(authorization: str = Header(None), db: Session = Depends(get_db)):
+    """Get all permissions for current user"""
+    try:
+        user, permissions = get_current_user_with_permissions(authorization, db)
+        if not user:
+            raise HTTPException(status_code=401, detail="Authentication required")
+        
+        return {
+            "user_id": user.id,
+            "user_role": user.role.value,
+            "permissions": permissions
+        }
+    except Exception as e:
+        logger.error(f"Get user permissions error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get user permissions")
+
+@app.get("/api/rbac/roles/{role}/permissions")
+def get_role_permissions(role: str, authorization: str = Header(None), db: Session = Depends(get_db)):
+    """Get permissions for a specific role (admin only)"""
+    try:
+        user, permissions = get_current_user_with_permissions(authorization, db)
+        if not user or not permissions.get("users_view", False):
+            raise HTTPException(status_code=403, detail="Admin access required")
+        
+        # Get role permissions from database
+        role_perms = db.query(RolePermission).filter(RolePermission.role == role).all()
+        role_perm_dict = {rp.permission: rp.granted for rp in role_perms}
+        
+        # Merge with default permissions
+        default_perms = get_user_role_permissions(role)
+        for perm, granted in default_perms.items():
+            if perm not in role_perm_dict:
+                role_perm_dict[perm] = granted
+        
+        return {
+            "role": role,
+            "permissions": role_perm_dict
+        }
+    except Exception as e:
+        logger.error(f"Get role permissions error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get role permissions")
+
+@app.put("/api/rbac/roles/{role}/permissions")
+def update_role_permissions(role: str, permissions_update: RolePermissionsUpdate, authorization: str = Header(None), db: Session = Depends(get_db)):
+    """Update permissions for a specific role (admin only)"""
+    try:
+        user, permissions = get_current_user_with_permissions(authorization, db)
+        if not user or not permissions.get("users_update", False):
+            raise HTTPException(status_code=403, detail="Admin access required")
+        
+        # Update role permissions
+        for permission, granted in permissions_update.permissions.items():
+            # Check if permission exists
+            existing = db.query(RolePermission).filter(
+                RolePermission.role == role,
+                RolePermission.permission == permission
+            ).first()
+            
+            if existing:
+                existing.granted = granted
+            else:
+                new_perm = RolePermission(
+                    role=role,
+                    permission=permission,
+                    granted=granted
+                )
+                db.add(new_perm)
+        
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": f"Permissions updated for role: {role}",
+            "role": role,
+            "updated_permissions": len(permissions_update.permissions)
+        }
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Update role permissions error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update role permissions")
+
+# ===============================
+# Multi-language API Endpoints
+# ===============================
+
+@app.get("/api/translations")
+def get_translations(language: str = None, category: str = None, db: Session = Depends(get_db)):
+    """Get translations with optional filtering"""
+    try:
+        query = db.query(Translation)
+        
+        if language:
+            query = query.filter(Translation.language == language)
+        if category:
+            query = query.filter(Translation.category == category)
+        
+        translations = query.all()
+        
+        # Format response
+        result = {}
+        for trans in translations:
+            if trans.language not in result:
+                result[trans.language] = {}
+            result[trans.language][trans.key] = trans.value
+        
+        return result
+    except Exception as e:
+        logger.error(f"Get translations error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get translations")
+
+@app.post("/api/translations")
+def create_translation(translation_data: TranslationCreate, authorization: str = Header(None), db: Session = Depends(get_db)):
+    """Create new translation (admin only)"""
+    try:
+        user, permissions = get_current_user_with_permissions(authorization, db)
+        if not user or not permissions.get("settings_update", False):
+            raise HTTPException(status_code=403, detail="Admin access required")
+        
+        # Check if translation already exists
+        existing = db.query(Translation).filter(
+            Translation.key == translation_data.key,
+            Translation.language == translation_data.language
+        ).first()
+        
+        if existing:
+            raise HTTPException(status_code=400, detail="Translation already exists for this key and language")
+        
+        # Create translation
+        db_translation = Translation(
+            key=translation_data.key,
+            language=translation_data.language,
+            value=translation_data.value,
+            category=translation_data.category
+        )
+        
+        db.add(db_translation)
+        db.commit()
+        db.refresh(db_translation)
+        
+        return {
+            "success": True,
+            "message": "Translation created successfully",
+            "id": db_translation.id
+        }
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Create translation error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create translation: {str(e)}")
+
+@app.get("/api/user/preferences")
+def get_user_preferences(authorization: str = Header(None), db: Session = Depends(get_db)):
+    """Get current user's preferences"""
+    try:
+        user, _ = get_current_user_with_permissions(authorization, db)
+        if not user:
+            raise HTTPException(status_code=401, detail="Authentication required")
+        
+        preferences = db.query(UserPreference).filter(UserPreference.user_id == user.id).first()
+        
+        if not preferences:
+            # Create default preferences
+            preferences = UserPreference(
+                user_id=user.id,
+                language="en",
+                timezone="UTC",
+                date_format="YYYY-MM-DD",
+                currency="RWF",
+                theme="light",
+                notifications_enabled=True
+            )
+            db.add(preferences)
+            db.commit()
+            db.refresh(preferences)
+        
+        return {
+            "id": preferences.id,
+            "user_id": preferences.user_id,
+            "language": preferences.language,
+            "timezone": preferences.timezone,
+            "date_format": preferences.date_format,
+            "currency": preferences.currency,
+            "theme": preferences.theme,
+            "notifications_enabled": preferences.notifications_enabled,
+            "created_at": preferences.created_at.isoformat(),
+            "updated_at": preferences.updated_at.isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Get user preferences error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get user preferences")
+
+@app.put("/api/user/preferences")
+def update_user_preferences(preferences_update: UserPreferenceUpdate, authorization: str = Header(None), db: Session = Depends(get_db)):
+    """Update current user's preferences"""
+    try:
+        user, _ = get_current_user_with_permissions(authorization, db)
+        if not user:
+            raise HTTPException(status_code=401, detail="Authentication required")
+        
+        preferences = db.query(UserPreference).filter(UserPreference.user_id == user.id).first()
+        
+        if not preferences:
+            # Create new preferences
+            preferences = UserPreference(user_id=user.id)
+            db.add(preferences)
+        
+        # Update fields
+        update_data = preferences_update.dict(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(preferences, field, value)
+        
+        preferences.updated_at = datetime.utcnow()
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": "User preferences updated successfully"
+        }
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Update user preferences error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update user preferences")
+
+# ===============================
 # Authentication Endpoints
 # ===============================
 
