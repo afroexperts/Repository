@@ -655,7 +655,7 @@ const Dashboard = () => {
     }
   };
 
-  const handleAddFinanceTransaction = async (e) => {
+  const handleFinanceTransaction = async (e) => {
     e.preventDefault();
     setFormLoading(true);
     
@@ -663,13 +663,19 @@ const Dashboard = () => {
       const response = await axios.post(`${API}/finance/transactions`, financeForm);
       
       if (response.status === 200) {
-        // Refresh finance data
-        const financeResponse = await axios.get(`${API}/finance/transactions`);
-        setDashboardData(prev => ({ ...prev, financialTransactions: financeResponse.data }));
+        // Refresh financial data
+        const transactionsResponse = await axios.get(`${API}/finance/transactions`);
+        const summaryResponse = await axios.get(`${API}/finance/summary`);
+        
+        setDashboardData(prev => ({ 
+          ...prev, 
+          financialTransactions: transactionsResponse.data,
+          financialSummary: summaryResponse.data
+        }));
         
         // Reset form and close modal
         setFinanceForm({
-          transaction_type: 'income', category: '', description: '',
+          transaction_type: 'income', category: 'sales', description: '',
           amount: '', reference_id: ''
         });
         setShowFinanceModal(false);
@@ -680,15 +686,126 @@ const Dashboard = () => {
         });
       }
     } catch (error) {
-      console.error('Error adding financial transaction:', error);
+      console.error('Error recording financial transaction:', error);
       toast({
         title: "Error",
-        description: "Failed to record transaction. Please try again.",
+        description: error.response?.data?.detail || "Failed to record transaction. Please try again.",
         variant: "destructive",
       });
     } finally {
       setFormLoading(false);
     }
+  };
+
+  const handleViewTransactionDetails = (transaction) => {
+    setSelectedTransaction(transaction);
+    setShowFinanceDetailsModal(true);
+  };
+
+  const handleEditTransaction = (transaction) => {
+    setSelectedTransaction(transaction);
+    setFinanceForm({
+      transaction_type: transaction.transaction_type,
+      category: transaction.category,
+      description: transaction.description,
+      amount: transaction.amount.toString(),
+      reference_id: transaction.reference_id || ''
+    });
+    setShowEditFinanceModal(true);
+  };
+
+  const handleUpdateTransaction = async (e) => {
+    e.preventDefault();
+    setFormLoading(true);
+    
+    try {
+      const response = await axios.put(`${API}/finance/transactions/${selectedTransaction.id}`, financeForm);
+      
+      if (response.status === 200) {
+        // Refresh financial data
+        const transactionsResponse = await axios.get(`${API}/finance/transactions`);
+        const summaryResponse = await axios.get(`${API}/finance/summary`);
+        
+        setDashboardData(prev => ({ 
+          ...prev, 
+          financialTransactions: transactionsResponse.data,
+          financialSummary: summaryResponse.data
+        }));
+        
+        // Reset form and close modal
+        setFinanceForm({
+          transaction_type: 'income', category: 'sales', description: '',
+          amount: '', reference_id: ''
+        });
+        setSelectedTransaction(null);
+        setShowEditFinanceModal(false);
+        
+        toast({
+          title: "Success",
+          description: "Transaction updated successfully!",
+        });
+      }
+    } catch (error) {
+      console.error('Error updating transaction:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update transaction. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const handleDeleteTransaction = async (transactionId) => {
+    if (!window.confirm('Are you sure you want to delete this transaction?')) {
+      return;
+    }
+    
+    try {
+      await axios.delete(`${API}/finance/transactions/${transactionId}`);
+      
+      // Refresh financial data
+      const transactionsResponse = await axios.get(`${API}/finance/transactions`);
+      const summaryResponse = await axios.get(`${API}/finance/summary`);
+      
+      setDashboardData(prev => ({ 
+        ...prev, 
+        financialTransactions: transactionsResponse.data,
+        financialSummary: summaryResponse.data
+      }));
+      
+      toast({
+        title: "Success",
+        description: "Transaction deleted successfully!",
+      });
+    } catch (error) {
+      console.error('Error deleting transaction:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete transaction. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getFilteredTransactions = () => {
+    let filtered = dashboardData.financialTransactions;
+    
+    if (financeTypeFilter !== 'all') {
+      filtered = filtered.filter(t => t.transaction_type === financeTypeFilter);
+    }
+    
+    if (financeCategoryFilter !== 'all') {
+      filtered = filtered.filter(t => t.category === financeCategoryFilter);
+    }
+    
+    return filtered;
+  };
+
+  const getUniqueCategories = () => {
+    const categories = [...new Set(dashboardData.financialTransactions.map(t => t.category))];
+    return categories.filter(cat => cat);
   };
 
   // POS Functions
