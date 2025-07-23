@@ -1297,6 +1297,960 @@ def health_check():
     return {"status": "healthy", "database": "mysql", "version": "2.0.0"}
 
 # ===============================
+# Reports Module Endpoints
+# ===============================
+
+def generate_report_header(doc, report_title, company_name="Afro Experts"):
+    """Generate standardized report header"""
+    styles = getSampleStyleSheet()
+    header_style = ParagraphStyle(
+        'CustomHeader',
+        parent=styles['Heading1'],
+        fontSize=16,
+        spaceAfter=30,
+        alignment=TA_CENTER,
+        textColor=colors.HexColor('#0c4864')
+    )
+    
+    company_style = ParagraphStyle(
+        'CompanyStyle',
+        parent=styles['Normal'],
+        fontSize=12,
+        spaceAfter=10,
+        alignment=TA_CENTER,
+        textColor=colors.HexColor('#666666')
+    )
+    
+    date_style = ParagraphStyle(
+        'DateStyle',
+        parent=styles['Normal'],
+        fontSize=10,
+        spaceAfter=20,
+        alignment=TA_CENTER,
+        textColor=colors.HexColor('#666666')
+    )
+    
+    # Add header content
+    header_content = [
+        Paragraph(company_name, company_style),
+        Paragraph(report_title, header_style),
+        Paragraph(f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", date_style),
+        Spacer(1, 0.2*inch)
+    ]
+    
+    return header_content
+
+def create_excel_header(ws, report_title, company_name="Afro Experts"):
+    """Create standardized Excel header"""
+    # Company name
+    ws['A1'] = company_name
+    ws['A1'].font = Font(size=14, bold=True)
+    ws['A1'].alignment = Alignment(horizontal='center')
+    
+    # Report title
+    ws['A2'] = report_title
+    ws['A2'].font = Font(size=12, bold=True)
+    ws['A2'].alignment = Alignment(horizontal='center')
+    
+    # Date
+    ws['A3'] = f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+    ws['A3'].font = Font(size=10)
+    ws['A3'].alignment = Alignment(horizontal='center')
+    
+    return 5  # Return starting row for data
+
+@app.get("/api/reports/orders/pdf")
+def generate_orders_pdf_report(db: Session = Depends(get_db)):
+    """Generate PDF report for orders"""
+    try:
+        # Get orders data
+        orders = db.query(Order).order_by(Order.created_at.desc()).all()
+        
+        # Create PDF buffer
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=1*inch)
+        
+        # Build document content
+        content = []
+        content.extend(generate_report_header(doc, "Orders Report"))
+        
+        # Summary section
+        styles = getSampleStyleSheet()
+        summary_data = [
+            ['Total Orders', str(len(orders))],
+            ['Pending Orders', str(len([o for o in orders if o.status == OrderStatus.pending]))],
+            ['Completed Orders', str(len([o for o in orders if o.status == OrderStatus.delivered]))],
+            ['Total Revenue', f"RWF {sum(o.total_amount for o in orders if o.status == OrderStatus.delivered):,.2f}"]
+        ]
+        
+        summary_table = Table(summary_data, colWidths=[2*inch, 2*inch])
+        summary_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f8f9fa')),
+            ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ]))
+        
+        content.append(Paragraph("Summary", styles['Heading2']))
+        content.append(summary_table)
+        content.append(Spacer(1, 0.3*inch))
+        
+        # Orders table
+        content.append(Paragraph("Orders Details", styles['Heading2']))
+        
+        # Prepare orders data for table
+        orders_data = [['Order Number', 'Client', 'Date', 'Status', 'Total Amount']]
+        for order in orders[:50]:  # Limit to 50 orders for PDF
+            orders_data.append([
+                order.order_number,
+                order.client.name if order.client else 'N/A',
+                order.created_at.strftime('%Y-%m-%d') if order.created_at else 'N/A',
+                order.status.value,
+                f"RWF {order.total_amount:,.2f}"
+            ])
+        
+        orders_table = Table(orders_data, colWidths=[1.5*inch, 1.5*inch, 1*inch, 1*inch, 1.2*inch])
+        orders_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0c4864')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ]))
+        
+        content.append(orders_table)
+        
+        # Build PDF
+        doc.build(content)
+        buffer.seek(0)
+        
+        return StreamingResponse(
+            io.BytesIO(buffer.read()),
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename=orders_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"}
+        )
+        
+    except Exception as e:
+        logger.error(f"Generate orders PDF report error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate orders PDF report")
+
+@app.get("/api/reports/orders/excel")
+def generate_orders_excel_report(db: Session = Depends(get_db)):
+    """Generate Excel report for orders"""
+    try:
+        # Get orders data
+        orders = db.query(Order).order_by(Order.created_at.desc()).all()
+        
+        # Create workbook and worksheet
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Orders Report"
+        
+        # Create header
+        start_row = create_excel_header(ws, "Orders Report")
+        
+        # Summary section
+        ws[f'A{start_row}'] = "SUMMARY"
+        ws[f'A{start_row}'].font = Font(size=12, bold=True)
+        start_row += 1
+        
+        summary_data = [
+            ['Total Orders', len(orders)],
+            ['Pending Orders', len([o for o in orders if o.status == OrderStatus.pending])],
+            ['Completed Orders', len([o for o in orders if o.status == OrderStatus.delivered])],
+            ['Total Revenue', f"RWF {sum(o.total_amount for o in orders if o.status == OrderStatus.delivered):,.2f}"]
+        ]
+        
+        for row_data in summary_data:
+            ws[f'A{start_row}'] = row_data[0]
+            ws[f'B{start_row}'] = row_data[1]
+            ws[f'A{start_row}'].font = Font(bold=True)
+            start_row += 1
+        
+        start_row += 2
+        
+        # Orders details section
+        ws[f'A{start_row}'] = "ORDERS DETAILS"
+        ws[f'A{start_row}'].font = Font(size=12, bold=True)
+        start_row += 1
+        
+        # Headers
+        headers = ['Order Number', 'Client Name', 'Date', 'Status', 'Items', 'Total Amount']
+        for col, header in enumerate(headers, 1):
+            cell = ws.cell(row=start_row, column=col, value=header)
+            cell.font = Font(bold=True)
+            cell.fill = PatternFill(start_color='0c4864', end_color='0c4864', fill_type='solid')
+            cell.font = Font(bold=True, color='FFFFFF')
+            cell.alignment = Alignment(horizontal='center')
+        
+        start_row += 1
+        
+        # Orders data
+        for order in orders:
+            ws.cell(row=start_row, column=1, value=order.order_number)
+            ws.cell(row=start_row, column=2, value=order.client.name if order.client else 'N/A')
+            ws.cell(row=start_row, column=3, value=order.created_at.strftime('%Y-%m-%d') if order.created_at else 'N/A')
+            ws.cell(row=start_row, column=4, value=order.status.value)
+            ws.cell(row=start_row, column=5, value=len(order.items))
+            ws.cell(row=start_row, column=6, value=f"RWF {order.total_amount:,.2f}")
+            start_row += 1
+        
+        # Auto-adjust column widths
+        for column in ws.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 50)
+            ws.column_dimensions[column_letter].width = adjusted_width
+        
+        # Create buffer and save
+        buffer = io.BytesIO()
+        wb.save(buffer)
+        buffer.seek(0)
+        
+        return StreamingResponse(
+            io.BytesIO(buffer.read()),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename=orders_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"}
+        )
+        
+    except Exception as e:
+        logger.error(f"Generate orders Excel report error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate orders Excel report")
+
+@app.get("/api/reports/inventory/pdf")
+def generate_inventory_pdf_report(db: Session = Depends(get_db)):
+    """Generate PDF report for inventory"""
+    try:
+        # Get inventory data
+        products = db.query(Product).order_by(Product.name).all()
+        movements = db.query(InventoryMovement).order_by(InventoryMovement.created_at.desc()).limit(100).all()
+        
+        # Create PDF buffer
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=1*inch)
+        
+        # Build document content
+        content = []
+        content.extend(generate_report_header(doc, "Inventory Report"))
+        
+        # Summary section
+        styles = getSampleStyleSheet()
+        total_products = len(products)
+        total_stock_value = sum(p.price * p.current_stock for p in products)
+        low_stock_items = len([p for p in products if p.current_stock <= p.minimum_stock])
+        
+        summary_data = [
+            ['Total Products', str(total_products)],
+            ['Low Stock Items', str(low_stock_items)],
+            ['Recent Movements', str(len(movements))],
+            ['Total Stock Value', f"RWF {total_stock_value:,.2f}"]
+        ]
+        
+        summary_table = Table(summary_data, colWidths=[2*inch, 2*inch])
+        summary_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f8f9fa')),
+            ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ]))
+        
+        content.append(Paragraph("Summary", styles['Heading2']))
+        content.append(summary_table)
+        content.append(Spacer(1, 0.3*inch))
+        
+        # Products table
+        content.append(Paragraph("Products Inventory", styles['Heading2']))
+        
+        products_data = [['Product Name', 'SKU', 'Current Stock', 'Min Stock', 'Price', 'Stock Value']]
+        for product in products[:50]:  # Limit to 50 products for PDF
+            stock_value = product.price * product.current_stock
+            products_data.append([
+                product.name,
+                product.sku,
+                str(product.current_stock),
+                str(product.minimum_stock),
+                f"RWF {product.price:,.2f}",
+                f"RWF {stock_value:,.2f}"
+            ])
+        
+        products_table = Table(products_data, colWidths=[1.5*inch, 1*inch, 0.8*inch, 0.8*inch, 1*inch, 1*inch])
+        products_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0c4864')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 9),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ]))
+        
+        content.append(products_table)
+        
+        # Build PDF
+        doc.build(content)
+        buffer.seek(0)
+        
+        return StreamingResponse(
+            io.BytesIO(buffer.read()),
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename=inventory_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"}
+        )
+        
+    except Exception as e:
+        logger.error(f"Generate inventory PDF report error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate inventory PDF report")
+
+@app.get("/api/reports/inventory/excel")
+def generate_inventory_excel_report(db: Session = Depends(get_db)):
+    """Generate Excel report for inventory"""
+    try:
+        # Get inventory data
+        products = db.query(Product).order_by(Product.name).all()
+        movements = db.query(InventoryMovement).order_by(InventoryMovement.created_at.desc()).limit(100).all()
+        
+        # Create workbook with multiple sheets
+        wb = openpyxl.Workbook()
+        
+        # Products sheet
+        ws_products = wb.active
+        ws_products.title = "Products Inventory"
+        
+        # Create header for products
+        start_row = create_excel_header(ws_products, "Products Inventory Report")
+        
+        # Summary section
+        ws_products[f'A{start_row}'] = "SUMMARY"
+        ws_products[f'A{start_row}'].font = Font(size=12, bold=True)
+        start_row += 1
+        
+        total_products = len(products)
+        total_stock_value = sum(p.price * p.current_stock for p in products)
+        low_stock_items = len([p for p in products if p.current_stock <= p.minimum_stock])
+        
+        summary_data = [
+            ['Total Products', total_products],
+            ['Low Stock Items', low_stock_items],
+            ['Total Stock Value', f"RWF {total_stock_value:,.2f}"]
+        ]
+        
+        for row_data in summary_data:
+            ws_products[f'A{start_row}'] = row_data[0]
+            ws_products[f'B{start_row}'] = row_data[1]
+            ws_products[f'A{start_row}'].font = Font(bold=True)
+            start_row += 1
+        
+        start_row += 2
+        
+        # Products details
+        ws_products[f'A{start_row}'] = "PRODUCTS DETAILS"
+        ws_products[f'A{start_row}'].font = Font(size=12, bold=True)
+        start_row += 1
+        
+        # Headers
+        headers = ['Product Name', 'SKU', 'Category', 'Current Stock', 'Min Stock', 'Unit Price', 'Stock Value']
+        for col, header in enumerate(headers, 1):
+            cell = ws_products.cell(row=start_row, column=col, value=header)
+            cell.font = Font(bold=True, color='FFFFFF')
+            cell.fill = PatternFill(start_color='0c4864', end_color='0c4864', fill_type='solid')
+            cell.alignment = Alignment(horizontal='center')
+        
+        start_row += 1
+        
+        # Products data
+        for product in products:
+            stock_value = product.price * product.current_stock
+            ws_products.cell(row=start_row, column=1, value=product.name)
+            ws_products.cell(row=start_row, column=2, value=product.sku)
+            ws_products.cell(row=start_row, column=3, value=product.category)
+            ws_products.cell(row=start_row, column=4, value=product.current_stock)
+            ws_products.cell(row=start_row, column=5, value=product.minimum_stock)
+            ws_products.cell(row=start_row, column=6, value=f"RWF {product.price:,.2f}")
+            ws_products.cell(row=start_row, column=7, value=f"RWF {stock_value:,.2f}")
+            
+            # Highlight low stock items
+            if product.current_stock <= product.minimum_stock:
+                for col in range(1, 8):
+                    ws_products.cell(row=start_row, column=col).fill = PatternFill(start_color='ffcccc', end_color='ffcccc', fill_type='solid')
+            
+            start_row += 1
+        
+        # Auto-adjust column widths
+        for column in ws_products.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 50)
+            ws_products.column_dimensions[column_letter].width = adjusted_width
+        
+        # Create buffer and save
+        buffer = io.BytesIO()
+        wb.save(buffer)
+        buffer.seek(0)
+        
+        return StreamingResponse(
+            io.BytesIO(buffer.read()),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename=inventory_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"}
+        )
+        
+    except Exception as e:
+        logger.error(f"Generate inventory Excel report error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate inventory Excel report")
+
+@app.get("/api/reports/finance/pdf")
+def generate_finance_pdf_report(db: Session = Depends(get_db)):
+    """Generate PDF report for financial transactions"""
+    try:
+        # Get financial data
+        transactions = db.query(FinancialTransaction).order_by(FinancialTransaction.created_at.desc()).limit(100).all()
+        
+        # Calculate summary
+        total_income = sum(t.amount for t in transactions if t.transaction_type == TransactionType.income)
+        total_expense = sum(t.amount for t in transactions if t.transaction_type == TransactionType.expense)
+        net_profit = total_income - total_expense
+        
+        # Create PDF buffer
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=1*inch)
+        
+        # Build document content
+        content = []
+        content.extend(generate_report_header(doc, "Financial Report"))
+        
+        # Summary section
+        styles = getSampleStyleSheet()
+        summary_data = [
+            ['Total Income', f"RWF {total_income:,.2f}"],
+            ['Total Expenses', f"RWF {total_expense:,.2f}"],
+            ['Net Profit', f"RWF {net_profit:,.2f}"],
+            ['Total Transactions', str(len(transactions))]
+        ]
+        
+        summary_table = Table(summary_data, colWidths=[2*inch, 2*inch])
+        summary_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f8f9fa')),
+            ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ]))
+        
+        content.append(Paragraph("Financial Summary", styles['Heading2']))
+        content.append(summary_table)
+        content.append(Spacer(1, 0.3*inch))
+        
+        # Transactions table
+        content.append(Paragraph("Recent Transactions", styles['Heading2']))
+        
+        transactions_data = [['Date', 'Description', 'Category', 'Type', 'Amount']]
+        for transaction in transactions[:50]:  # Limit to 50 transactions for PDF
+            transactions_data.append([
+                transaction.created_at.strftime('%Y-%m-%d') if transaction.created_at else 'N/A',
+                transaction.description,
+                transaction.category,
+                transaction.transaction_type.value,
+                f"RWF {transaction.amount:,.2f}"
+            ])
+        
+        transactions_table = Table(transactions_data, colWidths=[1*inch, 2*inch, 1*inch, 1*inch, 1.2*inch])
+        transactions_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0c4864')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 9),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ]))
+        
+        content.append(transactions_table)
+        
+        # Build PDF
+        doc.build(content)
+        buffer.seek(0)
+        
+        return StreamingResponse(
+            io.BytesIO(buffer.read()),
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename=finance_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"}
+        )
+        
+    except Exception as e:
+        logger.error(f"Generate finance PDF report error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate finance PDF report")
+
+@app.get("/api/reports/finance/excel")
+def generate_finance_excel_report(db: Session = Depends(get_db)):
+    """Generate Excel report for financial transactions"""
+    try:
+        # Get financial data
+        transactions = db.query(FinancialTransaction).order_by(FinancialTransaction.created_at.desc()).all()
+        
+        # Calculate summary
+        total_income = sum(t.amount for t in transactions if t.transaction_type == TransactionType.income)
+        total_expense = sum(t.amount for t in transactions if t.transaction_type == TransactionType.expense)
+        net_profit = total_income - total_expense
+        
+        # Create workbook
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Financial Report"
+        
+        # Create header
+        start_row = create_excel_header(ws, "Financial Report")
+        
+        # Summary section
+        ws[f'A{start_row}'] = "FINANCIAL SUMMARY"
+        ws[f'A{start_row}'].font = Font(size=12, bold=True)
+        start_row += 1
+        
+        summary_data = [
+            ['Total Income', f"RWF {total_income:,.2f}"],
+            ['Total Expenses', f"RWF {total_expense:,.2f}"],
+            ['Net Profit', f"RWF {net_profit:,.2f}"],
+            ['Total Transactions', len(transactions)]
+        ]
+        
+        for row_data in summary_data:
+            ws[f'A{start_row}'] = row_data[0]
+            ws[f'B{start_row}'] = row_data[1]
+            ws[f'A{start_row}'].font = Font(bold=True)
+            start_row += 1
+        
+        start_row += 2
+        
+        # Transactions details
+        ws[f'A{start_row}'] = "TRANSACTIONS DETAILS"
+        ws[f'A{start_row}'].font = Font(size=12, bold=True)
+        start_row += 1
+        
+        # Headers
+        headers = ['Date', 'Transaction Number', 'Description', 'Category', 'Type', 'Amount']
+        for col, header in enumerate(headers, 1):
+            cell = ws.cell(row=start_row, column=col, value=header)
+            cell.font = Font(bold=True, color='FFFFFF')
+            cell.fill = PatternFill(start_color='0c4864', end_color='0c4864', fill_type='solid')
+            cell.alignment = Alignment(horizontal='center')
+        
+        start_row += 1
+        
+        # Transactions data
+        for transaction in transactions:
+            ws.cell(row=start_row, column=1, value=transaction.created_at.strftime('%Y-%m-%d') if transaction.created_at else 'N/A')
+            ws.cell(row=start_row, column=2, value=transaction.transaction_number)
+            ws.cell(row=start_row, column=3, value=transaction.description)
+            ws.cell(row=start_row, column=4, value=transaction.category)
+            ws.cell(row=start_row, column=5, value=transaction.transaction_type.value)
+            ws.cell(row=start_row, column=6, value=f"RWF {transaction.amount:,.2f}")
+            
+            # Color code by transaction type
+            if transaction.transaction_type == TransactionType.income:
+                ws.cell(row=start_row, column=6).fill = PatternFill(start_color='ccffcc', end_color='ccffcc', fill_type='solid')
+            else:
+                ws.cell(row=start_row, column=6).fill = PatternFill(start_color='ffcccc', end_color='ffcccc', fill_type='solid')
+            
+            start_row += 1
+        
+        # Auto-adjust column widths
+        for column in ws.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 50)
+            ws.column_dimensions[column_letter].width = adjusted_width
+        
+        # Create buffer and save
+        buffer = io.BytesIO()
+        wb.save(buffer)
+        buffer.seek(0)
+        
+        return StreamingResponse(
+            io.BytesIO(buffer.read()),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename=finance_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"}
+        )
+        
+    except Exception as e:
+        logger.error(f"Generate finance Excel report error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate finance Excel report")
+
+@app.get("/api/reports/services/pdf")
+def generate_services_pdf_report(db: Session = Depends(get_db)):
+    """Generate PDF report for service bookings"""
+    try:
+        # Get service bookings data
+        bookings = db.query(ServiceBooking).order_by(ServiceBooking.created_at.desc()).all()
+        
+        # Calculate summary
+        total_bookings = len(bookings)
+        completed_bookings = len([b for b in bookings if b.status == 'completed'])
+        pending_bookings = len([b for b in bookings if b.status == 'pending'])
+        total_revenue = sum(b.actual_cost for b in bookings if b.actual_cost and b.status == 'completed')
+        
+        # Create PDF buffer
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=1*inch)
+        
+        # Build document content
+        content = []
+        content.extend(generate_report_header(doc, "Service Bookings Report"))
+        
+        # Summary section
+        styles = getSampleStyleSheet()
+        summary_data = [
+            ['Total Bookings', str(total_bookings)],
+            ['Completed Bookings', str(completed_bookings)],
+            ['Pending Bookings', str(pending_bookings)],
+            ['Total Revenue', f"RWF {total_revenue:,.2f}"]
+        ]
+        
+        summary_table = Table(summary_data, colWidths=[2*inch, 2*inch])
+        summary_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f8f9fa')),
+            ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ]))
+        
+        content.append(Paragraph("Service Bookings Summary", styles['Heading2']))
+        content.append(summary_table)
+        content.append(Spacer(1, 0.3*inch))
+        
+        # Bookings table
+        content.append(Paragraph("Service Bookings Details", styles['Heading2']))
+        
+        bookings_data = [['Booking Number', 'Client', 'Service Type', 'Date', 'Status']]
+        for booking in bookings[:50]:  # Limit to 50 bookings for PDF
+            bookings_data.append([
+                booking.booking_number,
+                booking.client_name,
+                booking.service_type.value.replace('_', ' ').title(),
+                booking.created_at.strftime('%Y-%m-%d') if booking.created_at else 'N/A',
+                booking.status.title()
+            ])
+        
+        bookings_table = Table(bookings_data, colWidths=[1.5*inch, 1.5*inch, 1.5*inch, 1*inch, 1*inch])
+        bookings_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0c4864')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 9),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ]))
+        
+        content.append(bookings_table)
+        
+        # Build PDF
+        doc.build(content)
+        buffer.seek(0)
+        
+        return StreamingResponse(
+            io.BytesIO(buffer.read()),
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename=services_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"}
+        )
+        
+    except Exception as e:
+        logger.error(f"Generate services PDF report error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate services PDF report")
+
+@app.get("/api/reports/services/excel")
+def generate_services_excel_report(db: Session = Depends(get_db)):
+    """Generate Excel report for service bookings"""
+    try:
+        # Get service bookings data
+        bookings = db.query(ServiceBooking).order_by(ServiceBooking.created_at.desc()).all()
+        
+        # Calculate summary
+        total_bookings = len(bookings)
+        completed_bookings = len([b for b in bookings if b.status == 'completed'])
+        pending_bookings = len([b for b in bookings if b.status == 'pending'])
+        total_revenue = sum(b.actual_cost for b in bookings if b.actual_cost and b.status == 'completed')
+        
+        # Create workbook
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Service Bookings Report"
+        
+        # Create header
+        start_row = create_excel_header(ws, "Service Bookings Report")
+        
+        # Summary section
+        ws[f'A{start_row}'] = "SERVICE BOOKINGS SUMMARY"
+        ws[f'A{start_row}'].font = Font(size=12, bold=True)
+        start_row += 1
+        
+        summary_data = [
+            ['Total Bookings', total_bookings],
+            ['Completed Bookings', completed_bookings],
+            ['Pending Bookings', pending_bookings],
+            ['Total Revenue', f"RWF {total_revenue:,.2f}"]
+        ]
+        
+        for row_data in summary_data:
+            ws[f'A{start_row}'] = row_data[0]
+            ws[f'B{start_row}'] = row_data[1]
+            ws[f'A{start_row}'].font = Font(bold=True)
+            start_row += 1
+        
+        start_row += 2
+        
+        # Bookings details
+        ws[f'A{start_row}'] = "SERVICE BOOKINGS DETAILS"
+        ws[f'A{start_row}'].font = Font(size=12, bold=True)
+        start_row += 1
+        
+        # Headers
+        headers = ['Booking Number', 'Client Name', 'Service Type', 'Date', 'Status', 'Location', 'Estimated Cost', 'Actual Cost']
+        for col, header in enumerate(headers, 1):
+            cell = ws.cell(row=start_row, column=col, value=header)
+            cell.font = Font(bold=True, color='FFFFFF')
+            cell.fill = PatternFill(start_color='0c4864', end_color='0c4864', fill_type='solid')
+            cell.alignment = Alignment(horizontal='center')
+        
+        start_row += 1
+        
+        # Bookings data
+        for booking in bookings:
+            ws.cell(row=start_row, column=1, value=booking.booking_number)
+            ws.cell(row=start_row, column=2, value=booking.client_name)
+            ws.cell(row=start_row, column=3, value=booking.service_type.value.replace('_', ' ').title())
+            ws.cell(row=start_row, column=4, value=booking.created_at.strftime('%Y-%m-%d') if booking.created_at else 'N/A')
+            ws.cell(row=start_row, column=5, value=booking.status.title())
+            ws.cell(row=start_row, column=6, value=booking.location)
+            ws.cell(row=start_row, column=7, value=f"RWF {booking.estimated_cost:,.2f}" if booking.estimated_cost else 'N/A')
+            ws.cell(row=start_row, column=8, value=f"RWF {booking.actual_cost:,.2f}" if booking.actual_cost else 'N/A')
+            
+            # Color code by status
+            if booking.status == 'completed':
+                for col in range(1, 9):
+                    ws.cell(row=start_row, column=col).fill = PatternFill(start_color='ccffcc', end_color='ccffcc', fill_type='solid')
+            elif booking.status == 'pending':
+                for col in range(1, 9):
+                    ws.cell(row=start_row, column=col).fill = PatternFill(start_color='ffffcc', end_color='ffffcc', fill_type='solid')
+            
+            start_row += 1
+        
+        # Auto-adjust column widths
+        for column in ws.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 50)
+            ws.column_dimensions[column_letter].width = adjusted_width
+        
+        # Create buffer and save
+        buffer = io.BytesIO()
+        wb.save(buffer)
+        buffer.seek(0)
+        
+        return StreamingResponse(
+            io.BytesIO(buffer.read()),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename=services_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"}
+        )
+        
+    except Exception as e:
+        logger.error(f"Generate services Excel report error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate services Excel report")
+
+@app.get("/api/reports/comprehensive/pdf")
+def generate_comprehensive_pdf_report(db: Session = Depends(get_db)):
+    """Generate comprehensive PDF report for all modules"""
+    try:
+        # Get data from all modules
+        orders = db.query(Order).all()
+        products = db.query(Product).all()
+        transactions = db.query(FinancialTransaction).all()
+        bookings = db.query(ServiceBooking).all()
+        
+        # Create PDF buffer
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=1*inch)
+        
+        # Build document content
+        content = []
+        content.extend(generate_report_header(doc, "Comprehensive Business Report"))
+        
+        # Executive Summary
+        styles = getSampleStyleSheet()
+        content.append(Paragraph("Executive Summary", styles['Heading2']))
+        
+        # Key metrics
+        total_orders = len(orders)
+        total_products = len(products)
+        total_revenue = sum(o.total_amount for o in orders if o.status == OrderStatus.delivered)
+        total_bookings = len(bookings)
+        
+        summary_data = [
+            ['Total Orders', str(total_orders)],
+            ['Total Products', str(total_products)],
+            ['Total Revenue', f"RWF {total_revenue:,.2f}"],
+            ['Service Bookings', str(total_bookings)]
+        ]
+        
+        summary_table = Table(summary_data, colWidths=[2*inch, 2*inch])
+        summary_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f8f9fa')),
+            ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ]))
+        
+        content.append(summary_table)
+        content.append(Spacer(1, 0.3*inch))
+        
+        # Financial Summary
+        content.append(Paragraph("Financial Overview", styles['Heading2']))
+        
+        total_income = sum(t.amount for t in transactions if t.transaction_type == TransactionType.income)
+        total_expense = sum(t.amount for t in transactions if t.transaction_type == TransactionType.expense)
+        net_profit = total_income - total_expense
+        
+        financial_data = [
+            ['Total Income', f"RWF {total_income:,.2f}"],
+            ['Total Expenses', f"RWF {total_expense:,.2f}"],
+            ['Net Profit', f"RWF {net_profit:,.2f}"]
+        ]
+        
+        financial_table = Table(financial_data, colWidths=[2*inch, 2*inch])
+        financial_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f8f9fa')),
+            ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ]))
+        
+        content.append(financial_table)
+        content.append(Spacer(1, 0.3*inch))
+        
+        # Recent Orders
+        content.append(Paragraph("Recent Orders", styles['Heading2']))
+        
+        recent_orders = sorted(orders, key=lambda x: x.created_at, reverse=True)[:10]
+        orders_data = [['Order Number', 'Client', 'Date', 'Status', 'Amount']]
+        for order in recent_orders:
+            orders_data.append([
+                order.order_number,
+                order.client.name if order.client else 'N/A',
+                order.created_at.strftime('%Y-%m-%d') if order.created_at else 'N/A',
+                order.status.value,
+                f"RWF {order.total_amount:,.2f}"
+            ])
+        
+        orders_table = Table(orders_data, colWidths=[1.2*inch, 1.2*inch, 1*inch, 1*inch, 1.2*inch])
+        orders_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0c4864')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 9),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ]))
+        
+        content.append(orders_table)
+        
+        # Build PDF
+        doc.build(content)
+        buffer.seek(0)
+        
+        return StreamingResponse(
+            io.BytesIO(buffer.read()),
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename=comprehensive_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"}
+        )
+        
+    except Exception as e:
+        logger.error(f"Generate comprehensive PDF report error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate comprehensive PDF report")
+
+@app.get("/api/reports/list")
+def get_available_reports():
+    """Get list of available reports"""
+    return {
+        "reports": [
+            {
+                "id": "orders",
+                "name": "Orders Report",
+                "description": "Detailed orders report with client information and order status",
+                "formats": ["pdf", "excel"]
+            },
+            {
+                "id": "inventory",
+                "name": "Inventory Report",
+                "description": "Complete inventory report with stock levels and values",
+                "formats": ["pdf", "excel"]
+            },
+            {
+                "id": "finance",
+                "name": "Financial Report",
+                "description": "Financial transactions report with income and expense analysis",
+                "formats": ["pdf", "excel"]
+            },
+            {
+                "id": "services",
+                "name": "Service Bookings Report",
+                "description": "Service bookings report with client details and booking status",
+                "formats": ["pdf", "excel"]
+            },
+            {
+                "id": "comprehensive",
+                "name": "Comprehensive Business Report",
+                "description": "Complete business overview with all modules summary",
+                "formats": ["pdf"]
+            }
+        ]
+    }
+
+# ===============================
 # Legacy Endpoints (for compatibility)
 # ===============================
 
