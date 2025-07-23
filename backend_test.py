@@ -1666,9 +1666,9 @@ class BackendTester:
             
         # Create test transactions with known amounts
         test_transactions = [
-            {"type": "income", "category": "sales", "amount": 100000.0, "description": "Test income 1"},
-            {"type": "income", "category": "services", "amount": 150000.0, "description": "Test income 2"},
-            {"type": "expense", "category": "supplies", "amount": 50000.0, "description": "Test expense 1"},
+            {"type": "income", "category": "other", "amount": 100000.0, "description": "Test income 1"},
+            {"type": "income", "category": "other", "amount": 150000.0, "description": "Test income 2"},
+            {"type": "expense", "category": "office_supplies", "amount": 50000.0, "description": "Test expense 1"},
             {"type": "expense", "category": "utilities", "amount": 30000.0, "description": "Test expense 2"}
         ]
         
@@ -1682,7 +1682,8 @@ class BackendTester:
                 "category": trans["category"],
                 "amount": trans["amount"],
                 "description": trans["description"],
-                "reference_id": f"CALC-TEST-{len(created_transactions)+1}"
+                "reference": f"CALC-TEST-{len(created_transactions)+1}",
+                "payment_method": "bank_transfer"
             }
             
             success, data, status_code = self.make_request("POST", "/finance/transactions", transaction_data)
