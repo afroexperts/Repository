@@ -3041,7 +3041,7 @@ class BackendTester:
             "client_name": "Test Calculations Client",
             "client_email": "test@calculations.rw",
             "due_date": due_date,
-            "currency": "rwf",
+            "currency": "RWF",
             "tax_rate": 0.18,  # 18%
             "discount_amount": 10000.0,  # Additional invoice-level discount
             "items": items
