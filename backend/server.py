@@ -819,19 +819,25 @@ def create_pos_transaction(transaction_data: dict, db: Session = Depends(get_db)
 # ===============================
 
 @app.post("/api/services/bookings")  
-def create_service_booking(booking_data: dict, db: Session = Depends(get_db)):
-    """Create service booking"""
+def create_service_booking(booking_data: ServiceBookingCreate, db: Session = Depends(get_db)):
+    """Create service booking with enhanced validation"""
     try:
+        # Generate booking number
+        booking_count = db.query(ServiceBooking).count()
+        booking_number = f"SRV-{datetime.utcnow().strftime('%Y%m%d')}-{booking_count + 1:04d}"
+        
         db_booking = ServiceBooking(
-            booking_number=f"SRV-{str(uuid.uuid4())[:8]}",
-            client_name=booking_data['client_name'],
-            client_email=booking_data.get('client_email'),
-            client_phone=booking_data['client_phone'],
-            service_type=ServiceType(booking_data['service_type']),
-            description=booking_data['description'],
-            location=booking_data['location'],
-            preferred_date=datetime.fromisoformat(booking_data['preferred_date'].replace('Z', '+00:00')) if booking_data.get('preferred_date') else None,
-            status='pending'
+            booking_number=booking_number,
+            client_name=booking_data.client_name,
+            client_email=booking_data.client_email,
+            client_phone=booking_data.client_phone,
+            service_type=ServiceType(booking_data.service_type),
+            description=booking_data.description,
+            location=booking_data.location,
+            preferred_date=booking_data.preferred_date,
+            status='pending',
+            cost_estimate=booking_data.cost_estimate,
+            notes=booking_data.notes
         )
         
         db.add(db_booking)
