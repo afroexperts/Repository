@@ -164,6 +164,7 @@ class Client(Base):
     
     # Relationships
     orders = relationship("Order", back_populates="client")
+    invoices = relationship("Invoice", back_populates="client")
 
 class Order(Base):
     __tablename__ = "orders"
