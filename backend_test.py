@@ -1377,9 +1377,9 @@ class BackendTester:
             
         transaction_types = [
             {"type": "expense", "category": "office_supplies", "amount": 50000.0, "description": "Office supplies purchase"},
-            {"type": "income", "category": "sales", "amount": 200000.0, "description": "Service consultation fee"},
+            {"type": "income", "category": "other", "amount": 200000.0, "description": "Service consultation fee"},
             {"type": "expense", "category": "utilities", "amount": 75000.0, "description": "Monthly electricity bill"},
-            {"type": "income", "category": "sales", "amount": 300000.0, "description": "Hardware sales revenue"}
+            {"type": "income", "category": "other", "amount": 300000.0, "description": "Hardware sales revenue"}
         ]
         
         successful_types = []
@@ -1390,7 +1390,8 @@ class BackendTester:
                 "category": trans["category"],
                 "amount": trans["amount"],
                 "description": trans["description"],
-                "reference_id": f"TEST-{trans['type'].upper()}-{len(successful_types)+1}"
+                "reference": f"TEST-{trans['type'].upper()}-{len(successful_types)+1}",
+                "payment_method": "bank_transfer"
             }
             
             success, data, status_code = self.make_request("POST", "/finance/transactions", transaction_data)
