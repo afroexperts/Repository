@@ -3360,6 +3360,326 @@ def get_portfolio_by_status(status: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Failed to retrieve portfolio items by status: {str(e)}")
 
 # ===============================
+# Second-Hand Sales Management Endpoints
+# ===============================
+
+@app.get("/api/secondhand")
+def get_secondhand_items(db: Session = Depends(get_db)):
+    """Get all second-hand items with enhanced details"""
+    try:
+        items = db.query(SecondHandItem).order_by(SecondHandItem.created_at.desc()).all()
+        
+        # Format response
+        formatted_items = []
+        for item in items:
+            formatted_item = {
+                "id": item.id,
+                "product_name": item.product_name,
+                "category": item.category,
+                "condition": item.condition,
+                "original_price": item.original_price,
+                "selling_price": item.selling_price,
+                "description": item.description,
+                "images": item.images,
+                "specifications": item.specifications,
+                "warranty_info": item.warranty_info,
+                "seller_name": item.seller_name,
+                "seller_contact": item.seller_contact,
+                "location": item.location,
+                "status": item.status,
+                "views_count": item.views_count,
+                "created_by": item.created_by,
+                "created_at": item.created_at.isoformat() if item.created_at else None,
+                "updated_at": item.updated_at.isoformat() if item.updated_at else None,
+                "sold_at": item.sold_at.isoformat() if item.sold_at else None
+            }
+            formatted_items.append(formatted_item)
+        
+        return formatted_items
+    except Exception as e:
+        logger.error(f"Get second-hand items error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve second-hand items")
+
+@app.post("/api/secondhand")
+def create_secondhand_item(item_data: SecondHandItemCreate, db: Session = Depends(get_db)):
+    """Create new second-hand item"""
+    try:
+        user_id = "56846977-f345-439c-b019-3330f3d16b7e"  # Demo admin user
+        
+        # Create second-hand item
+        db_item = SecondHandItem(
+            product_name=item_data.product_name,
+            category=item_data.category.value if hasattr(item_data.category, 'value') else item_data.category,
+            condition=item_data.condition.value if hasattr(item_data.condition, 'value') else item_data.condition,
+            original_price=item_data.original_price,
+            selling_price=item_data.selling_price,
+            description=item_data.description,
+            images=item_data.images,
+            specifications=item_data.specifications,
+            warranty_info=item_data.warranty_info,
+            seller_name=item_data.seller_name,
+            seller_contact=item_data.seller_contact,
+            location=item_data.location,
+            status="available",
+            views_count=0,
+            created_by=user_id
+        )
+        
+        db.add(db_item)
+        db.commit()
+        db.refresh(db_item)
+        
+        return {
+            "success": True,
+            "message": "Second-hand item created successfully",
+            "id": db_item.id
+        }
+        
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Create second-hand item error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create second-hand item: {str(e)}")
+
+@app.get("/api/secondhand/{item_id}")
+def get_secondhand_item(item_id: str, db: Session = Depends(get_db)):
+    """Get single second-hand item with full details and increment view count"""
+    try:
+        item = db.query(SecondHandItem).filter(SecondHandItem.id == item_id).first()
+        if not item:
+            raise HTTPException(status_code=404, detail="Second-hand item not found")
+        
+        # Increment view count
+        item.views_count += 1
+        db.commit()
+        
+        # Format response
+        formatted_item = {
+            "id": item.id,
+            "product_name": item.product_name,
+            "category": item.category,
+            "condition": item.condition,
+            "original_price": item.original_price,
+            "selling_price": item.selling_price,
+            "description": item.description,
+            "images": item.images,
+            "specifications": item.specifications,
+            "warranty_info": item.warranty_info,
+            "seller_name": item.seller_name,
+            "seller_contact": item.seller_contact,
+            "location": item.location,
+            "status": item.status,
+            "views_count": item.views_count,
+            "created_by": item.created_by,
+            "created_by_name": item.created_by_user.full_name if item.created_by_user else "Unknown",
+            "created_at": item.created_at.isoformat() if item.created_at else None,
+            "updated_at": item.updated_at.isoformat() if item.updated_at else None,
+            "sold_at": item.sold_at.isoformat() if item.sold_at else None
+        }
+        
+        return formatted_item
+    except Exception as e:
+        logger.error(f"Get second-hand item error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve second-hand item")
+
+@app.put("/api/secondhand/{item_id}")
+def update_secondhand_item(item_id: str, item_update: SecondHandItemUpdate, db: Session = Depends(get_db)):
+    """Update existing second-hand item"""
+    try:
+        # Get existing item
+        db_item = db.query(SecondHandItem).filter(SecondHandItem.id == item_id).first()
+        if not db_item:
+            raise HTTPException(status_code=404, detail="Second-hand item not found")
+        
+        # Update fields
+        update_data = item_update.dict(exclude_unset=True)
+        for field, value in update_data.items():
+            if field == 'category' and hasattr(value, 'value'):
+                setattr(db_item, field, value.value)
+            elif field == 'condition' and hasattr(value, 'value'):
+                setattr(db_item, field, value.value)
+            elif field == 'status' and value == 'sold':
+                setattr(db_item, field, value)
+                db_item.sold_at = datetime.utcnow()
+            else:
+                setattr(db_item, field, value)
+        
+        db_item.updated_at = datetime.utcnow()
+        
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": "Second-hand item updated successfully",
+            "id": db_item.id
+        }
+        
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Update second-hand item error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to update second-hand item: {str(e)}")
+
+@app.delete("/api/secondhand/{item_id}")
+def delete_secondhand_item(item_id: str, db: Session = Depends(get_db)):
+    """Delete second-hand item"""
+    try:
+        # Get existing item
+        db_item = db.query(SecondHandItem).filter(SecondHandItem.id == item_id).first()
+        if not db_item:
+            raise HTTPException(status_code=404, detail="Second-hand item not found")
+        
+        # Check if item can be deleted (only available items)
+        if db_item.status == "sold":
+            raise HTTPException(status_code=400, detail="Cannot delete sold items")
+        
+        # Delete item
+        db.delete(db_item)
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": "Second-hand item deleted successfully"
+        }
+        
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Delete second-hand item error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete second-hand item: {str(e)}")
+
+@app.get("/api/secondhand/category/{category}")
+def get_secondhand_by_category(category: str, db: Session = Depends(get_db)):
+    """Get second-hand items by category"""
+    try:
+        # Validate category
+        valid_categories = [cat.value for cat in SecondHandCategory]
+        if category not in valid_categories:
+            raise HTTPException(status_code=400, detail="Invalid category")
+        
+        items = db.query(SecondHandItem).filter(SecondHandItem.category == category).order_by(SecondHandItem.created_at.desc()).all()
+        
+        # Format response
+        formatted_items = []
+        for item in items:
+            formatted_item = {
+                "id": item.id,
+                "product_name": item.product_name,
+                "category": item.category,
+                "condition": item.condition,
+                "selling_price": item.selling_price,
+                "images": item.images,
+                "status": item.status,
+                "location": item.location,
+                "views_count": item.views_count,
+                "created_at": item.created_at.isoformat() if item.created_at else None
+            }
+            formatted_items.append(formatted_item)
+        
+        return {
+            "category": category,
+            "total_items": len(items),
+            "items": formatted_items
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Get second-hand by category error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve second-hand items by category: {str(e)}")
+
+@app.get("/api/secondhand/condition/{condition}")
+def get_secondhand_by_condition(condition: str, db: Session = Depends(get_db)):
+    """Get second-hand items by condition"""
+    try:
+        # Validate condition
+        valid_conditions = [cond.value for cond in SecondHandCondition]
+        if condition not in valid_conditions:
+            raise HTTPException(status_code=400, detail="Invalid condition")
+        
+        items = db.query(SecondHandItem).filter(SecondHandItem.condition == condition).order_by(SecondHandItem.created_at.desc()).all()
+        
+        # Format response
+        formatted_items = []
+        for item in items:
+            formatted_item = {
+                "id": item.id,
+                "product_name": item.product_name,
+                "category": item.category,
+                "condition": item.condition,
+                "selling_price": item.selling_price,
+                "images": item.images,
+                "status": item.status,
+                "created_at": item.created_at.isoformat() if item.created_at else None
+            }
+            formatted_items.append(formatted_item)
+        
+        return {
+            "condition": condition,
+            "total_items": len(items),
+            "items": formatted_items
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Get second-hand by condition error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve second-hand items by condition: {str(e)}")
+
+@app.get("/api/secondhand/summary")
+def get_secondhand_summary(db: Session = Depends(get_db)):
+    """Get second-hand items statistics and summary"""
+    try:
+        # Total items
+        total_items = db.query(SecondHandItem).count()
+        
+        # Items by category
+        category_counts = {}
+        for category in SecondHandCategory:
+            count = db.query(SecondHandItem).filter(SecondHandItem.category == category.value).count()
+            category_counts[category.value] = count
+        
+        # Items by condition
+        condition_counts = {}
+        for condition in SecondHandCondition:
+            count = db.query(SecondHandItem).filter(SecondHandItem.condition == condition.value).count()
+            condition_counts[condition.value] = count
+        
+        # Items by status
+        status_counts = {}
+        for status in ["available", "sold", "reserved"]:
+            count = db.query(SecondHandItem).filter(SecondHandItem.status == status).count()
+            status_counts[status] = count
+        
+        # Price statistics
+        from sqlalchemy import func
+        price_stats = db.query(
+            func.avg(SecondHandItem.selling_price).label('avg_price'),
+            func.min(SecondHandItem.selling_price).label('min_price'),
+            func.max(SecondHandItem.selling_price).label('max_price')
+        ).first()
+        
+        # Total views
+        total_views = db.query(func.sum(SecondHandItem.views_count)).scalar() or 0
+        
+        # Recent items
+        recent_items = db.query(SecondHandItem).order_by(SecondHandItem.created_at.desc()).limit(5).all()
+        
+        return {
+            "total_items": total_items,
+            "category_counts": category_counts,
+            "condition_counts": condition_counts,
+            "status_counts": status_counts,
+            "price_statistics": {
+                "average_price": float(price_stats.avg_price) if price_stats.avg_price else 0,
+                "min_price": float(price_stats.min_price) if price_stats.min_price else 0,
+                "max_price": float(price_stats.max_price) if price_stats.max_price else 0
+            },
+            "total_views": int(total_views),
+            "recent_items": len(recent_items)
+        }
+    except Exception as e:
+        logger.error(f"Get second-hand summary error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve second-hand summary: {str(e)}")
+
+# ===============================
 # Legacy Endpoints (for compatibility)
 # ===============================
 
