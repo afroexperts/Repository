@@ -579,6 +579,37 @@ class SecondHandItem(Base):
     # Relationships
     created_by_user = relationship("User")
 
+class MarbleDustBatch(Base):
+    __tablename__ = "marble_dust_batches"
+    
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    batch_number = Column(String(50), nullable=False, unique=True)
+    production_date = Column(DateTime, nullable=False)
+    quantity_kg = Column(Float, nullable=False)
+    remaining_quantity_kg = Column(Float, nullable=False)
+    quality_grade = Column(String(20), nullable=False)  # Store enum value as string
+    source_material = Column(String(200), nullable=False)
+    production_location = Column(String(200), nullable=False)
+    moisture_content = Column(Float, nullable=True)  # Percentage
+    particle_size_mm = Column(Float, nullable=True)
+    color_classification = Column(String(100), nullable=True)
+    cost_per_kg = Column(Float, nullable=False)
+    selling_price_per_kg = Column(Float, nullable=False)
+    total_cost = Column(Float, nullable=False)
+    total_revenue = Column(Float, nullable=False, default=0.0)
+    status = Column(String(20), nullable=False, default="in_production")
+    notes = Column(Text, nullable=True)
+    quality_test_results = Column(JSON, nullable=False, default=dict)  # Store as JSON object
+    
+    # Audit fields
+    created_by = Column(String(36), ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    shipped_at = Column(DateTime, nullable=True)
+    
+    # Relationships
+    created_by_user = relationship("User")
+
 # Dependency to get database session
 def get_db():
     db = SessionLocal()
