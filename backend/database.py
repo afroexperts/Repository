@@ -499,6 +499,29 @@ class InvoiceTemplate(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+class PortfolioItem(Base):
+    __tablename__ = "portfolio_items"
+    
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    title = Column(String(200), nullable=False)
+    category = Column(Enum(PortfolioCategory), nullable=False)
+    description = Column(Text, nullable=False)
+    image = Column(Text, nullable=False)  # Can store URL or base64 image
+    technologies = Column(JSON, nullable=False, default=list)  # Store as JSON array
+    client = Column(String(100), nullable=False)
+    date = Column(String(10), nullable=False)  # Year or Year-Month format
+    status = Column(Enum(PortfolioStatus), nullable=False)
+    link = Column(String(500), nullable=True)
+    results = Column(JSON, nullable=False, default=list)  # Store as JSON array
+    
+    # Audit fields
+    created_by = Column(String(36), ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    created_by_user = relationship("User")
+
 # Dependency to get database session
 def get_db():
     db = SessionLocal()
