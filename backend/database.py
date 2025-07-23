@@ -538,6 +538,34 @@ class PortfolioItem(Base):
     # Relationships
     created_by_user = relationship("User")
 
+class SecondHandItem(Base):
+    __tablename__ = "second_hand_items"
+    
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    product_name = Column(String(200), nullable=False)
+    category = Column(String(50), nullable=False)  # Store enum value as string
+    condition = Column(String(20), nullable=False)  # Store enum value as string
+    original_price = Column(Float, nullable=False)
+    selling_price = Column(Float, nullable=False)
+    description = Column(Text, nullable=False)
+    images = Column(JSON, nullable=False, default=list)  # Store as JSON array
+    specifications = Column(JSON, nullable=False, default=dict)  # Store as JSON object
+    warranty_info = Column(String(500), nullable=True)
+    seller_name = Column(String(100), nullable=True)
+    seller_contact = Column(String(100), nullable=True)
+    location = Column(String(200), nullable=True)
+    status = Column(String(20), nullable=False, default="available")  # available, sold, reserved
+    views_count = Column(Integer, nullable=False, default=0)
+    
+    # Audit fields
+    created_by = Column(String(36), ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    sold_at = Column(DateTime, nullable=True)
+    
+    # Relationships
+    created_by_user = relationship("User")
+
 # Dependency to get database session
 def get_db():
     db = SessionLocal()
