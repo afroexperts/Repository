@@ -13,7 +13,7 @@ from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils.dataframe import dataframe_to_rows
 import pandas as pd
 import io
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from fastapi.responses import StreamingResponse
 import tempfile
 import os
