@@ -1446,7 +1446,7 @@ class BackendTester:
         transaction_id = transactions[0].get("id")
         
         update_data = {
-            "category": "updated_category",
+            "category": "maintenance",
             "description": "Updated transaction description via API test",
             "amount": 125000.0,
             "reference_id": "UPDATED-REF-001"
