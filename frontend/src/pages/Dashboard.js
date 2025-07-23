@@ -649,12 +649,19 @@ const Dashboard = () => {
       if (response.status === 200) {
         // Refresh service bookings data
         const bookingsResponse = await axios.get(`${API}/services/bookings`);
-        setDashboardData(prev => ({ ...prev, serviceBookings: bookingsResponse.data }));
+        const summaryResponse = await axios.get(`${API}/services/summary`);
+        
+        setDashboardData(prev => ({ 
+          ...prev, 
+          serviceBookings: bookingsResponse.data,
+          servicesSummary: summaryResponse.data
+        }));
         
         // Reset form and close modal
         setServiceBookingForm({
           client_name: '', client_email: '', client_phone: '',
-          service_type: 'it_support', description: '', location: '', preferred_date: ''
+          service_type: 'it_support', description: '', location: '',
+          preferred_date: '', cost_estimate: '', notes: ''
         });
         setShowServiceBookingModal(false);
         
@@ -667,12 +674,166 @@ const Dashboard = () => {
       console.error('Error adding service booking:', error);
       toast({
         title: "Error",
-        description: "Failed to create service booking. Please try again.",
+        description: error.response?.data?.detail || "Failed to create service booking. Please try again.",
         variant: "destructive",
       });
     } finally {
       setFormLoading(false);
     }
+  };
+
+  const handleViewServiceBookingDetails = (booking) => {
+    setSelectedServiceBooking(booking);
+    setShowServiceBookingDetailsModal(true);
+  };
+
+  const handleEditServiceBooking = (booking) => {
+    setSelectedServiceBooking(booking);
+    setServiceBookingForm({
+      client_name: booking.client_name,
+      client_email: booking.client_email || '',
+      client_phone: booking.client_phone,
+      service_type: booking.service_type,
+      description: booking.description,
+      location: booking.location,
+      preferred_date: booking.preferred_date ? booking.preferred_date.split('T')[0] : '',
+      cost_estimate: booking.cost_estimate?.toString() || '',
+      notes: booking.notes || ''
+    });
+    setShowEditServiceBookingModal(true);
+  };
+
+  const handleUpdateServiceBooking = async (e) => {
+    e.preventDefault();
+    setFormLoading(true);
+    
+    try {
+      const response = await axios.put(`${API}/services/bookings/${selectedServiceBooking.id}`, serviceBookingForm);
+      
+      if (response.status === 200) {
+        // Refresh service bookings data
+        const bookingsResponse = await axios.get(`${API}/services/bookings`);
+        const summaryResponse = await axios.get(`${API}/services/summary`);
+        
+        setDashboardData(prev => ({ 
+          ...prev, 
+          serviceBookings: bookingsResponse.data,
+          servicesSummary: summaryResponse.data
+        }));
+        
+        // Reset form and close modal
+        setServiceBookingForm({
+          client_name: '', client_email: '', client_phone: '',
+          service_type: 'it_support', description: '', location: '',
+          preferred_date: '', cost_estimate: '', notes: ''
+        });
+        setSelectedServiceBooking(null);
+        setShowEditServiceBookingModal(false);
+        
+        toast({
+          title: "Success",
+          description: "Service booking updated successfully!",
+        });
+      }
+    } catch (error) {
+      console.error('Error updating service booking:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update service booking. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const handleUpdateServiceBookingStatus = async (bookingId, newStatus) => {
+    try {
+      const response = await axios.put(`${API}/services/bookings/${bookingId}/status`, { status: newStatus });
+      
+      if (response.status === 200) {
+        // Refresh service bookings data
+        const bookingsResponse = await axios.get(`${API}/services/bookings`);
+        const summaryResponse = await axios.get(`${API}/services/summary`);
+        
+        setDashboardData(prev => ({ 
+          ...prev, 
+          serviceBookings: bookingsResponse.data,
+          servicesSummary: summaryResponse.data
+        }));
+        
+        toast({
+          title: "Success",
+          description: `Service booking status updated to ${newStatus}`,
+        });
+      }
+    } catch (error) {
+      console.error('Error updating service booking status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update service booking status.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteServiceBooking = async (bookingId) => {
+    if (!window.confirm('Are you sure you want to delete this service booking?')) {
+      return;
+    }
+    
+    try {
+      await axios.delete(`${API}/services/bookings/${bookingId}`);
+      
+      // Refresh service bookings data
+      const bookingsResponse = await axios.get(`${API}/services/bookings`);
+      const summaryResponse = await axios.get(`${API}/services/summary`);
+      
+      setDashboardData(prev => ({ 
+        ...prev, 
+        serviceBookings: bookingsResponse.data,
+        servicesSummary: summaryResponse.data
+      }));
+      
+      toast({
+        title: "Success",
+        description: "Service booking deleted successfully!",
+      });
+    } catch (error) {
+      console.error('Error deleting service booking:', error);
+      toast({
+        title: "Error",
+        description: error.response?.data?.detail || "Failed to delete service booking. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getFilteredServiceBookings = () => {
+    let filtered = dashboardData.serviceBookings;
+    
+    if (serviceStatusFilter !== 'all') {
+      filtered = filtered.filter(b => b.status === serviceStatusFilter);
+    }
+    
+    if (serviceTypeFilter !== 'all') {
+      filtered = filtered.filter(b => b.service_type === serviceTypeFilter);
+    }
+    
+    return filtered;
+  };
+
+  const getServiceTypeDisplayName = (type) => {
+    const types = {
+      'it_support': 'IT Support',
+      'network_installation': 'Network Installation',
+      'starlink_installation': 'Starlink Installation',
+      'software_development': 'Software Development',
+      'consultation': 'Consultation',
+      'maintenance': 'Maintenance',
+      'training': 'Training'
+    };
+    return types[type] || type;
   };
 
   const handleFinanceTransaction = async (e) => {
