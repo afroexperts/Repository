@@ -2423,6 +2423,12 @@ class BackendTester:
         print("="*50)
         self.run_reports_module_tests()
         
+        # COMPREHENSIVE INVOICING MODULE TESTS
+        print("\n" + "="*70)
+        print("TESTING COMPREHENSIVE INVOICING MODULE")
+        print("="*70)
+        self.run_comprehensive_invoicing_tests()
+        
         # Print summary
         self.print_summary()
 
