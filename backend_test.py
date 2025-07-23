@@ -65,13 +65,31 @@ class BackendTester:
                 response = requests.delete(url, headers=request_headers, timeout=30)
             else:
                 return False, f"Unsupported method: {method}", 0
-                
-            return response.status_code < 400, response.json() if response.content else {}, response.status_code
             
+            # Handle different response types
+            if response.status_code < 400:
+                # Check if response is binary (PDF/Excel files)
+                content_type = response.headers.get('content-type', '').lower()
+                if 'application/pdf' in content_type or 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' in content_type:
+                    # For binary files, return success with file info
+                    return True, {"file_type": content_type, "file_size": len(response.content)}, response.status_code
+                elif response.content:
+                    try:
+                        return True, response.json(), response.status_code
+                    except json.JSONDecodeError:
+                        # If not JSON, return the text content
+                        return True, {"content": response.text}, response.status_code
+                else:
+                    return True, {}, response.status_code
+            else:
+                # Handle error responses
+                try:
+                    return False, response.json(), response.status_code
+                except json.JSONDecodeError:
+                    return False, {"error": response.text}, response.status_code
+                
         except requests.exceptions.RequestException as e:
             return False, f"Request failed: {str(e)}", 0
-        except json.JSONDecodeError:
-            return False, "Invalid JSON response", response.status_code if 'response' in locals() else 0
 
     def test_health_check(self):
         """Test the health check endpoint"""
