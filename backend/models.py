@@ -557,13 +557,33 @@ class ClientCreate(BaseModel):
     client_type: str = Field(default="individual")  # individual, business
     credit_limit: float = Field(default=0, ge=0)
     tax_number: Optional[str] = Field(None, max_length=50)
+    
+    # Website showcase fields
+    logo: Optional[str] = None  # Base64 encoded logo
+    website_url: Optional[str] = Field(None, max_length=500)
+    showcase_on_website: bool = Field(default=False)
+    display_order: int = Field(default=0, ge=0)
+
+class ClientUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=2, max_length=100)
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = Field(None, max_length=20)
+    company_name: Optional[str] = Field(None, max_length=100)
+    address: Optional[str] = Field(None, max_length=200)
+    client_type: Optional[str] = None
+    credit_limit: Optional[float] = Field(None, ge=0)
+    tax_number: Optional[str] = Field(None, max_length=50)
+    logo: Optional[str] = None
+    website_url: Optional[str] = Field(None, max_length=500)
+    showcase_on_website: Optional[bool] = None
+    display_order: Optional[int] = Field(None, ge=0)
 
 class Client(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
     email: Optional[EmailStr]
     phone: Optional[str]
-    company: Optional[str]
+    company_name: Optional[str]
     address: Optional[str]
     client_type: str
     credit_limit: float
@@ -571,7 +591,22 @@ class Client(BaseModel):
     total_orders: int = Field(default=0)
     total_spent: float = Field(default=0)
     last_order_date: Optional[datetime] = None
+    
+    # Website showcase fields
+    logo: Optional[str] = None
+    website_url: Optional[str] = None
+    showcase_on_website: bool = Field(default=False)
+    display_order: int = Field(default=0)
+    
     created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class ClientShowcase(BaseModel):
+    id: str
+    name: str
+    company_name: Optional[str]
+    logo: Optional[str]
+    website_url: Optional[str]
+    display_order: int
 
 # Existing models (keeping all previous models)
 class ContactSubmissionCreate(BaseModel):
