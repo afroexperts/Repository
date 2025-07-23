@@ -48,7 +48,11 @@ from models import (
     PortfolioItemCreate, PortfolioItemUpdate, PortfolioItem as PortfolioItemResponse,
     SecondHandItemCreate, SecondHandItemUpdate, SecondHandItem as SecondHandItemResponse,
     MarbleDustBatchCreate, MarbleDustBatchUpdate, MarbleDustBatch as MarbleDustBatchResponse,
-    StarlinkInstallationCreate, StarlinkInstallationUpdate, StarlinkInstallation as StarlinkInstallationResponse
+    StarlinkInstallationCreate, StarlinkInstallationUpdate, StarlinkInstallation as StarlinkInstallationResponse,
+    PermissionCheck, RolePermissionsUpdate, UserPermissionCreate, UserPermissionUpdate,
+    TranslationCreate, TranslationUpdate, Translation as TranslationResponse,
+    UserPreferenceUpdate, UserPreference as UserPreferenceResponse,
+    RecurringInvoiceCreate, RecurringInvoiceUpdate, RecurringInvoice as RecurringInvoiceResponse
 )
 
 # Configure logging
