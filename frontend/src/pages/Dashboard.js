@@ -328,6 +328,17 @@ const Dashboard = () => {
               }));
             }
             break;
+          case "invoices":
+            if (dashboardData.invoices.length === 0) {
+              const invoicesResponse = await axios.get(`${API}/invoices`);
+              const summaryResponse = await axios.get(`${API}/invoices/summary`);
+              setDashboardData(prev => ({ 
+                ...prev, 
+                invoices: invoicesResponse.data,
+                invoicesSummary: summaryResponse.data
+              }));
+            }
+            break;
         }
       } catch (error) {
         console.error(`Error fetching ${activeModule} data:`, error);
