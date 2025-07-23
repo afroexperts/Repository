@@ -1654,6 +1654,13 @@ const Dashboard = () => {
       permission: "manage_clients"
     },
     {
+      id: "invoices",
+      title: "Invoice Management",
+      icon: FileText,
+      description: "Billing & Invoicing",
+      permission: "manage_invoices"
+    },
+    {
       id: "services",
       title: "Service Booking",
       icon: Calendar,
