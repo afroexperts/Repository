@@ -2627,94 +2627,182 @@ const Dashboard = () => {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-2xl font-bold">Reports & Analytics</h2>
-                <p className="text-gray-600">Business intelligence and performance metrics</p>
+                <h2 className="text-2xl font-bold">Business Reports</h2>
+                <p className="text-gray-600">Generate comprehensive business reports with PDF, Excel export and printing capabilities</p>
               </div>
-              <div className="flex space-x-2">
-                <Select>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Select Period" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="today">Today</SelectItem>
-                    <SelectItem value="week">This Week</SelectItem>
-                    <SelectItem value="month">This Month</SelectItem>
-                    <SelectItem value="quarter">This Quarter</SelectItem>
-                    <SelectItem value="year">This Year</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Button variant="outline">
-                  <Download className="h-4 w-4 mr-2" />
-                  Export All
-                </Button>
-              </div>
+              <Button 
+                variant="outline"
+                onClick={() => handleGenerateReport('comprehensive', 'pdf')}
+                className="bg-[#0c4864] text-white hover:bg-[#0a3a52]"
+              >
+                <BarChart3 className="h-4 w-4 mr-2" />
+                Generate Comprehensive Report
+              </Button>
             </div>
 
-            {/* Report Categories */}
+            {/* Reports Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-                <CardHeader>
-                  <div className="flex items-center space-x-2">
-                    <BarChart3 className="h-6 w-6 text-[#0c4864]" />
-                    <CardTitle className="text-lg">Sales Report</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-gray-600 mb-4">Comprehensive sales analysis and trends</p>
-                  <Button size="sm" className="w-full">Generate Report</Button>
-                </CardContent>
-              </Card>
+              {dashboardData.availableReports.map((report) => (
+                <Card key={report.id} className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-3">
+                      <div className={`p-3 rounded-full ${getReportColor(report.id)}`}>
+                        {getReportIcon(report.id)}
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold">{report.name}</h3>
+                      </div>
+                    </CardTitle>
+                    <CardDescription className="text-sm text-gray-600 mt-2">
+                      {report.description}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {/* Export Options */}
+                      <div>
+                        <h4 className="text-sm font-medium mb-2">Export Options</h4>
+                        <div className="flex space-x-2">
+                          {report.formats.includes('pdf') && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleGenerateReport(report.id, 'pdf')}
+                              className="flex items-center space-x-1"
+                            >
+                              <FileText className="h-4 w-4" />
+                              <span>PDF</span>
+                            </Button>
+                          )}
+                          {report.formats.includes('excel') && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleGenerateReport(report.id, 'excel')}
+                              className="flex items-center space-x-1"
+                            >
+                              <Download className="h-4 w-4" />
+                              <span>Excel</span>
+                            </Button>
+                          )}
+                        </div>
+                      </div>
 
-              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-                <CardHeader>
-                  <div className="flex items-center space-x-2">
-                    <Package className="h-6 w-6 text-[#0c4864]" />
-                    <CardTitle className="text-lg">Inventory Report</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-gray-600 mb-4">Stock levels and movement analysis</p>
-                  <Button size="sm" className="w-full">Generate Report</Button>
-                </CardContent>
-              </Card>
+                      {/* Print Option */}
+                      <div>
+                        <h4 className="text-sm font-medium mb-2">Print Option</h4>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handlePrintReport(report.id)}
+                          className="flex items-center space-x-1"
+                        >
+                          <Search className="h-4 w-4" />
+                          <span>Print Report</span>
+                        </Button>
+                      </div>
 
-              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-                <CardHeader>
-                  <div className="flex items-center space-x-2">
-                    <Users className="h-6 w-6 text-[#0c4864]" />
-                    <CardTitle className="text-lg">Client Report</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-gray-600 mb-4">Customer behavior and analytics</p>
-                  <Button size="sm" className="w-full">Generate Report</Button>
-                </CardContent>
-              </Card>
+                      {/* Quick Actions */}
+                      <div>
+                        <h4 className="text-sm font-medium mb-2">Quick Actions</h4>
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            size="sm"
+                            className="bg-blue-600 hover:bg-blue-700 text-white"
+                            onClick={() => handleGenerateReport(report.id, 'pdf')}
+                          >
+                            Generate Now
+                          </Button>
+                          {report.formats.includes('excel') && (
+                            <Button
+                              size="sm"
+                              className="bg-green-600 hover:bg-green-700 text-white"
+                              onClick={() => handleGenerateReport(report.id, 'excel')}
+                            >
+                              Export Excel
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
 
-            {/* Performance Metrics */}
+            {/* Report Statistics */}
             <Card>
               <CardHeader>
-                <CardTitle>Key Performance Indicators</CardTitle>
-                <CardDescription>Real-time business performance metrics</CardDescription>
+                <CardTitle>Report Generation Statistics</CardTitle>
+                <CardDescription>Overview of business data available for reporting</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div className="text-center p-4 border rounded-lg">
-                    <p className="text-2xl font-bold text-[#0c4864]">85%</p>
-                    <p className="text-sm text-gray-600">Customer Satisfaction</p>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-blue-600">{dashboardData.orders.length}</div>
+                    <div className="text-sm text-gray-600">Orders</div>
                   </div>
-                  <div className="text-center p-4 border rounded-lg">
-                    <p className="text-2xl font-bold text-green-600">+12%</p>
-                    <p className="text-sm text-gray-600">Monthly Growth</p>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-green-600">{dashboardData.products.length}</div>
+                    <div className="text-sm text-gray-600">Products</div>
                   </div>
-                  <div className="text-center p-4 border rounded-lg">
-                    <p className="text-2xl font-bold text-blue-600">95%</p>
-                    <p className="text-sm text-gray-600">Order Fulfillment</p>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-purple-600">{dashboardData.financialTransactions.length}</div>
+                    <div className="text-sm text-gray-600">Transactions</div>
                   </div>
-                  <div className="text-center p-4 border rounded-lg">
-                    <p className="text-2xl font-bold text-purple-600">24h</p>
-                    <p className="text-sm text-gray-600">Avg Response Time</p>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-orange-600">{dashboardData.serviceBookings.length}</div>
+                    <div className="text-sm text-gray-600">Service Bookings</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Report Instructions */}
+            <Card>
+              <CardHeader>
+                <CardTitle>How to Generate Reports</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-start space-x-3">
+                    <div className="bg-blue-100 text-blue-600 p-2 rounded-full">
+                      <FileText className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h4 className="font-medium">PDF Reports</h4>
+                      <p className="text-sm text-gray-600">Generate professional PDF reports with summaries and detailed data tables. Perfect for presentations and official documentation.</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start space-x-3">
+                    <div className="bg-green-100 text-green-600 p-2 rounded-full">
+                      <Download className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h4 className="font-medium">Excel Reports</h4>
+                      <p className="text-sm text-gray-600">Export data to Excel for advanced analysis and data manipulation. Includes formatting and color-coding.</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start space-x-3">
+                    <div className="bg-purple-100 text-purple-600 p-2 rounded-full">
+                      <Search className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h4 className="font-medium">Print Reports</h4>
+                      <p className="text-sm text-gray-600">Open reports in a new window for direct printing. Perfect for hard copies and filing.</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start space-x-3">
+                    <div className="bg-orange-100 text-orange-600 p-2 rounded-full">
+                      <BarChart3 className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h4 className="font-medium">Comprehensive Report</h4>
+                      <p className="text-sm text-gray-600">Generate a complete business overview with data from all modules. Ideal for executive summaries and stakeholder reports.</p>
+                    </div>
                   </div>
                 </div>
               </CardContent>
