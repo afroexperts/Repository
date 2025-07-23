@@ -1011,8 +1011,9 @@ def get_financial_analytics(db: Session = Depends(get_db)):
 
 @app.get("/api/finance/summary")
 def get_financial_summary(db: Session = Depends(get_db)):
-    """Get financial summary"""
+    """Get enhanced financial summary"""
     try:
+        # Total income and expense
         total_income = db.query(func.sum(FinancialTransaction.amount)).filter(
             FinancialTransaction.transaction_type == TransactionType.income
         ).scalar() or 0
@@ -1021,10 +1022,55 @@ def get_financial_summary(db: Session = Depends(get_db)):
             FinancialTransaction.transaction_type == TransactionType.expense
         ).scalar() or 0
         
+        # Monthly income and expense (current month)
+        current_month_start = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        
+        monthly_income = db.query(func.sum(FinancialTransaction.amount)).filter(
+            FinancialTransaction.transaction_type == TransactionType.income,
+            FinancialTransaction.created_at >= current_month_start
+        ).scalar() or 0
+        
+        monthly_expense = db.query(func.sum(FinancialTransaction.amount)).filter(
+            FinancialTransaction.transaction_type == TransactionType.expense,
+            FinancialTransaction.created_at >= current_month_start
+        ).scalar() or 0
+        
+        # Transaction counts
+        income_count = db.query(FinancialTransaction).filter(
+            FinancialTransaction.transaction_type == TransactionType.income
+        ).count()
+        
+        expense_count = db.query(FinancialTransaction).filter(
+            FinancialTransaction.transaction_type == TransactionType.expense
+        ).count()
+        
+        # Top categories
+        top_income_categories = db.query(
+            FinancialTransaction.category,
+            func.sum(FinancialTransaction.amount).label('total')
+        ).filter(
+            FinancialTransaction.transaction_type == TransactionType.income
+        ).group_by(FinancialTransaction.category).order_by(func.sum(FinancialTransaction.amount).desc()).limit(5).all()
+        
+        top_expense_categories = db.query(
+            FinancialTransaction.category,
+            func.sum(FinancialTransaction.amount).label('total')
+        ).filter(
+            FinancialTransaction.transaction_type == TransactionType.expense
+        ).group_by(FinancialTransaction.category).order_by(func.sum(FinancialTransaction.amount).desc()).limit(5).all()
+        
         return {
             "total_income": float(total_income),
             "total_expense": float(total_expense),
-            "net_profit": float(total_income - total_expense)
+            "net_profit": float(total_income - total_expense),
+            "monthly_income": float(monthly_income),
+            "monthly_expense": float(monthly_expense),
+            "monthly_net": float(monthly_income - monthly_expense),
+            "income_count": income_count,
+            "expense_count": expense_count,
+            "total_transactions": income_count + expense_count,
+            "top_income_categories": [{"category": cat.category, "total": float(cat.total)} for cat in top_income_categories],
+            "top_expense_categories": [{"category": cat.category, "total": float(cat.total)} for cat in top_expense_categories]
         }
         
     except Exception as e:
