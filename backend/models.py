@@ -473,8 +473,8 @@ class ServiceBookingCreate(BaseModel):
     description: str = Field(..., min_length=10, max_length=1000)
     preferred_date: datetime
     location: str = Field(..., max_length=200)
-    urgency: str = Field(default="normal")  # urgent, normal, low
-    estimated_duration: Optional[int] = Field(None, gt=0)  # in hours
+    cost_estimate: Optional[float] = Field(None, ge=0)
+    notes: Optional[str] = Field(None, max_length=500)
 
 class ServiceBooking(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
