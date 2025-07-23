@@ -506,6 +506,7 @@ class Invoice(Base):
     # Related record IDs for auto-generated invoices
     order_id = Column(String(36), ForeignKey("orders.id"), nullable=True)
     service_booking_id = Column(String(36), ForeignKey("service_bookings.id"), nullable=True)
+    recurring_invoice_id = Column(String(36), ForeignKey("recurring_invoices.id"), nullable=True)
     
     # Recurring invoice settings
     is_recurring = Column(Boolean, default=False)
