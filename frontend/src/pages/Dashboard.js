@@ -119,7 +119,11 @@ const Dashboard = () => {
     address: '',
     client_type: 'individual',
     company_name: '',
-    tax_number: ''
+    tax_number: '',
+    logo: '',
+    website_url: '',
+    showcase_on_website: false,
+    display_order: 0
   });
   
   const [orderForm, setOrderForm] = useState({
