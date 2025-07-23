@@ -431,12 +431,10 @@ metadata:
   run_ui: false
 
 test_plan:
-  current_focus:
-    - "Comprehensive Invoicing Module API"
-    - "Invoice Management Frontend"
+  current_focus: []
   stuck_tasks: []
   test_all: false
-  test_priority: "invoicing_crud_verification"
+  test_priority: "completed"
 
 agent_communication:
     - agent: "main"
