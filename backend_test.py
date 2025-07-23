@@ -1719,12 +1719,12 @@ class BackendTester:
         print("TESTING ENHANCED FINANCE MANAGEMENT API")
         print("="*60)
         
-        # Basic finance tests
+        # Basic finance tests - create some transactions first
         self.test_financial_transactions_get()
-        self.test_financial_transactions_create()
+        created_transaction_id = self.test_financial_transactions_create()
         self.test_financial_transaction_types()
         
-        # Enhanced finance management tests
+        # Enhanced finance management tests - these depend on having transactions
         self.test_finance_transaction_single()
         self.test_finance_transaction_update()
         self.test_finance_transaction_delete()
