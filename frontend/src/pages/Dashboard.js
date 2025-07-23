@@ -996,9 +996,101 @@ const Dashboard = () => {
     return filtered;
   };
 
-  const getUniqueCategories = () => {
-    const categories = [...new Set(dashboardData.financialTransactions.map(t => t.category))];
-    return categories.filter(cat => cat);
+  const handleGenerateReport = async (reportType, format) => {
+    try {
+      const response = await axios.get(`${API}/reports/${reportType}/${format}`, {
+        responseType: 'blob'
+      });
+      
+      if (response.status === 200) {
+        // Create download link
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `${reportType}_report_${new Date().toISOString().split('T')[0]}.${format}`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        
+        toast({
+          title: "Success",
+          description: `${reportType.charAt(0).toUpperCase() + reportType.slice(1)} report generated successfully!`,
+        });
+      }
+    } catch (error) {
+      console.error('Error generating report:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate report. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handlePrintReport = async (reportType) => {
+    try {
+      const response = await axios.get(`${API}/reports/${reportType}/pdf`, {
+        responseType: 'blob'
+      });
+      
+      if (response.status === 200) {
+        // Create print window
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const printWindow = window.open(url, '_blank');
+        
+        if (printWindow) {
+          printWindow.onload = () => {
+            printWindow.print();
+          };
+        }
+        
+        toast({
+          title: "Success",
+          description: "Report opened for printing!",
+        });
+      }
+    } catch (error) {
+      console.error('Error printing report:', error);
+      toast({
+        title: "Error",
+        description: "Failed to print report. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getReportIcon = (reportId) => {
+    switch (reportId) {
+      case 'orders':
+        return <FileText className="h-6 w-6" />;
+      case 'inventory':
+        return <Package className="h-6 w-6" />;
+      case 'finance':
+        return <DollarSign className="h-6 w-6" />;
+      case 'services':
+        return <Calendar className="h-6 w-6" />;
+      case 'comprehensive':
+        return <BarChart3 className="h-6 w-6" />;
+      default:
+        return <FileText className="h-6 w-6" />;
+    }
+  };
+
+  const getReportColor = (reportId) => {
+    switch (reportId) {
+      case 'orders':
+        return 'bg-blue-100 text-blue-600';
+      case 'inventory':
+        return 'bg-green-100 text-green-600';
+      case 'finance':
+        return 'bg-purple-100 text-purple-600';
+      case 'services':
+        return 'bg-orange-100 text-orange-600';
+      case 'comprehensive':
+        return 'bg-gray-100 text-gray-600';
+      default:
+        return 'bg-gray-100 text-gray-600';
+    }
   };
 
   // POS Functions
