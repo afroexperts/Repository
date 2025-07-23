@@ -97,6 +97,22 @@ class PaymentStatus(enum.Enum):
     failed = "failed"
     refunded = "refunded"
 
+class PortfolioCategory(enum.Enum):
+    digital_platforms = "Digital Platforms"
+    business_solutions = "Business Solutions"
+    network_solutions = "Network Solutions"
+    security_solutions = "Security Solutions"
+    connectivity_solutions = "Connectivity Solutions"
+    media_events = "Media & Events"
+    manufacturing = "Manufacturing"
+
+class PortfolioStatus(enum.Enum):
+    live = "Live"
+    active = "Active"
+    completed = "Completed"
+    operating = "Operating"
+    in_progress = "In Progress"
+
 class Currency(enum.Enum):
     rwf = "RWF"
     usd = "USD"
