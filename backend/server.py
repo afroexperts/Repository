@@ -27,7 +27,9 @@ from database import (
     get_db, create_tables, User, Product, Order, OrderItem, Client,
     InventoryMovement, PosTransaction, ServiceBooking, FinancialTransaction,
     WebsiteSetting, ContactSubmission, UserRole, UserStatus, OrderStatus,
-    PaymentMethod, ServiceType, MovementType, TransactionType
+    PaymentMethod, ServiceType, MovementType, TransactionType,
+    Invoice, InvoiceItem, InvoicePayment, InvoiceLog, InvoiceTemplate,
+    InvoiceStatus, InvoiceType, PaymentStatus, Currency
 )
 
 # Import Pydantic models for validation (keeping the existing ones)
