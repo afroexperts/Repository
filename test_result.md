@@ -433,7 +433,7 @@ test_plan:
     - "Invoice Management Frontend"
   stuck_tasks: []
   test_all: false
-  test_priority: "invoicing_module_completion"
+  test_priority: "invoicing_crud_verification"
 
 agent_communication:
     - agent: "main"
