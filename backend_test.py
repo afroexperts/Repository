@@ -1229,9 +1229,10 @@ class BackendTester:
         
         success, data, status_code = self.make_request("POST", "/services/bookings", booking_data)
         
-        if success and status_code == 200 and data.get("success"):
+        if success and status_code == 200 and data.get("id"):
             booking_id = data.get("id")
-            self.log_test("Create Service Booking", True, f"Created service booking with ID: {booking_id}")
+            booking_number = data.get("booking_number", "Unknown")
+            self.log_test("Create Service Booking", True, f"Created service booking {booking_number} with ID: {booking_id}")
             return booking_id
         else:
             self.log_test("Create Service Booking", False, f"Status: {status_code}", data)
