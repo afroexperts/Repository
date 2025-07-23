@@ -113,6 +113,22 @@ class PortfolioStatus(enum.Enum):
     operating = "Operating"
     in_progress = "In Progress"
 
+class SecondHandCondition(enum.Enum):
+    excellent = "excellent"
+    very_good = "very_good"
+    good = "good"
+    fair = "fair"
+    poor = "poor"
+
+class SecondHandCategory(enum.Enum):
+    electronics = "electronics"
+    furniture = "furniture"
+    appliances = "appliances"
+    vehicles = "vehicles"
+    machinery = "machinery"
+    office_equipment = "office_equipment"
+    other = "other"
+
 class Currency(enum.Enum):
     rwf = "RWF"
     usd = "USD"
