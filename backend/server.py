@@ -3684,6 +3684,372 @@ def delete_secondhand_item(item_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Failed to delete second-hand item: {str(e)}")
 
 # ===============================
+# Marble Dust Production Management Endpoints
+# ===============================
+
+@app.get("/api/marble-dust")
+def get_marble_dust_batches(db: Session = Depends(get_db)):
+    """Get all marble dust batches with enhanced details"""
+    try:
+        batches = db.query(MarbleDustBatch).order_by(MarbleDustBatch.created_at.desc()).all()
+        
+        # Format response
+        formatted_batches = []
+        for batch in batches:
+            formatted_batch = {
+                "id": batch.id,
+                "batch_number": batch.batch_number,
+                "production_date": batch.production_date.isoformat() if batch.production_date else None,
+                "quantity_kg": batch.quantity_kg,
+                "remaining_quantity_kg": batch.remaining_quantity_kg,
+                "quality_grade": batch.quality_grade,
+                "source_material": batch.source_material,
+                "production_location": batch.production_location,
+                "moisture_content": batch.moisture_content,
+                "particle_size_mm": batch.particle_size_mm,
+                "color_classification": batch.color_classification,
+                "cost_per_kg": batch.cost_per_kg,
+                "selling_price_per_kg": batch.selling_price_per_kg,
+                "total_cost": batch.total_cost,
+                "total_revenue": batch.total_revenue,
+                "status": batch.status,
+                "notes": batch.notes,
+                "quality_test_results": batch.quality_test_results,
+                "created_by": batch.created_by,
+                "created_at": batch.created_at.isoformat() if batch.created_at else None,
+                "updated_at": batch.updated_at.isoformat() if batch.updated_at else None,
+                "shipped_at": batch.shipped_at.isoformat() if batch.shipped_at else None,
+                "profit_margin": ((batch.selling_price_per_kg - batch.cost_per_kg) / batch.cost_per_kg * 100) if batch.cost_per_kg > 0 else 0
+            }
+            formatted_batches.append(formatted_batch)
+        
+        return formatted_batches
+    except Exception as e:
+        logger.error(f"Get marble dust batches error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve marble dust batches")
+
+@app.post("/api/marble-dust")
+def create_marble_dust_batch(batch_data: MarbleDustBatchCreate, db: Session = Depends(get_db)):
+    """Create new marble dust batch"""
+    try:
+        user_id = "56846977-f345-439c-b019-3330f3d16b7e"  # Demo admin user
+        
+        # Check if batch number already exists
+        existing_batch = db.query(MarbleDustBatch).filter(MarbleDustBatch.batch_number == batch_data.batch_number).first()
+        if existing_batch:
+            raise HTTPException(status_code=400, detail="Batch number already exists")
+        
+        # Calculate total cost
+        total_cost = batch_data.quantity_kg * batch_data.cost_per_kg
+        
+        # Create marble dust batch
+        db_batch = MarbleDustBatch(
+            batch_number=batch_data.batch_number,
+            production_date=batch_data.production_date,
+            quantity_kg=batch_data.quantity_kg,
+            remaining_quantity_kg=batch_data.quantity_kg,  # Initially all quantity remains
+            quality_grade=batch_data.quality_grade.value if hasattr(batch_data.quality_grade, 'value') else batch_data.quality_grade,
+            source_material=batch_data.source_material,
+            production_location=batch_data.production_location,
+            moisture_content=batch_data.moisture_content,
+            particle_size_mm=batch_data.particle_size_mm,
+            color_classification=batch_data.color_classification,
+            cost_per_kg=batch_data.cost_per_kg,
+            selling_price_per_kg=batch_data.selling_price_per_kg,
+            total_cost=total_cost,
+            total_revenue=0.0,
+            status="in_production",
+            notes=batch_data.notes,
+            quality_test_results={},
+            created_by=user_id
+        )
+        
+        db.add(db_batch)
+        db.commit()
+        db.refresh(db_batch)
+        
+        return {
+            "success": True,
+            "message": "Marble dust batch created successfully",
+            "id": db_batch.id,
+            "batch_number": db_batch.batch_number
+        }
+        
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Create marble dust batch error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create marble dust batch: {str(e)}")
+
+@app.get("/api/marble-dust/summary")
+def get_marble_dust_summary(db: Session = Depends(get_db)):
+    """Get marble dust production statistics and summary"""
+    try:
+        # Total batches
+        total_batches = db.query(MarbleDustBatch).count()
+        
+        # Batches by quality grade
+        quality_counts = {}
+        for quality in MarbleDustQuality:
+            count = db.query(MarbleDustBatch).filter(MarbleDustBatch.quality_grade == quality.value).count()
+            quality_counts[quality.value] = count
+        
+        # Batches by status
+        status_counts = {}
+        for status in MarbleDustStatus:
+            count = db.query(MarbleDustBatch).filter(MarbleDustBatch.status == status.value).count()
+            status_counts[status.value] = count
+        
+        # Production statistics
+        from sqlalchemy import func
+        production_stats = db.query(
+            func.sum(MarbleDustBatch.quantity_kg).label('total_produced'),
+            func.sum(MarbleDustBatch.remaining_quantity_kg).label('total_remaining'),
+            func.sum(MarbleDustBatch.total_cost).label('total_production_cost'),
+            func.sum(MarbleDustBatch.total_revenue).label('total_revenue'),
+            func.avg(MarbleDustBatch.cost_per_kg).label('avg_cost_per_kg'),
+            func.avg(MarbleDustBatch.selling_price_per_kg).label('avg_selling_price')
+        ).first()
+        
+        # Calculate total sold and profit
+        total_produced = float(production_stats.total_produced) if production_stats.total_produced else 0
+        total_remaining = float(production_stats.total_remaining) if production_stats.total_remaining else 0
+        total_sold = total_produced - total_remaining
+        total_cost = float(production_stats.total_production_cost) if production_stats.total_production_cost else 0
+        total_revenue = float(production_stats.total_revenue) if production_stats.total_revenue else 0
+        total_profit = total_revenue - total_cost
+        
+        # Recent batches
+        recent_batches = db.query(MarbleDustBatch).order_by(MarbleDustBatch.created_at.desc()).limit(5).all()
+        
+        # Low stock batches (less than 10% remaining)
+        low_stock_batches = db.query(MarbleDustBatch).filter(
+            MarbleDustBatch.remaining_quantity_kg < (MarbleDustBatch.quantity_kg * 0.1),
+            MarbleDustBatch.remaining_quantity_kg > 0
+        ).count()
+        
+        return {
+            "total_batches": total_batches,
+            "quality_counts": quality_counts,
+            "status_counts": status_counts,
+            "production_statistics": {
+                "total_produced_kg": total_produced,
+                "total_remaining_kg": total_remaining,
+                "total_sold_kg": total_sold,
+                "total_production_cost": total_cost,
+                "total_revenue": total_revenue,
+                "total_profit": total_profit,
+                "avg_cost_per_kg": float(production_stats.avg_cost_per_kg) if production_stats.avg_cost_per_kg else 0,
+                "avg_selling_price_per_kg": float(production_stats.avg_selling_price) if production_stats.avg_selling_price else 0,
+                "profit_margin_percentage": (total_profit / total_cost * 100) if total_cost > 0 else 0
+            },
+            "recent_batches": len(recent_batches),
+            "low_stock_batches": low_stock_batches
+        }
+    except Exception as e:
+        logger.error(f"Get marble dust summary error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve marble dust summary: {str(e)}")
+
+@app.get("/api/marble-dust/{batch_id}")
+def get_marble_dust_batch(batch_id: str, db: Session = Depends(get_db)):
+    """Get single marble dust batch with full details"""
+    try:
+        batch = db.query(MarbleDustBatch).filter(MarbleDustBatch.id == batch_id).first()
+        if not batch:
+            raise HTTPException(status_code=404, detail="Marble dust batch not found")
+        
+        # Format response
+        formatted_batch = {
+            "id": batch.id,
+            "batch_number": batch.batch_number,
+            "production_date": batch.production_date.isoformat() if batch.production_date else None,
+            "quantity_kg": batch.quantity_kg,
+            "remaining_quantity_kg": batch.remaining_quantity_kg,
+            "quality_grade": batch.quality_grade,
+            "source_material": batch.source_material,
+            "production_location": batch.production_location,
+            "moisture_content": batch.moisture_content,
+            "particle_size_mm": batch.particle_size_mm,
+            "color_classification": batch.color_classification,
+            "cost_per_kg": batch.cost_per_kg,
+            "selling_price_per_kg": batch.selling_price_per_kg,
+            "total_cost": batch.total_cost,
+            "total_revenue": batch.total_revenue,
+            "status": batch.status,
+            "notes": batch.notes,
+            "quality_test_results": batch.quality_test_results,
+            "created_by": batch.created_by,
+            "created_by_name": batch.created_by_user.full_name if batch.created_by_user else "Unknown",
+            "created_at": batch.created_at.isoformat() if batch.created_at else None,
+            "updated_at": batch.updated_at.isoformat() if batch.updated_at else None,
+            "shipped_at": batch.shipped_at.isoformat() if batch.shipped_at else None,
+            "profit_margin": ((batch.selling_price_per_kg - batch.cost_per_kg) / batch.cost_per_kg * 100) if batch.cost_per_kg > 0 else 0,
+            "sold_quantity_kg": batch.quantity_kg - batch.remaining_quantity_kg
+        }
+        
+        return formatted_batch
+    except Exception as e:
+        logger.error(f"Get marble dust batch error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve marble dust batch")
+
+@app.put("/api/marble-dust/{batch_id}")
+def update_marble_dust_batch(batch_id: str, batch_update: MarbleDustBatchUpdate, db: Session = Depends(get_db)):
+    """Update existing marble dust batch"""
+    try:
+        # Get existing batch
+        db_batch = db.query(MarbleDustBatch).filter(MarbleDustBatch.id == batch_id).first()
+        if not db_batch:
+            raise HTTPException(status_code=404, detail="Marble dust batch not found")
+        
+        # Update fields
+        update_data = batch_update.dict(exclude_unset=True)
+        for field, value in update_data.items():
+            if field == 'quality_grade' and hasattr(value, 'value'):
+                setattr(db_batch, field, value.value)
+            elif field == 'status' and hasattr(value, 'value'):
+                setattr(db_batch, field, value.value)
+                if value.value == 'shipped':
+                    db_batch.shipped_at = datetime.utcnow()
+            elif field == 'quantity_kg':
+                # If quantity changes, adjust remaining quantity proportionally
+                old_quantity = db_batch.quantity_kg
+                new_quantity = value
+                if old_quantity > 0:
+                    proportion_remaining = db_batch.remaining_quantity_kg / old_quantity
+                    db_batch.remaining_quantity_kg = new_quantity * proportion_remaining
+                setattr(db_batch, field, value)
+                # Recalculate total cost
+                db_batch.total_cost = new_quantity * db_batch.cost_per_kg
+            elif field == 'cost_per_kg':
+                setattr(db_batch, field, value)
+                # Recalculate total cost
+                db_batch.total_cost = db_batch.quantity_kg * value
+            else:
+                setattr(db_batch, field, value)
+        
+        db_batch.updated_at = datetime.utcnow()
+        
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": "Marble dust batch updated successfully",
+            "id": db_batch.id
+        }
+        
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Update marble dust batch error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to update marble dust batch: {str(e)}")
+
+@app.delete("/api/marble-dust/{batch_id}")
+def delete_marble_dust_batch(batch_id: str, db: Session = Depends(get_db)):
+    """Delete marble dust batch"""
+    try:
+        # Get existing batch
+        db_batch = db.query(MarbleDustBatch).filter(MarbleDustBatch.id == batch_id).first()
+        if not db_batch:
+            raise HTTPException(status_code=404, detail="Marble dust batch not found")
+        
+        # Check if batch can be deleted (only if not shipped or sold)
+        if db_batch.status in ["shipped", "sold"]:
+            raise HTTPException(status_code=400, detail="Cannot delete shipped or sold batches")
+        
+        # Delete batch
+        db.delete(db_batch)
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": "Marble dust batch deleted successfully"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Delete marble dust batch error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete marble dust batch: {str(e)}")
+
+@app.get("/api/marble-dust/quality/{quality}")
+def get_marble_dust_by_quality(quality: str, db: Session = Depends(get_db)):
+    """Get marble dust batches by quality grade"""
+    try:
+        # Validate quality
+        valid_qualities = [q.value for q in MarbleDustQuality]
+        if quality not in valid_qualities:
+            raise HTTPException(status_code=400, detail="Invalid quality grade")
+        
+        batches = db.query(MarbleDustBatch).filter(MarbleDustBatch.quality_grade == quality).order_by(MarbleDustBatch.created_at.desc()).all()
+        
+        # Format response
+        formatted_batches = []
+        for batch in batches:
+            formatted_batch = {
+                "id": batch.id,
+                "batch_number": batch.batch_number,
+                "production_date": batch.production_date.isoformat() if batch.production_date else None,
+                "quantity_kg": batch.quantity_kg,
+                "remaining_quantity_kg": batch.remaining_quantity_kg,
+                "quality_grade": batch.quality_grade,
+                "selling_price_per_kg": batch.selling_price_per_kg,
+                "status": batch.status,
+                "production_location": batch.production_location,
+                "created_at": batch.created_at.isoformat() if batch.created_at else None
+            }
+            formatted_batches.append(formatted_batch)
+        
+        return {
+            "quality": quality,
+            "total_batches": len(batches),
+            "batches": formatted_batches
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Get marble dust by quality error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve marble dust batches by quality: {str(e)}")
+
+@app.get("/api/marble-dust/status/{status}")
+def get_marble_dust_by_status(status: str, db: Session = Depends(get_db)):
+    """Get marble dust batches by status"""
+    try:
+        # Validate status
+        valid_statuses = [s.value for s in MarbleDustStatus]
+        if status not in valid_statuses:
+            raise HTTPException(status_code=400, detail="Invalid status")
+        
+        batches = db.query(MarbleDustBatch).filter(MarbleDustBatch.status == status).order_by(MarbleDustBatch.created_at.desc()).all()
+        
+        # Format response
+        formatted_batches = []
+        for batch in batches:
+            formatted_batch = {
+                "id": batch.id,
+                "batch_number": batch.batch_number,
+                "production_date": batch.production_date.isoformat() if batch.production_date else None,
+                "quantity_kg": batch.quantity_kg,
+                "remaining_quantity_kg": batch.remaining_quantity_kg,
+                "quality_grade": batch.quality_grade,
+                "status": batch.status,
+                "production_location": batch.production_location,
+                "created_at": batch.created_at.isoformat() if batch.created_at else None
+            }
+            formatted_batches.append(formatted_batch)
+        
+        return {
+            "status": status,
+            "total_batches": len(batches),
+            "batches": formatted_batches
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Get marble dust by status error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve marble dust batches by status: {str(e)}")
+
+# ===============================
 # Legacy Endpoints (for compatibility)
 # ===============================
 
