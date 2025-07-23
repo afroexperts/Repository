@@ -411,6 +411,7 @@ metadata:
 test_plan:
   current_focus:
     - "Reports Module API"
+    - "Reports Module Frontend"
   stuck_tasks: []
   test_all: false
   test_priority: "reports_module_completion"
