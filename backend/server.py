@@ -760,7 +760,7 @@ def create_financial_transaction(transaction_data: FinancialTransactionCreate, d
     """Create financial transaction with enhanced validation"""
     try:
         # Get user ID from token (simplified for demo)
-        user_id = "1502c12e-6750-11f0-adbc-46c85275ff51"
+        user_id = "afea850b-dd9c-436b-96a0-e1f8b293e497"
         
         # Generate transaction number
         transaction_count = db.query(FinancialTransaction).count()
