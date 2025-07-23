@@ -3055,7 +3055,7 @@ def generate_invoice_from_service(service_booking_id: str, db: Session = Depends
             action="created",
             description=f"Invoice {invoice_number} generated from service booking {service_booking.booking_number}",
             performed_by=user_id,
-            metadata={"service_booking_id": service_booking_id, "booking_number": service_booking.booking_number}
+            log_metadata={"service_booking_id": service_booking_id, "booking_number": service_booking.booking_number}
         )
         db.add(log_entry)
         
