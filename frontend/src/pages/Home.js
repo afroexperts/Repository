@@ -36,6 +36,7 @@ const Home = () => {
   const [selectedPlan, setSelectedPlan] = useState("business");
   const [impactStats, setImpactStats] = useState(mockData.impact.stats);
   const [testimonials, setTestimonials] = useState(mockData.testimonials);
+  const [clientShowcase, setClientShowcase] = useState([]);
   const [isQuoteLoading, setIsQuoteLoading] = useState(false);
   const [isStarlinkLoading, setIsStarlinkLoading] = useState(false);
   const { toast } = useToast();
