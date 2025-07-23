@@ -3002,6 +3002,275 @@ const Dashboard = () => {
           </div>
         );
 
+      case "invoices":
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold">Invoice Management</h2>
+                <p className="text-gray-600">Create and manage invoices for sales and services</p>
+              </div>
+              <div className="flex space-x-2">
+                <Select value={invoiceStatusFilter} onValueChange={setInvoiceStatusFilter}>
+                  <SelectTrigger className="w-[140px]">
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="draft">Draft</SelectItem>
+                    <SelectItem value="sent">Sent</SelectItem>
+                    <SelectItem value="paid">Paid</SelectItem>
+                    <SelectItem value="partially_paid">Partially Paid</SelectItem>
+                    <SelectItem value="overdue">Overdue</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={invoiceTypeFilter} onValueChange={setInvoiceTypeFilter}>
+                  <SelectTrigger className="w-[140px]">
+                    <SelectValue placeholder="Filter by type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Types</SelectItem>
+                    <SelectItem value="manual">Manual</SelectItem>
+                    <SelectItem value="pos_sale">POS Sale</SelectItem>
+                    <SelectItem value="service_booking">Service Booking</SelectItem>
+                    <SelectItem value="rental">Rental</SelectItem>
+                    <SelectItem value="logistics">Logistics</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button 
+                  className="bg-[#0c4864]"
+                  onClick={() => setShowInvoiceModal(true)}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Invoice
+                </Button>
+              </div>
+            </div>
+
+            {/* Invoice Statistics */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Total Invoices</p>
+                      <p className="text-2xl font-bold">{dashboardData.invoicesSummary.total_invoices || 0}</p>
+                    </div>
+                    <FileText className="h-8 w-8 text-blue-600" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Total Invoiced</p>
+                      <p className="text-2xl font-bold text-green-600">
+                        RWF {dashboardData.invoicesSummary.total_invoiced?.toLocaleString() || '0'}
+                      </p>
+                    </div>
+                    <TrendingUp className="h-8 w-8 text-green-600" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Total Paid</p>
+                      <p className="text-2xl font-bold text-purple-600">
+                        RWF {dashboardData.invoicesSummary.total_paid?.toLocaleString() || '0'}
+                      </p>
+                    </div>
+                    <CheckCircle className="h-8 w-8 text-purple-600" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Outstanding</p>
+                      <p className="text-2xl font-bold text-red-600">
+                        RWF {dashboardData.invoicesSummary.total_outstanding?.toLocaleString() || '0'}
+                      </p>
+                    </div>
+                    <AlertTriangle className="h-8 w-8 text-red-600" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Invoice Status Summary */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              <Card>
+                <CardContent className="p-3">
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-gray-600">
+                      {dashboardData.invoicesSummary.status_counts?.draft || 0}
+                    </div>
+                    <div className="text-sm text-gray-500">Draft</div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-3">
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-blue-600">
+                      {dashboardData.invoicesSummary.status_counts?.sent || 0}
+                    </div>
+                    <div className="text-sm text-gray-500">Sent</div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-3">
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-green-600">
+                      {dashboardData.invoicesSummary.status_counts?.paid || 0}
+                    </div>
+                    <div className="text-sm text-gray-500">Paid</div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-3">
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-yellow-600">
+                      {dashboardData.invoicesSummary.status_counts?.partially_paid || 0}
+                    </div>
+                    <div className="text-sm text-gray-500">Partial</div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-3">
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-red-600">
+                      {dashboardData.invoicesSummary.status_counts?.overdue || 0}
+                    </div>
+                    <div className="text-sm text-gray-500">Overdue</div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-3">
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-gray-600">
+                      {dashboardData.invoicesSummary.status_counts?.cancelled || 0}
+                    </div>
+                    <div className="text-sm text-gray-500">Cancelled</div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Invoices List */}
+            <Card>
+              <CardHeader>
+                <CardTitle>
+                  Invoices ({invoiceStatusFilter === 'all' ? 'All' : invoiceStatusFilter.replace('_', ' ').charAt(0).toUpperCase() + invoiceStatusFilter.replace('_', ' ').slice(1)})
+                </CardTitle>
+                <CardDescription>
+                  Manage all your invoices and billing
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {getFilteredInvoices().length > 0 ? (
+                  <div className="space-y-4">
+                    {getFilteredInvoices().map((invoice) => (
+                      <div key={invoice.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+                        <div className="space-y-1">
+                          <div className="flex items-center space-x-2">
+                            <h4 className="font-medium">{invoice.invoice_number}</h4>
+                            <span className={`px-2 py-1 text-xs rounded-full ${getInvoiceStatusColor(invoice.status)}`}>
+                              {invoice.status.replace('_', ' ').toUpperCase()}
+                            </span>
+                            <span className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded-full">
+                              {getInvoiceTypeDisplayName(invoice.invoice_type)}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-600">{invoice.client_name}</p>
+                          <p className="text-xs text-gray-500">
+                            Created: {new Date(invoice.created_at).toLocaleDateString()}
+                            {invoice.due_date && ` | Due: ${new Date(invoice.due_date).toLocaleDateString()}`}
+                          </p>
+                        </div>
+                        <div className="text-right space-y-2">
+                          <div>
+                            <p className="font-semibold text-lg">
+                              {invoice.currency} {invoice.total_amount.toLocaleString()}
+                            </p>
+                            {invoice.balance_due > 0 && (
+                              <p className="text-sm text-red-600">
+                                Balance: {invoice.currency} {invoice.balance_due.toLocaleString()}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex space-x-2">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => handleViewInvoiceDetails(invoice.id)}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            {invoice.status === 'draft' && (
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => handleEditInvoice(invoice)}
+                              >
+                                Edit
+                              </Button>
+                            )}
+                            {invoice.balance_due > 0 && invoice.status !== 'cancelled' && (
+                              <Button 
+                                size="sm" 
+                                className="bg-green-600 hover:bg-green-700"
+                                onClick={() => {
+                                  setSelectedInvoice(invoice);
+                                  setPaymentForm(prev => ({ ...prev, amount: invoice.balance_due }));
+                                  setShowInvoicePaymentModal(true);
+                                }}
+                              >
+                                Add Payment
+                              </Button>
+                            )}
+                            {invoice.status === 'draft' && (
+                              <Button 
+                                size="sm" 
+                                variant="destructive"
+                                onClick={() => handleDeleteInvoice(invoice.id)}
+                              >
+                                Delete
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>No invoices found for the selected filter</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        );
+
       case "reports":
         return (
           <div className="space-y-6">
