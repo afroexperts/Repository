@@ -3335,8 +3335,9 @@ def get_portfolio_summary(db: Session = Depends(get_db)):
         technology_usage = {}
         all_items = db.query(PortfolioItem).all()
         for item in all_items:
-            for tech in item.technologies:
-                technology_usage[tech] = technology_usage.get(tech, 0) + 1
+            if item.technologies and isinstance(item.technologies, list):
+                for tech in item.technologies:
+                    technology_usage[tech] = technology_usage.get(tech, 0) + 1
         
         # Sort technologies by usage
         top_technologies = sorted(technology_usage.items(), key=lambda x: x[1], reverse=True)[:10]
