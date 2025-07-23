@@ -37,7 +37,8 @@ from models import (
     UserCreate, UserLogin, LoginResponse, DashboardStatsResponse,
     ProductCreate, OrderCreate, ClientCreate, InventoryMovementCreate,
     ServiceBookingCreate, FinancialTransactionCreate, ContactSubmissionCreate,
-    WebsiteSettingsUpdate
+    WebsiteSettingsUpdate, InvoiceCreate, InvoiceUpdate, InvoiceItemCreate,
+    InvoicePaymentCreate, InvoicePaymentUpdate, InvoiceTemplateCreate
 )
 
 # Configure logging
