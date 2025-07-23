@@ -2616,7 +2616,7 @@ def update_invoice(invoice_id: str, invoice_update: InvoiceUpdate, db: Session =
 def delete_invoice(invoice_id: str, db: Session = Depends(get_db)):
     """Delete invoice"""
     try:
-        user_id = "1502c12e-6750-11f0-adbc-46c85275ff51"
+        user_id = "afea850b-dd9c-436b-96a0-e1f8b293e497"
         
         invoice = db.query(Invoice).filter(Invoice.id == invoice_id).first()
         if not invoice:
