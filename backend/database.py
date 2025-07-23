@@ -761,6 +761,130 @@ class StarlinkInstallation(Base):
     # Relationships
     created_by_user = relationship("User")
 
+# RBAC Tables
+class RolePermission(Base):
+    __tablename__ = "role_permissions"
+    
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    role = Column(String(50), nullable=False)  # UserRole enum value
+    permission = Column(String(100), nullable=False)  # Permission enum value
+    granted = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    __table_args__ = (UniqueConstraint('role', 'permission'),)
+
+class UserPermission(Base):
+    __tablename__ = "user_permissions"
+    
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
+    permission = Column(String(100), nullable=False)  # Permission enum value
+    granted = Column(Boolean, default=True, nullable=False)
+    granted_by = Column(String(36), ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    expires_at = Column(DateTime, nullable=True)
+    
+    # Relationships
+    user = relationship("User", foreign_keys=[user_id])
+    granted_by_user = relationship("User", foreign_keys=[granted_by])
+
+# Multi-language Support Tables
+class Translation(Base):
+    __tablename__ = "translations"
+    
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    key = Column(String(200), nullable=False, index=True)  # Translation key (e.g., "dashboard.title")
+    language = Column(String(5), nullable=False)  # Language enum value
+    value = Column(Text, nullable=False)  # Translated text
+    category = Column(String(50), nullable=True)  # Category for organization (e.g., "ui", "email", "reports")
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    __table_args__ = (UniqueConstraint('key', 'language'),)
+
+class UserPreference(Base):
+    __tablename__ = "user_preferences"
+    
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
+    language = Column(String(5), nullable=False, default="en")  # Language enum value
+    timezone = Column(String(50), nullable=False, default="UTC")
+    date_format = Column(String(20), nullable=False, default="YYYY-MM-DD")
+    currency = Column(String(5), nullable=False, default="RWF")
+    theme = Column(String(20), nullable=False, default="light")  # light, dark
+    notifications_enabled = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    user = relationship("User", back_populates="preferences")
+
+# Recurring Invoice Tables
+class RecurringInvoiceFrequency(enum.Enum):
+    weekly = "weekly"
+    monthly = "monthly"
+    quarterly = "quarterly"
+    semi_annually = "semi_annually"
+    annually = "annually"
+
+class RecurringInvoice(Base):
+    __tablename__ = "recurring_invoices"
+    
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    template_name = Column(String(200), nullable=False)
+    client_id = Column(String(36), ForeignKey("clients.id"), nullable=False)
+    frequency = Column(String(20), nullable=False)  # RecurringInvoiceFrequency enum value
+    start_date = Column(Date, nullable=False)
+    end_date = Column(Date, nullable=True)  # NULL for indefinite
+    next_invoice_date = Column(Date, nullable=False)
+    last_generated_date = Column(Date, nullable=True)
+    
+    # Invoice template data
+    invoice_type = Column(String(50), nullable=False, default="manual")
+    subtotal = Column(Float, nullable=False)
+    tax_rate = Column(Float, nullable=False, default=0.18)
+    tax_amount = Column(Float, nullable=False)
+    discount_amount = Column(Float, nullable=False, default=0.0)
+    total_amount = Column(Float, nullable=False)
+    currency = Column(String(5), nullable=False, default="RWF")
+    notes = Column(Text, nullable=True)
+    terms = Column(Text, nullable=True)
+    
+    # Status and automation
+    is_active = Column(Boolean, default=True)
+    auto_send = Column(Boolean, default=False)
+    send_reminder = Column(Boolean, default=True)
+    reminder_days = Column(Integer, default=7)
+    
+    # Audit fields
+    created_by = Column(String(36), ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    client = relationship("Client")
+    created_by_user = relationship("User")
+    items = relationship("RecurringInvoiceItem", back_populates="recurring_invoice", cascade="all, delete-orphan")
+    generated_invoices = relationship("Invoice", back_populates="recurring_invoice")
+
+class RecurringInvoiceItem(Base):
+    __tablename__ = "recurring_invoice_items"
+    
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    recurring_invoice_id = Column(String(36), ForeignKey("recurring_invoices.id"), nullable=False)
+    item_type = Column(String(20), nullable=False, default="service")
+    product_id = Column(String(36), ForeignKey("products.id"), nullable=True)
+    description = Column(String(500), nullable=False)
+    quantity = Column(Float, nullable=False, default=1.0)
+    unit_price = Column(Float, nullable=False)
+    line_total = Column(Float, nullable=False)
+    discount_percentage = Column(Float, nullable=True)
+    discount_amount = Column(Float, nullable=True)
+    
+    # Relationships
+    recurring_invoice = relationship("RecurringInvoice", back_populates="items")
+    product = relationship("Product")
+
 # Dependency to get database session
 def get_db():
     db = SessionLocal()
