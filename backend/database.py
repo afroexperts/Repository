@@ -10,7 +10,7 @@ import os
 import hashlib
 
 # Database configuration
-DATABASE_URL = os.getenv("DATABASE_URL", "mysql://erp_user:ErpPassword2025!@localhost/afroexperts_erp")
+DATABASE_URL = os.getenv("DATABASE_URL", "mysql+pymysql://erp_user:ErpPassword2025!@localhost/afroexperts_erp")
 
 engine = create_engine(DATABASE_URL, echo=False)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
