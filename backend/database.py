@@ -331,6 +331,57 @@ class DatabaseManager:
             
             logger.info("Default clients created successfully")
 
+    # Client Showcase Methods
+    @staticmethod
+    async def get_client_showcase() -> List[ClientShowcase]:
+        """Get clients for public website showcase"""
+        query = {
+            "showcase_on_website": True,
+            "logo": {"$ne": None, "$exists": True}
+        }
+        cursor = clients_collection.find(query).sort([("display_order", 1), ("name", 1)])
+        clients = await cursor.to_list(length=100)
+        
+        showcase_clients = []
+        for client in clients:
+            showcase_client = ClientShowcase(
+                id=client["id"],
+                name=client["name"],
+                company_name=client.get("company_name"),
+                logo=client.get("logo"),
+                website_url=client.get("website_url"),
+                display_order=client.get("display_order", 0)
+            )
+            showcase_clients.append(showcase_client)
+        
+        return showcase_clients
+
+    @staticmethod
+    async def toggle_client_showcase(client_id: str) -> dict:
+        """Toggle client showcase visibility"""
+        client = await clients_collection.find_one({"id": client_id})
+        if not client:
+            raise ValueError("Client not found")
+        
+        new_showcase_status = not client.get("showcase_on_website", False)
+        
+        result = await clients_collection.update_one(
+            {"id": client_id},
+            {"$set": {
+                "showcase_on_website": new_showcase_status,
+                "updated_at": datetime.utcnow()
+            }}
+        )
+        
+        if result.modified_count > 0:
+            return {
+                "success": True,
+                "message": f"Client showcase {'enabled' if new_showcase_status else 'disabled'}",
+                "showcase_enabled": new_showcase_status
+            }
+        else:
+            raise ValueError("Failed to update client showcase status")
+
     # Order Management Methods
     @staticmethod
     async def create_order(order_data: OrderCreate, created_by: str) -> str:
