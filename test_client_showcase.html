@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client Showcase Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .client { 
+            border: 1px solid #ccc; 
+            margin: 10px; 
+            padding: 10px; 
+            display: inline-block; 
+            width: 200px;
+            text-align: center;
+        }
+        .client img { 
+            max-width: 100px; 
+            max-height: 100px; 
+        }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <h1>Client Showcase API Test</h1>
+    <div id="status">Loading...</div>
+    <div id="clients"></div>
+
+    <script>
+        const API_URL = 'https://1ad4de53-7dad-4698-b36a-d03ed0cb9890.preview.emergentagent.com/api/clients/showcase';
+        
+        async function testClientShowcase() {
+            const statusDiv = document.getElementById('status');
+            const clientsDiv = document.getElementById('clients');
+            
+            try {
+                console.log('Fetching from:', API_URL);
+                const response = await fetch(API_URL);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const clients = await response.json();
+                console.log('Client data:', clients);
+                
+                statusDiv.innerHTML = `<span class="success">✅ Successfully loaded ${clients.length} clients</span>`;
+                
+                if (clients.length === 0) {
+                    clientsDiv.innerHTML = '<p>No clients found in showcase.</p>';
+                    return;
+                }
+                
+                clientsDiv.innerHTML = clients.map(client => `
+                    <div class="client">
+                        <h3>${client.company_name || client.name}</h3>
+                        ${client.logo ? `<img src="${client.logo}" alt="${client.name}" />` : '<p>No logo</p>'}
+                        ${client.website_url ? `<p><a href="${client.website_url}" target="_blank">Visit Website</a></p>` : ''}
+                        <p>Display Order: ${client.display_order}</p>
+                    </div>
+                `).join('');
+                
+            } catch (error) {
+                console.error('Error:', error);
+                statusDiv.innerHTML = `<span class="error">❌ Error: ${error.message}</span>`;
+            }
+        }
+        
+        // Run the test when page loads
+        testClientShowcase();
+    </script>
+</body>
+</html>
