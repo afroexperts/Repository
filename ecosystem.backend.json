@@ -1,0 +1,18 @@
+{
+  "name": "afroexperts-backend",
+  "script": "server.py",
+  "interpreter": "python3",
+  "cwd": "./backend",
+  "env": {
+    "PYTHONPATH": "./backend",
+    "NODE_ENV": "production"
+  },
+  "instances": 1,
+  "exec_mode": "fork",
+  "watch": false,
+  "max_memory_restart": "1G",
+  "error_file": "./logs/backend-error.log",
+  "out_file": "./logs/backend-out.log",
+  "log_file": "./logs/backend-combined.log",
+  "time": true
+}
