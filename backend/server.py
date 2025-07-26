@@ -945,6 +945,41 @@ async def get_portfolio_stats():
 # Include the router in the main app
 app.include_router(api_router)
 
+# Client Showcase Endpoints
+@api_router.get("/clients/showcase", response_model=List[ClientShowcase])
+async def get_client_showcase():
+    """Get clients for public website showcase"""
+    try:
+        clients = await DatabaseManager.get_client_showcase()
+        return clients
+    except Exception as e:
+        logger.error(f"Error fetching client showcase: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to fetch client showcase"
+        )
+
+@api_router.post("/clients/{client_id}/toggle-showcase")
+async def toggle_client_showcase(
+    client_id: str,
+    current_user: User = Depends(require_role(["admin", "manager"]))
+):
+    """Toggle client showcase visibility"""
+    try:
+        result = await DatabaseManager.toggle_client_showcase(client_id)
+        return result
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error(f"Error toggling client showcase: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to toggle client showcase"
+        )
+
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
